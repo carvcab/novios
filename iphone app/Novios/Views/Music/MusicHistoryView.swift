@@ -59,7 +59,7 @@ public struct MusicHistoryView: View {
             }
         }
         .swipeActions(edge: .trailing) {
-            Button(role: .destructive) { withAnimation { songs.remove(at: index) } }
+            Button(role: .destructive) { withAnimation { songs.removeAll { $0.name == song.name } } }
                 label: { Label("Eliminar", systemImage: "trash") }
         }
     }
