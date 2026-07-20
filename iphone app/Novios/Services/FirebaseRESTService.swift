@@ -150,7 +150,17 @@ public class FirebaseRESTService {
     }
 
     public func firestoreGet(path: String) async throws -> [String: Any]? {
-        var headers = try await getAuthHeader()
+        var headers: [String: String] = [:]
+        do {
+            headers = try await getAuthHeader()
+        } catch {
+            if let newToken = try? await refreshIdToken() {
+                let _ = newToken
+                headers = try await getAuthHeader()
+            } else {
+                throw FirebaseError.notAuthenticated
+            }
+        }
         let url = URL(string: firestoreURL(path))!
         var req = URLRequest(url: url)
         req.allHTTPHeaderFields = headers
@@ -158,17 +168,29 @@ public class FirebaseRESTService {
             let data = try await performRequest(req)
             return try JSONSerialization.jsonObject(with: data) as? [String: Any]
         } catch FirebaseError.serverError(let msg) where msg.contains("401") || msg.contains("403") || msg.contains("unauthenticated") || msg.contains("UNAUTHENTICATED") {
-            // Token expired, refresh and retry
-            try await refreshIdToken()
-            headers = try await getAuthHeader()
-            req.allHTTPHeaderFields = headers
-            let data = try await performRequest(req)
-            return try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            if let newToken = try? await refreshIdToken() {
+                let _ = newToken
+                headers = try await getAuthHeader()
+                req.allHTTPHeaderFields = headers
+                let data = try await performRequest(req)
+                return try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            }
+            throw FirebaseError.notAuthenticated
         }
     }
 
     public func firestoreSet(path: String, fields: [String: Any]) async throws {
-        var headers = try await getAuthHeader()
+        var headers: [String: String] = [:]
+        do {
+            headers = try await getAuthHeader()
+        } catch {
+            if let newToken = try? await refreshIdToken() {
+                let _ = newToken
+                headers = try await getAuthHeader()
+            } else {
+                throw FirebaseError.notAuthenticated
+            }
+        }
         let url = URL(string: firestoreURL(path))!
         var req = URLRequest(url: url)
         req.httpMethod = "PATCH"
@@ -177,10 +199,14 @@ public class FirebaseRESTService {
         do {
             _ = try await performRequest(req)
         } catch FirebaseError.serverError(let msg) where msg.contains("401") || msg.contains("403") || msg.contains("unauthenticated") || msg.contains("UNAUTHENTICATED") {
-            try await refreshIdToken()
-            headers = try await getAuthHeader()
-            req.allHTTPHeaderFields = headers
-            _ = try await performRequest(req)
+            if let newToken = try? await refreshIdToken() {
+                let _ = newToken
+                headers = try await getAuthHeader()
+                req.allHTTPHeaderFields = headers
+                _ = try await performRequest(req)
+            } else {
+                throw FirebaseError.notAuthenticated
+            }
         }
     }
 
