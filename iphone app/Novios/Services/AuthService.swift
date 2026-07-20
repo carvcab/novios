@@ -85,7 +85,7 @@ public class AuthService: ObservableObject {
     private func clearUserDefaults() {
         let defaults = UserDefaults.standard
         ["auth_user_id","auth_user_email","auth_user_name","auth_logged_in","profile_dob","profile_username",
-         "partner_uid","partner_name","partner_skipped","fb_id_token","fb_local_id","fb_refresh_token"].forEach {
+         "partner_uid","partner_name","partner_skipped","fb_id_token","fb_local_id","fb_refresh_token","onboarding_complete"].forEach {
             defaults.removeObject(forKey: $0)
         }
     }
@@ -106,6 +106,7 @@ public class AuthService: ObservableObject {
         if !username.isEmpty || !displayName.isEmpty {
             defaults.set(dob, forKey: "profile_dob")
             defaults.set(username.isEmpty ? displayName.lowercased() : username, forKey: "profile_username")
+            defaults.set(true, forKey: "onboarding_complete")
             if !displayName.isEmpty {
                 defaults.set(displayName, forKey: "auth_user_name")
             }
@@ -125,8 +126,9 @@ public class AuthService: ObservableObject {
     }
 
     public func checkProfileAndPartner() {
-        hasProfile = (defaults.string(forKey: "profile_dob") != nil || defaults.string(forKey: "profile_username") != nil) &&
-                     !(defaults.string(forKey: "profile_username")?.isEmpty ?? true)
+        hasProfile = defaults.bool(forKey: "onboarding_complete") ||
+            ((defaults.string(forKey: "profile_dob") != nil || defaults.string(forKey: "profile_username") != nil) &&
+             !(defaults.string(forKey: "profile_username")?.isEmpty ?? true))
         hasPartner = defaults.string(forKey: "partner_uid") != nil &&
                      !(defaults.string(forKey: "partner_uid")?.isEmpty ?? true)
         partnerSkipped = defaults.bool(forKey: "partner_skipped")
@@ -168,6 +170,7 @@ public class AuthService: ObservableObject {
         defaults.set(dobStr, forKey: "profile_dob")
         defaults.set(username, forKey: "profile_username")
         if let name = partnerName { defaults.set(name, forKey: "profile_partner_name") }
+        defaults.set(true, forKey: "onboarding_complete")
         hasProfile = true
         // Sync to Firestore
         Task {
@@ -192,6 +195,7 @@ public class AuthService: ObservableObject {
     public func savePartner(uid: String, name: String) {
         defaults.set(uid, forKey: "partner_uid")
         defaults.set(name, forKey: "partner_name")
+        defaults.set(true, forKey: "onboarding_complete")
         hasPartner = true
         partnerSkipped = false
         // Sync to Firestore
