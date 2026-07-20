@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 public struct MessagesView: View {
     @StateObject private var chatService = ChatService.shared
@@ -7,6 +8,8 @@ public struct MessagesView: View {
     @State private var textInput = ""
     @State private var floatingHearts: [ChatHeartParticle] = []
     @State private var heartCounter = 0
+    @State private var showImagePicker = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
 
     private let quickEmojis = ["❤️", "😘", "🥺", "💖", "💑", "🔥", "🌹", "✨", "💍"]
 
@@ -145,6 +148,14 @@ public struct MessagesView: View {
             }
             .navigationTitle("Chat con mi Amor ❤️")
             .navigationBarTitleDisplayMode(.inline)
+            .photosPicker(isPresented: $showImagePicker, selection: $selectedPhotoItem, matching: .images)
+            .onChange(of: selectedPhotoItem) { item in
+                Task {
+                    guard let item, let data = try? await item.loadTransferable(type: Data.self) else { return }
+                    chatService.sendImage(imageData: data)
+                    selectedPhotoItem = nil
+                }
+            }
         }
     }
 
@@ -199,7 +210,7 @@ public struct MessagesView: View {
     }
 
     private func showAttachmentMenu() {
-        // Placeholder - would use PHPickerViewController
+        showImagePicker = true
     }
 }
 

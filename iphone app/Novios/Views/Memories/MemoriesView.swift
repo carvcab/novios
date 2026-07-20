@@ -5,8 +5,12 @@ public struct MemoriesView: View {
     @State private var photos: [UIImage] = []
     @State private var showPicker = false
     @State private var selectedItem: PhotosPickerItem?
+    @State private var styleSelected = "Standard"
+    @State private var colorSelected = "white"
+    @State private var stickers: [String] = []
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+    private var pollingTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
 
     public var body: some View {
         NavigationStack {
@@ -30,7 +34,11 @@ public struct MemoriesView: View {
             .navigationTitle("Recuerdos")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
+                    HStack(spacing: 8) {
+                        NavigationLink(destination: MemoryDetailView()) {
+                            Image(systemName: "paintbrush.fill").font(.system(size: 16)).foregroundColor(ThemeManager.shared.primaryPink)
+                        }
+                        Button {
                         showPicker = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
@@ -46,6 +54,9 @@ public struct MemoriesView: View {
                 }
             }
             .onAppear {
+                loadSavedPhotos()
+            }
+            .onReceive(pollingTimer) { _ in
                 loadSavedPhotos()
             }
         }

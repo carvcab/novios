@@ -188,25 +188,29 @@ public class ChatService: ObservableObject {
 
     public func startRecording() {
         let audioSession = AVAudioSession.sharedInstance()
-        try? audioSession.setCategory(.playAndRecord, mode: .default)
-        try? audioSession.setActive(true)
+        do {
+            try audioSession.setCategory(.playAndRecord, mode: .default)
+            try audioSession.setActive(true)
 
-        let settings: [String: Any] = [
-            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: 16000,
-            AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-        ]
+            let settings: [String: Any] = [
+                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+                AVSampleRateKey: 16000,
+                AVNumberOfChannelsKey: 1,
+                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+            ]
 
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("voice_\(Date().timeIntervalSince1970).m4a")
-        audioRecorder = try? AVAudioRecorder(url: url, settings: settings)
-        audioRecorder?.record()
-        isRecording = true
-        recordingDuration = 0
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("voice_\(Date().timeIntervalSince1970).m4a")
+            audioRecorder = try AVAudioRecorder(url: url, settings: settings)
+            audioRecorder?.record()
+            isRecording = true
+            recordingDuration = 0
 
-        recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let recorder = self?.audioRecorder else { return }
-            self?.recordingDuration = recorder.currentTime
+            recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+                self?.recordingDuration = self?.audioRecorder?.currentTime ?? 0
+            }
+        } catch {
+            print("[ChatService] Recording error: \(error)")
+            errorMessage = "Error al grabar: \(error.localizedDescription)"
         }
     }
 
