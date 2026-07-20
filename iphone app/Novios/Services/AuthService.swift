@@ -136,6 +136,8 @@ public class AuthService: ObservableObject {
 
     private func loadSession() {
         isRestoringSession = true
+        FirebaseRESTService.shared.loadSavedConfig()
+        
         if defaults.bool(forKey: "auth_logged_in"),
            let uid = defaults.string(forKey: "auth_user_id") {
             let email = defaults.string(forKey: "auth_user_email") ?? ""
@@ -144,11 +146,21 @@ public class AuthService: ObservableObject {
             currentUser = UserModel(id: uid, email: email, displayName: name, username: username)
             isLoggedIn = true
             checkProfileAndPartner()
-            // Try to sync from Firestore to get latest data
+            
+            // Sync from Firestore in background
             Task {
                 if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                    let fields = doc["fields"] as? [String: Any] {
                     await self.syncFromFirestore(fields)
+                } else {
+                    // Firestore unavailable, try to refresh token and retry
+                    if let newToken = try? await FirebaseRESTService.shared.refreshIdToken() {
+                        _ = newToken
+                        if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
+                           let fields = doc["fields"] as? [String: Any] {
+                            await self.syncFromFirestore(fields)
+                        }
+                    }
                 }
                 await MainActor.run {
                     self.checkProfileAndPartner()
