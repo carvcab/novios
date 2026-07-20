@@ -15,6 +15,7 @@ public class AuthService: ObservableObject {
     private let defaults = UserDefaults.standard
 
     private init() {
+        FirebaseRESTService.shared.loadSavedConfig()
         loadSession()
     }
 
