@@ -10,7 +10,7 @@ public struct LiquidBackgroundView: View {
 
     public var body: some View {
         ZStack {
-            Color(colorScheme == .dark ? Color(red: 0.04, green: 0.04, blue: 0.05) : Color(red: 1.0, green: 0.96, blue: 0.97))
+            (colorScheme == .dark ? Color(red: 0.04, green: 0.04, blue: 0.05) : Color(red: 1.0, green: 0.96, blue: 0.97))
                 .ignoresSafeArea()
 
             if colorScheme == .dark {

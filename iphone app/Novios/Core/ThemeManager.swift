@@ -11,6 +11,10 @@ public class ThemeManager: ObservableObject {
     @Published public var pinLockEnabled: Bool = false
     @Published public var userPinCode: String = ""
 
+    public var cardBackground: Color {
+        isDarkMode ? Color(red: 0.11, green: 0.11, blue: 0.12) : .white
+    }
+
     public var textSecondary: Color {
         isDarkMode ? Color.white.opacity(0.6) : Color(red: 0.35, green: 0.35, blue: 0.35)
     }
