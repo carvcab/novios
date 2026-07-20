@@ -1,15 +1,13 @@
 import SwiftUI
 
 public struct LoveView: View {
-    @State private var timelineEvents: [(String, String, String, String)] = []
-    @State private var lovePoints: Int = 450
+    @State private var events: [(id: String, emoji: String, title: String, description: String, date: Date)] = []
+    @State private var lovePoints: Int = 0
     @State private var totalLovePoints: Int = 1000
-    @State private var currentLevel: Int = 5
-    @State private var compatibilityScore: Int = 87
-    @State private var showCompatibilityTest = false
-    @State private var messagesSent: Int = 1234
-    @State private var photosShared: Int = 567
-    @State private var goalsCompleted: Int = 23
+    @State private var currentLevel: Int = 1
+    @State private var messagesSent: Int = 0
+    @State private var photosShared: Int = 0
+    @State private var goalsCompleted: Int = 0
     @State private var showAddEvent = false
     @State private var newEventTitle = ""
     @State private var newEventEmoji = "\u{1F491}"
@@ -65,16 +63,17 @@ public struct LoveView: View {
     }
 
     private func loadFromFirestore() async {
-        let events = await FirestoreSyncService.shared.loadTimelineEvents()
-        var loaded: [(String, String, String, String)] = []
-        for event in events {
-            let id = event["id"] as? String ?? ""
-            let emoji = event["emoji"] as? String ?? "\u{1F491}"
-            let title = event["title"] as? String ?? ""
-            let desc = event["description"] as? String ?? ""
-            loaded.append((id, emoji, title, desc))
+        let items = await FirestoreSyncService.shared.loadTimelineEvents()
+        var loaded: [(id: String, emoji: String, title: String, description: String, date: Date)] = []
+        for item in items {
+            let id = item["id"] as? String ?? ""
+            let emoji = item["emoji"] as? String ?? "\u{1F491}"
+            let title = item["title"] as? String ?? ""
+            let desc = item["description"] as? String ?? ""
+            let date = item["date"] as? Date ?? Date()
+            loaded.append((id: id, emoji: emoji, title: title, description: desc, date: date))
         }
-        timelineEvents = loaded
+        events = loaded
     }
 
     private func addTimelineEvent() {
@@ -158,15 +157,15 @@ public struct LoveView: View {
 
             GlassCard {
                 VStack(spacing: 0) {
-                    ForEach(Array(timelineEvents.enumerated()), id: \.offset) { index, event in
+                    ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
                         HStack(alignment: .top, spacing: 14) {
                             VStack(spacing: 0) {
-                                Text(event.1)
+                                Text(event.emoji)
                                     .font(.system(size: 20))
                                     .frame(width: 36, height: 36)
                                     .background(ThemeManager.shared.primaryPink.opacity(0.1))
                                     .clipShape(Circle())
-                                if index < timelineEvents.count - 1 {
+                                if index < events.count - 1 {
                                     Rectangle()
                                         .fill(ThemeManager.shared.primaryPink.opacity(0.2))
                                         .frame(width: 2)
@@ -175,20 +174,20 @@ public struct LoveView: View {
                             }
 
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(event.2)
+                                Text(event.title)
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.primary)
-                                Text(event.3)
+                                Text(event.description)
                                     .font(.system(size: 13))
                                     .foregroundColor(.primary.opacity(0.65))
                             }
 
                             Spacer()
                         }
-                        .padding(.bottom, index < timelineEvents.count - 1 ? 4 : 0)
+                        .padding(.bottom, index < events.count - 1 ? 4 : 0)
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) {
-                                deleteTimelineEvent(at: event.0)
+                                deleteTimelineEvent(at: event.id)
                             } label: {
                                 Label("Eliminar", systemImage: "trash")
                             }
@@ -277,13 +276,12 @@ public struct LoveView: View {
                         .frame(width: 120, height: 120)
 
                     Circle()
-                        .trim(from: 0, to: CGFloat(compatibilityScore) / 100)
+                        .trim(from: 0, to: 0)
                         .stroke(ThemeManager.shared.neonGlowGradient, style: StrokeStyle(lineWidth: 10, lineCap: .round))
                         .frame(width: 120, height: 120)
                         .rotationEffect(.degrees(-90))
-                        .animation(.easeOut(duration: 1), value: compatibilityScore)
 
-                    Text("\(compatibilityScore)%")
+                    Text("--%")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.primary)
                 }
