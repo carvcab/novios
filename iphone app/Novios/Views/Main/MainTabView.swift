@@ -6,34 +6,31 @@ public struct MainTabView: View {
     public var body: some View {
         TabView(selection: $selectedTab) {
             HomeView()
-                .tabItem {
-                    Label("Inicio", systemImage: selectedTab == 0 ? "house.fill" : "house")
-                }
+                .tabItem { Label("Inicio", systemImage: "house.fill") }
                 .tag(0)
+                .onAppear { StatusService.shared.updateCurrentScreen("Inicio") }
 
             MessagesView()
-                .tabItem {
-                    Label("Chat", systemImage: selectedTab == 1 ? "bubble.left.and.bubble.right.fill" : "bubble.left.and.bubble.right")
-                }
+                .tabItem { Label("Chat", systemImage: "message.fill") }
                 .tag(1)
+                .onAppear { StatusService.shared.updateCurrentScreen("Chat") }
 
             LoveView()
                 .tabItem {
-                    Label("Amor", systemImage: selectedTab == 2 ? "heart.fill" : "heart")
+                    Label("Amor", systemImage: "heart.fill")
                 }
                 .tag(2)
+                .onAppear { StatusService.shared.updateCurrentScreen("Amor") }
 
             LocationView()
-                .tabItem {
-                    Label("Ubicación", systemImage: selectedTab == 3 ? "location.fill" : "location")
-                }
+                .tabItem { Label("Ubicación", systemImage: "location.fill") }
                 .tag(3)
+                .onAppear { StatusService.shared.updateCurrentScreen("Ubicación") }
 
             ProfileView()
-                .tabItem {
-                    Label("Perfil", systemImage: selectedTab == 4 ? "person.fill" : "person")
-                }
+                .tabItem { Label("Perfil", systemImage: "person.fill") }
                 .tag(4)
+                .onAppear { StatusService.shared.updateCurrentScreen("Perfil") }
         }
         .tint(ThemeManager.shared.primaryPink)
     }
