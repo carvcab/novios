@@ -109,6 +109,7 @@ public struct ChatBubbleView: View {
             .presentationDetents([.height(280)])
         }
         .onAppear { loadMediaIfNeeded() }
+        .task(id: message.id) { loadMediaIfNeeded() }
     }
 
     private func loadMediaIfNeeded() {
@@ -136,7 +137,7 @@ public struct ChatBubbleView: View {
                 if isPlaying {
                     audioPlayer?.stop(); isPlaying = false
                 } else if let player = audioPlayer {
-                    player.play(); isPlaying = true
+                    player.currentTime = 0; player.play(); isPlaying = true
                 } else {
                     loadAndPlayAudio()
                 }
@@ -145,7 +146,8 @@ public struct ChatBubbleView: View {
                     .font(.system(size: 14)).foregroundColor(ThemeManager.shared.primaryPink)
                     .padding(6).background(ThemeManager.shared.primaryPink.opacity(0.1)).clipShape(Circle())
             }
-            Text("Nota de voz").font(.system(size: 12, weight: .semibold)).foregroundColor(.primary)
+            Text(message.text ?? "Nota de voz").font(.system(size: 12, weight: .semibold)).foregroundColor(.primary)
+            if isPlaying { Text("Reproduciendo...").font(.system(size: 10)).foregroundColor(.primary.opacity(0.5)) }
         }
     }
 

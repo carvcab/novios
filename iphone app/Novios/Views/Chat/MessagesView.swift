@@ -41,6 +41,12 @@ public struct MessagesView: View {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                 proxy.scrollTo("bottom_scroll", anchor: .bottom)
                             }
+                            // Mark partner messages as read
+                            let myId = authService.currentUser?.id ?? FirebaseRESTService.shared.localId ?? ""
+                            for msg in chatService.messages where msg.senderId != myId && msg.readTimestamp == nil {
+                                chatService.markAsRead(messageId: msg.id)
+                                break
+                            }
                         }
                     }
 
