@@ -8,6 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		9A1000012C00000100000001 /* NoviosApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2000012C00000100000001 /* NoviosApp.swift */; };
+		9A00012C0000000000001 /* LoveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A00412C0000000000001 /* LoveView.swift */; };
+		9A00022C0000000000002 /* AnniversaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A00422C0000000000002 /* AnniversaryView.swift */; };
+		9A00032C0000000000003 /* LocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A00432C0000000000003 /* LocationView.swift */; };
+		9A00042C0000000000004 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A00442C0000000000004 /* ProfileView.swift */; };
+		9A00052C0000000000005 /* MoreListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A00452C0000000000005 /* MoreListView.swift */; };
+		9A00062C0000000000006 /* NotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A00462C0000000000006 /* NotesView.swift */; };
+		9A00072C0000000000007 /* DreamsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A00472C0000000000007 /* DreamsView.swift */; };
+		9A00082C0000000000008 /* MusicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A00482C0000000000008 /* MusicView.swift */; };
+		9A00092C0000000000009 /* ScreenViewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A00492C0000000000009 /* ScreenViewView.swift */; };
+		9A000102C000000000000A /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004102C000000000000A /* NotificationsView.swift */; };
 		9A000022C00000000000002 /* AppGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EA2C00000000000003EA /* AppGate.swift */; };
 		9A000032C00000000000003 /* CustomTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EB2C00000000000003EB /* CustomTextField.swift */; };
 		9A000042C00000000000004 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EC2C00000000000003EC /* GlassCard.swift */; };
@@ -59,6 +69,16 @@
 /* Begin PBXFileReference section */
 		9A2000012C00000100000001 /* NoviosApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/NoviosApp.swift; sourceTree = "<group>"; };
 		9A2000002C00000000000000 /* Novios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Novios.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9A00412C0000000000001 /* LoveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/LoveView.swift; sourceTree = "<group>"; };
+		9A00422C0000000000002 /* AnniversaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/AnniversaryView.swift; sourceTree = "<group>"; };
+		9A00432C0000000000003 /* LocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Location/LocationView.swift; sourceTree = "<group>"; };
+		9A00442C0000000000004 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Profile/ProfileView.swift; sourceTree = "<group>"; };
+		9A00452C0000000000005 /* MoreListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/More/MoreListView.swift; sourceTree = "<group>"; };
+		9A00462C0000000000006 /* NotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Notes/NotesView.swift; sourceTree = "<group>"; };
+		9A00472C0000000000007 /* DreamsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Dreams/DreamsView.swift; sourceTree = "<group>"; };
+		9A00482C0000000000008 /* MusicView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Music/MusicView.swift; sourceTree = "<group>"; };
+		9A00492C0000000000009 /* ScreenViewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ScreenView/ScreenViewView.swift; sourceTree = "<group>"; };
+		9A004102C000000000000A /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Notifications/NotificationsView.swift; sourceTree = "<group>"; };
 		9A003EA2C00000000000003EA /* AppGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AppGate.swift; sourceTree = "<group>"; };
 		9A003EB2C00000000000003EB /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/CustomTextField.swift; sourceTree = "<group>"; };
 		9A003EC2C00000000000003EC /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/GlassCard.swift; sourceTree = "<group>"; };
@@ -130,6 +150,16 @@
 			isa = PBXGroup;
 			children = (
 				9A2000012C00000100000001 /* NoviosApp.swift */,
+				9A00412C0000000000001 /* LoveView.swift */,
+				9A00422C0000000000002 /* AnniversaryView.swift */,
+				9A00432C0000000000003 /* LocationView.swift */,
+				9A00442C0000000000004 /* ProfileView.swift */,
+				9A00452C0000000000005 /* MoreListView.swift */,
+				9A00462C0000000000006 /* NotesView.swift */,
+				9A00472C0000000000007 /* DreamsView.swift */,
+				9A00482C0000000000008 /* MusicView.swift */,
+				9A00492C0000000000009 /* ScreenViewView.swift */,
+				9A004102C000000000000A /* NotificationsView.swift */,
 				9A003EA2C00000000000003EA /* AppGate.swift */,
 				9A003EB2C00000000000003EB /* CustomTextField.swift */,
 				9A003EC2C00000000000003EC /* GlassCard.swift */,
@@ -238,6 +268,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				9A1000012C00000100000001 /* NoviosApp.swift in Sources */,
+				9A00012C0000000000001 /* LoveView.swift in Sources */,
+				9A00022C0000000000002 /* AnniversaryView.swift in Sources */,
+				9A00032C0000000000003 /* LocationView.swift in Sources */,
+				9A00042C0000000000004 /* ProfileView.swift in Sources */,
+				9A00052C0000000000005 /* MoreListView.swift in Sources */,
+				9A00062C0000000000006 /* NotesView.swift in Sources */,
+				9A00072C0000000000007 /* DreamsView.swift in Sources */,
+				9A00082C0000000000008 /* MusicView.swift in Sources */,
+				9A00092C0000000000009 /* ScreenViewView.swift in Sources */,
+				9A000102C000000000000A /* NotificationsView.swift in Sources */,
 				9A000022C00000000000002 /* AppGate.swift in Sources */,
 				9A000032C00000000000003 /* CustomTextField.swift in Sources */,
 				9A000042C00000000000004 /* GlassCard.swift in Sources */,
