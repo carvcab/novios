@@ -107,5 +107,8 @@ public struct EncryptionView: View {
         ("🔑", "Clave Única", "Cada conversación tiene una clave de cifrado única")
     ]
 
-    private let mockCode = "8429 6153"
+    private var mockCode: String {
+        let code = String((0..<8).map { _ in "0123456789".randomElement()! })
+        return "\(code.prefix(4)) \(code.suffix(4))"
+    }
 }
