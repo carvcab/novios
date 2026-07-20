@@ -187,20 +187,35 @@ public class ChatService: ObservableObject {
     // MARK: - Voice Recording
 
     public func startRecording() {
+        AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
+            guard granted else {
+                self?.errorMessage = "Permiso de micrófono denegado"
+                return
+            }
+            self?.actuallyStartRecording()
+        }
+    }
+
+    private func actuallyStartRecording() {
         let audioSession = AVAudioSession.sharedInstance()
         do {
-            try audioSession.setCategory(.playAndRecord, mode: .default)
+            try audioSession.setCategory(.playAndRecord, mode: .default, options: .defaultToSpeaker)
             try audioSession.setActive(true)
 
             let settings: [String: Any] = [
                 AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                AVSampleRateKey: 16000,
+                AVSampleRateKey: 44100,
                 AVNumberOfChannelsKey: 1,
                 AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
             ]
 
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("voice_\(Date().timeIntervalSince1970).m4a")
             audioRecorder = try AVAudioRecorder(url: url, settings: settings)
+            audioRecorder?.isMeteringEnabled = true
+            guard audioRecorder?.prepareToRecord() == true else {
+                errorMessage = "Error al preparar grabación"
+                return
+            }
             audioRecorder?.record()
             isRecording = true
             recordingDuration = 0
@@ -209,7 +224,7 @@ public class ChatService: ObservableObject {
                 self?.recordingDuration = self?.audioRecorder?.currentTime ?? 0
             }
         } catch {
-            print("[ChatService] Recording error: \(error)")
+            print("[ChatService] Recording error: \(error.localizedDescription)")
             errorMessage = "Error al grabar: \(error.localizedDescription)"
         }
     }
