@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
 import android.os.Bundle
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -13,34 +12,13 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     companion object {
         private const val CHANNEL = "com.novios/app"
+        private const val REQUEST_SCREEN_CAPTURE = 1001
 
         @JvmStatic var appTrackerChannel: MethodChannel? = null
         @JvmStatic var notificationChannel: MethodChannel? = null
         @JvmStatic var screenShareChannel: MethodChannel? = null
 
         private var pendingScreenShareResult: MethodChannel.Result? = null
-    }
-
-    private val screenCaptureLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val pending = pendingScreenShareResult
-        pendingScreenShareResult = null
-
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            try {
-                val intent = Intent(this, ScreenShareService::class.java).apply {
-                    putExtra("resultCode", result.resultCode)
-                    putExtra("data", result.data)
-                }
-                startService(intent)
-                pending?.success("granted")
-            } catch (e: Exception) {
-                pending?.success("error: ${e.message}")
-            }
-        } else {
-            pending?.success("denied")
-        }
     }
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
@@ -101,7 +79,7 @@ class MainActivity : FlutterActivity() {
                     pendingScreenShareResult = result
                     try {
                         val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                        screenCaptureLauncher.launch(mgr.createScreenCaptureIntent())
+                        startActivityForResult(mgr.createScreenCaptureIntent(), REQUEST_SCREEN_CAPTURE)
                     } catch (e: Exception) {
                         pendingScreenShareResult?.success("error: ${e.message}")
                         pendingScreenShareResult = null
@@ -163,6 +141,30 @@ class MainActivity : FlutterActivity() {
                 }
                 else -> result.notImplemented()
             }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == REQUEST_SCREEN_CAPTURE) {
+            val pending = pendingScreenShareResult
+            pendingScreenShareResult = null
+
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                try {
+                    val intent = Intent(this, ScreenShareService::class.java).apply {
+                        putExtra("resultCode", resultCode)
+                        putExtra("data", data)
+                    }
+                    startService(intent)
+                    pending?.success("granted")
+                } catch (e: Exception) {
+                    pending?.success("error: ${e.message}")
+                }
+            } else {
+                pending?.success("denied")
+            }
+        } else {
+            super.onActivityResult(requestCode, resultCode, data)
         }
     }
 

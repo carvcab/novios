@@ -11,10 +11,8 @@ import 'services/firebase_service.dart';
 import 'services/theme_provider.dart';
 import 'services/widget_service.dart';
 import 'services/profile_service.dart';
-import 'services/google_auth_service.dart';
 import 'services/user_service.dart';
 import 'views/auth/login_screen.dart';
-import 'views/auth/google_setup_screen.dart';
 import 'views/auth/profile_setup_screen.dart';
 import 'views/auth/add_partner_screen.dart';
 import 'views/home_navigation.dart';
@@ -34,7 +32,6 @@ void main() async {
   await FirebaseService().init().catchError((_) {});
   try { WidgetService().init().catchError((_) {}); } catch (e) { debugPrint("WidgetService init error: $e"); }
   try { await ProfileService().init(); } catch (e) { debugPrint("ProfileService init error: $e"); }
-  GoogleAuthService().init();
   try { await UserService().syncFromFirestore(); } catch (_) {}
   try { UserService().startListening(); } catch (_) {}
 

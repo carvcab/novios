@@ -87,6 +87,10 @@
 		9A000462C000000000000046 /* MemoramaGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0042E2C000000000000042E /* MemoramaGameView.swift */; };
 		9A000472C000000000000047 /* TicTacToeGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0042F2C000000000000042F /* TicTacToeGameView.swift */; };
 		9A000482C000000000000048 /* RPSGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004302C0000000000000430 /* RPSGameView.swift */; };
+		9A000492C000000000000049 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004312C0000000000000431 /* StatsView.swift */; };
+		9A0004A2C00000000000004A /* MemoryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004322C0000000000000432 /* MemoryDetailView.swift */; };
+		9A0004B2C00000000000004B /* MusicHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004332C0000000000000433 /* MusicHistoryView.swift */; };
+		9A0004C2C00000000000004C /* ScreenShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004342C0000000000000434 /* ScreenShareView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -171,6 +175,10 @@
 		9A0042E2C000000000000042E /* MemoramaGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/MemoramaGameView.swift; sourceTree = "<group>"; };
 		9A0042F2C000000000000042F /* TicTacToeGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/TicTacToeGameView.swift; sourceTree = "<group>"; };
 		9A004302C0000000000000430 /* RPSGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/RPSGameView.swift; sourceTree = "<group>"; };
+		9A004312C0000000000000431 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/StatsView.swift; sourceTree = "<group>"; };
+		9A004322C0000000000000432 /* MemoryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Memories/MemoryDetailView.swift; sourceTree = "<group>"; };
+		9A004332C0000000000000433 /* MusicHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Music/MusicHistoryView.swift; sourceTree = "<group>"; };
+		9A004342C0000000000000434 /* ScreenShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ScreenView/ScreenShareView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -275,6 +283,10 @@
 				9A0042E2C000000000000042E /* MemoramaGameView.swift */,
 				9A0042F2C000000000000042F /* TicTacToeGameView.swift */,
 				9A004302C0000000000000430 /* RPSGameView.swift */,
+				9A004312C0000000000000431 /* StatsView.swift */,
+				9A004322C0000000000000432 /* MemoryDetailView.swift */,
+				9A004332C0000000000000433 /* MusicHistoryView.swift */,
+				9A004342C0000000000000434 /* ScreenShareView.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -416,6 +428,10 @@
 				9A000462C000000000000046 /* MemoramaGameView.swift in Sources */,
 				9A000472C000000000000047 /* TicTacToeGameView.swift in Sources */,
 				9A000482C000000000000048 /* RPSGameView.swift in Sources */,
+				9A000492C000000000000049 /* StatsView.swift in Sources */,
+				9A0004A2C00000000000004A /* MemoryDetailView.swift in Sources */,
+				9A0004B2C00000000000004B /* MusicHistoryView.swift in Sources */,
+				9A0004C2C00000000000004C /* ScreenShareView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
