@@ -160,7 +160,7 @@ public struct ProfileView: View {
                 Spacer()
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 2), spacing: 10) {
-                quickItem(icon: "person.2", title: "Mi Pareja", dest: AnyView(PartnerInfoView()))
+                quickItem(icon: "person.2", title: "Mi Pareja", dest: AnyView(PartnerInfoView().environmentObject(AuthService.shared)))
                 quickItem(icon: "heart", title: "Favoritos", dest: AnyView(FavoriteGifsView()))
                 quickItem(icon: "gearshape", title: "Ajustes", dest: AnyView(SettingsView()))
                 quickItem(icon: "lock.shield", title: "Bloqueo", dest: AnyView(LockScreenView()))
@@ -277,17 +277,4 @@ private struct ImportantDate2: Identifiable {
     let title: String
     let date: Date
     let icon: String
-}
-
-private struct PartnerInfoView: View {
-    var body: some View {
-        ZStack {
-            ThemeManager.shared.backgroundGradient.ignoresSafeArea()
-            VStack(spacing: 20) {
-                Image(systemName: "heart.circle.fill").font(.system(size: 80)).foregroundColor(ThemeManager.shared.primaryPink)
-                Text(AuthService.shared.currentUser?.partnerUid != nil ? "Pareja vinculada 💕" : "Sin pareja vinculada")
-                    .font(.title2).foregroundColor(.primary)
-            }
-        }.navigationTitle("Mi Pareja")
-    }
 }

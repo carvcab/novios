@@ -97,6 +97,7 @@
 		9A000502C000000000000050 /* AppTrackerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0043A2C000000000000043A /* AppTrackerService.swift */; };
 		9A000512C000000000000051 /* ImportantDatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0043B2C000000000000043B /* ImportantDatesView.swift */; };
 		9A000522C000000000000052 /* HangmanGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0043C2C000000000000043C /* HangmanGameView.swift */; };
+		9A000532C000000000000053 /* PartnerInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0043D2C000000000000043D /* PartnerInfoView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -193,6 +194,7 @@
 		9A0043A2C000000000000043A /* AppTrackerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AppTrackerService.swift; sourceTree = "<group>"; };
 		9A0043B2C000000000000043B /* ImportantDatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/ImportantDatesView.swift; sourceTree = "<group>"; };
 		9A0043C2C000000000000043C /* HangmanGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/HangmanGameView.swift; sourceTree = "<group>"; };
+		9A0043D2C000000000000043D /* PartnerInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Profile/PartnerInfoView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -309,6 +311,7 @@
 				9A0043A2C000000000000043A /* AppTrackerService.swift */,
 				9A0043B2C000000000000043B /* ImportantDatesView.swift */,
 				9A0043C2C000000000000043C /* HangmanGameView.swift */,
+				9A0043D2C000000000000043D /* PartnerInfoView.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -460,6 +463,7 @@
 				9A000502C000000000000050 /* AppTrackerService.swift in Sources */,
 				9A000512C000000000000051 /* ImportantDatesView.swift in Sources */,
 				9A000522C000000000000052 /* HangmanGameView.swift in Sources */,
+				9A000532C000000000000053 /* PartnerInfoView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
