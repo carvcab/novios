@@ -20,12 +20,6 @@ private struct GameCard: Identifiable {
 
 private let partnerName = "Pareja"
 
-private let sampleActiveGames: [ActiveGame] = [
-    ActiveGame(id: "ag1", type: "quiz", status: "pending", sender: "Yo", isSender: true, gameLabel: "Quiz"),
-    ActiveGame(id: "ag2", type: "truth_dare", status: "pending", sender: "Pareja", isSender: false, gameLabel: "Verdad o Reto"),
-    ActiveGame(id: "ag3", type: "memorama", status: "active", sender: "Yo", isSender: true, gameLabel: "Memorama"),
-]
-
 private let gameCards: [GameCard] = [
     GameCard(id: "quiz", type: "quiz", icon: "questionmark.bubble.fill", name: "Quiz", desc: "Pon a prueba tu conocimiento",
         gradient: LinearGradient(colors: [Color(red: 1.0, green: 0.361, blue: 0.541), Color(red: 1.0, green: 0.541, blue: 0.671)], startPoint: .topLeading, endPoint: .bottomTrailing)),
@@ -106,7 +100,7 @@ private func gameTypeString(_ type: GameType) -> String {
 }
 
 public struct CoupleGamesView: View {
-    @State private var activeGames: [ActiveGame] = sampleActiveGames
+    @State private var activeGames: [ActiveGame] = []
     @State private var showSheet = false
     @State private var selectedGameCard: GameCard? = nil
     @State private var selectedMode: String? = nil

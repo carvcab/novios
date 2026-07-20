@@ -77,7 +77,7 @@ private let sendCards: [ChallengeCard] = [
 public struct SpicyGamesView: View {
     @State private var selectedLevel: SpicyLevel = .suave
     @State private var selectedTab = 0
-    @State private var challenges: [SpicyChallenge] = sampleChallenges
+    @State private var challenges: [SpicyChallenge] = []
     @State private var responseText: String = ""
     @State private var respondingTo: String? = nil
 
@@ -319,9 +319,3 @@ public struct SpicyGamesView: View {
         }
     }
 }
-
-private let sampleChallenges: [SpicyChallenge] = [
-    SpicyChallenge(id: "c1", level: .suave, type: .truth, text: "¿Qué fue lo que te hizo enamorarte de mí?", status: .pending, fromPartner: true),
-    SpicyChallenge(id: "c2", level: .picante, type: .dare, text: "Besa apasionadamente a tu pareja por 10 segundos", status: .responded, fromPartner: true),
-    SpicyChallenge(id: "c3", level: .extremo, type: .truth, text: "¿Cuál es tu fantasía más salvaje?", status: .pending, fromPartner: true),
-]

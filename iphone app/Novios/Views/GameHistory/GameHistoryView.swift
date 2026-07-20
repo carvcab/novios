@@ -3,27 +3,14 @@ import SwiftUI
 public struct GameHistoryView: View {
     @State private var selectedTab = 0
     @State private var winProgress: CGFloat = 0
+    @State private var gameHistory: [GameHistoryEntry] = []
 
     private let tabs = ["Estadísticas", "Partidas"]
 
-    private let sampleData: [GameHistoryEntry] = [
-        GameHistoryEntry(id: "1", gameType: "Quiz", icon: "questionmark.circle.fill", color: "#FF6B9D", date: Date().addingTimeInterval(-86400 * 1), myScore: 8, partnerScore: 5, result: .win),
-        GameHistoryEntry(id: "2", gameType: "Verdad o Reto", icon: "sparkles", color: "#A78BFA", date: Date().addingTimeInterval(-86400 * 2), myScore: 3, partnerScore: 3, result: .tie),
-        GameHistoryEntry(id: "3", gameType: "Memorama", icon: "rectangle.3.group.fill", color: "#FBBF24", date: Date().addingTimeInterval(-86400 * 3), myScore: 12, partnerScore: 15, result: .lose),
-        GameHistoryEntry(id: "4", gameType: "TicTacToe", icon: "grid", color: "#34D399", date: Date().addingTimeInterval(-86400 * 5), myScore: 1, partnerScore: 0, result: .win),
-        GameHistoryEntry(id: "5", gameType: "Piedra Papel Tijeras", icon: "hand.raised.fill", color: "#F472B6", date: Date().addingTimeInterval(-86400 * 7), myScore: 5, partnerScore: 7, result: .lose),
-        GameHistoryEntry(id: "6", gameType: "Ahorcado", icon: "person.fill.questionmark", color: "#60A5FA", date: Date().addingTimeInterval(-86400 * 10), myScore: 6, partnerScore: 6, result: .tie),
-        GameHistoryEntry(id: "7", gameType: "Love Dice", icon: "dice.fill", color: "#FB923C", date: Date().addingTimeInterval(-86400 * 14), myScore: 10, partnerScore: 8, result: .win),
-        GameHistoryEntry(id: "8", gameType: "Higher or Lower", icon: "arrow.up.arrow.down", color: "#A78BFA", date: Date().addingTimeInterval(-86400 * 20), myScore: 4, partnerScore: 6, result: .lose),
-        GameHistoryEntry(id: "9", gameType: "Never Have I Ever", icon: "hand.point.up.fill", color: "#F59E0B", date: Date().addingTimeInterval(-86400 * 30), myScore: 7, partnerScore: 4, result: .win),
-        GameHistoryEntry(id: "10", gameType: "¿Qué prefieres?", icon: "questionmark.diamond.fill", color: "#EC4899", date: Date().addingTimeInterval(-86400 * 45), myScore: 2, partnerScore: 2, result: .tie),
-    ]
-
-    private var totalGames: Int { sampleData.count }
-    private var wins: Int { sampleData.filter { $0.result == .win }.count }
-    private var losses: Int { sampleData.filter { $0.result == .lose }.count }
-    private var ties: Int { sampleData.filter { $0.result == .tie }.count }
-    private var winRate: CGFloat { totalGames > 0 ? CGFloat(wins) / CGFloat(totalGames) : 0 }
+    private var totalGames: Int { gameHistory.count }
+    private var wins: Int { gameHistory.filter { $0.result == .win }.count }
+    private var losses: Int { gameHistory.filter { $0.result == .lose }.count }
+    private var ties: Int { gameHistory.filter { $0.result == .tie }.count }
 
     public var body: some View {
         NavigationStack {
@@ -143,7 +130,7 @@ public struct GameHistoryView: View {
     }
 
     private var gameTypeStats: [(name: String, icon: String, color: Color, wins: Int, losses: Int)] {
-        let grouped = Dictionary(grouping: sampleData) { $0.gameType }
+        let grouped = Dictionary(grouping: gameHistory) { $0.gameType }
         return grouped.map { name, entries in
             let first = entries.first!
             let w = entries.filter { $0.result == .win }.count
@@ -157,7 +144,7 @@ public struct GameHistoryView: View {
 
     private var partidasTab: some View {
         LazyVStack(spacing: 12) {
-            ForEach(sampleData) { entry in
+            ForEach(gameHistory) { entry in
                 GlassCard {
                     HStack(spacing: 14) {
                         Image(systemName: entry.icon)
