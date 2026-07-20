@@ -168,7 +168,7 @@ public struct HomeView: View {
                                             .background(Color(red: 0.49, green: 0.51, blue: 1.0).opacity(0.12))
                                             .clipShape(RoundedRectangle(cornerRadius: 10))
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text("\(userService.partnerUser?.coordinate != nil ? "\(userService.partnerUser!.coordinate!.distance(to: userService.myCoordinate ?? CLLocationCoordinate2D()) * 0.001, specifier: "%.1f") km" : "Sin datos")")
+                                            Text("Sin datos")
                                                 .font(.system(size: 15, weight: .bold))
                                                 .foregroundColor(.white)
                                             Text("Distancia")

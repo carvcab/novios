@@ -13,7 +13,7 @@ import 'services/widget_service.dart';
 import 'services/profile_service.dart';
 import 'services/google_auth_service.dart';
 import 'services/user_service.dart';
-import 'views/auth/login_screen.dart';
+import 'views/auth/welcome_screen.dart';
 import 'views/auth/google_setup_screen.dart';
 import 'views/auth/profile_setup_screen.dart';
 import 'views/auth/add_partner_screen.dart';
@@ -232,7 +232,7 @@ class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
     final user = UserService();
 
     if (!auth.isSignedIn) {
-      return const LoginScreen();
+      return const WelcomeScreen();
     }
 
     if (!auth.setupComplete) {

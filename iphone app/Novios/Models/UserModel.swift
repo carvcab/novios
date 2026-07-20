@@ -14,6 +14,7 @@ public struct UserModel: Identifiable, Codable, Equatable {
     public var moodMessage: String?
     public var batteryLevel: Double
     public var isCharging: Bool
+    public var isOnline: Bool
     public var latitude: Double?
     public var longitude: Double?
     public var lastLocationUpdate: Date?
@@ -33,6 +34,7 @@ public struct UserModel: Identifiable, Codable, Equatable {
         moodMessage: String? = nil,
         batteryLevel: Double = 1.0,
         isCharging: Bool = false,
+        isOnline: Bool = false,
         latitude: Double? = nil,
         longitude: Double? = nil,
         lastLocationUpdate: Date? = nil,
@@ -51,6 +53,7 @@ public struct UserModel: Identifiable, Codable, Equatable {
         self.moodMessage = moodMessage
         self.batteryLevel = batteryLevel
         self.isCharging = isCharging
+        self.isOnline = isOnline
         self.latitude = latitude
         self.longitude = longitude
         self.lastLocationUpdate = lastLocationUpdate
@@ -77,6 +80,7 @@ public struct UserModel: Identifiable, Codable, Equatable {
             "mood": mood,
             "batteryLevel": batteryLevel,
             "isCharging": isCharging,
+            "isOnline": isOnline,
             "skippedPartner": skippedPartner,
             "createdAt": createdAt.timeIntervalSince1970
         ]
