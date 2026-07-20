@@ -99,7 +99,7 @@ public struct AICoupleAssistantView: View {
         } label: {
             Text(mode).font(.system(size: 13)).foregroundColor(.primary).padding(.horizontal, 16).padding(.vertical, 10)
         }
-        .background(selectedMode == mode ? ThemeManager.shared.neonGlowGradient : Color.white.opacity(0.08))
+        .background(selectedMode == mode ? AnyView(ThemeManager.shared.neonGlowGradient) : AnyView(Color.white.opacity(0.08)))
         .cornerRadius(20)
     }
 

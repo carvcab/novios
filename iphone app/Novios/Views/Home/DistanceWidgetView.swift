@@ -57,7 +57,7 @@ public struct DistanceWidgetView: View {
                 Button {
                     let impact = UIImpactFeedbackGenerator(style: .light)
                     impact.impactOccurred()
-                    locationService.requestPermission()
+                    LocationService.shared.requestAuthorization()
                 } label: {
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.system(size: 18, weight: .bold))
