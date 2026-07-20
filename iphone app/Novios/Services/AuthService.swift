@@ -37,14 +37,21 @@ public class AuthService: ObservableObject {
         await MainActor.run { isLoading = true }
         do {
             let result = try await FirebaseRESTService.shared.signIn(email: email, password: password)
+            
+            // Sync profile & partner from Firestore synchronously before unlocking UI
+            try? await syncUserFromFirestore(uid: result.localId)
+            
             let data = try? await FirebaseRESTService.shared.getUserData()
             let name = data?["displayName"] as? String ?? email.components(separatedBy: "@").first?.capitalized ?? "Usuario"
-            let user = UserModel(id: result.localId, email: email, displayName: name, username: email.components(separatedBy: "@").first ?? "usuario")
+            let uname = defaults.string(forKey: "profile_username") ?? email.components(separatedBy: "@").first ?? "usuario"
+            let user = UserModel(id: result.localId, email: email, displayName: name, username: uname)
+            
             await MainActor.run {
-                self.currentUser = user; self.isLoggedIn = true; self.isLoading = false
-                saveSession(user: user); checkProfileAndPartner()
-                // Try to sync profile from Firestore
-                Task { try? await syncUserFromFirestore(uid: result.localId) }
+                self.currentUser = user
+                self.saveSession(user: user)
+                self.checkProfileAndPartner()
+                self.isLoggedIn = true
+                self.isLoading = false
             }
         } catch {
             await MainActor.run { self.isLoading = false }
@@ -84,27 +91,39 @@ public class AuthService: ObservableObject {
     private func syncUserFromFirestore(uid: String) async throws {
         guard let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
               let fields = doc["fields"] as? [String: Any] else { return }
-        let username = (fields["username"] as? [String: Any])?["stringValue"] as? String
-        let dob = (fields["dob"] as? [String: Any])?["stringValue"] as? String
-        let partnerUid = (fields["partnerUid"] as? [String: Any])?["stringValue"] as? String
-        if let u = username, let d = dob, !u.isEmpty, !d.isEmpty {
-            let defaults = UserDefaults.standard
-            defaults.set(d, forKey: "profile_dob")
-            defaults.set(u, forKey: "profile_username")
-            hasProfile = true
+        
+        let username = (fields["username"] as? [String: Any])?["stringValue"] as? String ?? ""
+        let dob = (fields["dob"] as? [String: Any])?["stringValue"] as? String ?? 
+                  (fields["birthdayDate"] as? [String: Any])?["stringValue"] as? String ?? 
+                  (fields["birthday_date"] as? [String: Any])?["stringValue"] as? String ?? "2000-01-01"
+        let partnerUid = (fields["partnerUid"] as? [String: Any])?["stringValue"] as? String ?? ""
+        let displayName = (fields["displayName"] as? [String: Any])?["stringValue"] as? String ?? 
+                          (fields["name"] as? [String: Any])?["stringValue"] as? String ?? ""
+        
+        let defaults = UserDefaults.standard
+        if !username.isEmpty || !displayName.isEmpty {
+            defaults.set(dob, forKey: "profile_dob")
+            defaults.set(username.isEmpty ? displayName.lowercased() : username, forKey: "profile_username")
+            if !displayName.isEmpty {
+                defaults.set(displayName, forKey: "auth_user_name")
+            }
+            await MainActor.run {
+                self.hasProfile = true
+            }
         }
-        if let puid = partnerUid, !puid.isEmpty {
+        
+        if !partnerUid.isEmpty {
             let pname = (fields["partnerName"] as? [String: Any])?["stringValue"] as? String ?? "Pareja"
-            let defaults = UserDefaults.standard
-            defaults.set(puid, forKey: "partner_uid")
+            defaults.set(partnerUid, forKey: "partner_uid")
             defaults.set(pname, forKey: "partner_name")
-            hasPartner = true
+            await MainActor.run {
+                self.hasPartner = true
+            }
         }
     }
 
     public func checkProfileAndPartner() {
-        hasProfile = defaults.string(forKey: "profile_dob") != nil &&
-                     defaults.string(forKey: "profile_username") != nil &&
+        hasProfile = (defaults.string(forKey: "profile_dob") != nil || defaults.string(forKey: "profile_username") != nil) &&
                      !(defaults.string(forKey: "profile_username")?.isEmpty ?? true)
         hasPartner = defaults.string(forKey: "partner_uid") != nil &&
                      !(defaults.string(forKey: "partner_uid")?.isEmpty ?? true)
@@ -116,9 +135,16 @@ public class AuthService: ObservableObject {
            let uid = defaults.string(forKey: "auth_user_id") {
             let email = defaults.string(forKey: "auth_user_email") ?? ""
             let name = defaults.string(forKey: "auth_user_name") ?? "Usuario"
-            currentUser = UserModel(id: uid, email: email, displayName: name, username: "")
+            let username = defaults.string(forKey: "profile_username") ?? ""
+            currentUser = UserModel(id: uid, email: email, displayName: name, username: username)
             isLoggedIn = true
             checkProfileAndPartner()
+            Task {
+                try? await syncUserFromFirestore(uid: uid)
+                await MainActor.run {
+                    self.checkProfileAndPartner()
+                }
+            }
         }
     }
 
