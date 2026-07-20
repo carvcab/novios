@@ -321,8 +321,15 @@ private struct ZoneCard: View {
         }
         .frame(width: 110, height: 110)
         .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(isSelected ? ThemeManager.shared.primaryPink.opacity(0.18) : .ultraThinMaterial)
+            Group {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(ThemeManager.shared.primaryPink.opacity(0.18))
+                } else {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(.ultraThinMaterial)
+                }
+            }
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18)
