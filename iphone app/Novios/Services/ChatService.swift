@@ -3,7 +3,7 @@ import Combine
 import UIKit
 import AVFoundation
 
-public class ChatService: ObservableObject {
+public class ChatService: ObservableObject, AVAudioRecorderDelegate {
     public static let shared = ChatService()
 
     @Published public var messages: [MessageModel] = []
@@ -188,17 +188,19 @@ public class ChatService: ObservableObject {
 
     public func startRecording() {
         AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
-            guard granted else {
-                self?.errorMessage = "Permiso de micrófono denegado"
-                return
+            DispatchQueue.main.async {
+                guard granted else {
+                    self?.errorMessage = "Permiso de micrófono denegado"
+                    return
+                }
+                self?.actuallyStartRecording()
             }
-            self?.actuallyStartRecording()
         }
     }
 
     private func actuallyStartRecording() {
-        let audioSession = AVAudioSession.sharedInstance()
         do {
+            let audioSession = AVAudioSession.sharedInstance()
             try audioSession.setCategory(.playAndRecord, mode: .default, options: .defaultToSpeaker)
             try audioSession.setActive(true)
 
@@ -209,14 +211,19 @@ public class ChatService: ObservableObject {
                 AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
             ]
 
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent("voice_\(Date().timeIntervalSince1970).m4a")
+            let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("voice_\(Date().timeIntervalSince1970).m4a")
             audioRecorder = try AVAudioRecorder(url: url, settings: settings)
             audioRecorder?.isMeteringEnabled = true
-            guard audioRecorder?.prepareToRecord() == true else {
+            audioRecorder?.delegate = self
+
+            if audioRecorder?.prepareToRecord() == false {
                 errorMessage = "Error al preparar grabación"
                 return
             }
-            audioRecorder?.record()
+            if audioRecorder?.record() == false {
+                errorMessage = "Error al iniciar grabación"
+                return
+            }
             isRecording = true
             recordingDuration = 0
 
