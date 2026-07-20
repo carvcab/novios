@@ -19,21 +19,7 @@ public class AuthService: ObservableObject {
         loadSession()
     }
 
-    public func signInWithGoogle() async -> UserModel? {
-        await MainActor.run { isLoading = true }
-        do {
-            let result = try await FirebaseRESTService.shared.signUp(email: "\(UUID().uuidString)@google.com", password: "google_\(UUID().uuidString)", displayName: "Usuario")
-            let user = UserModel(id: result.localId, email: "", displayName: "Usuario", username: "usuario_\(Int.random(in: 100...999))")
-            await MainActor.run {
-                self.currentUser = user; self.isLoggedIn = true; self.isLoading = false
-                saveSession(user: user)
-            }
-            return user
-        } catch {
-            await MainActor.run { self.isLoading = false }
-            return nil
-        }
-    }
+    // Google sign-in removed - use email/password auth instead
 
     public func signInWithEmail(email: String, password: String) async throws {
         await MainActor.run { isLoading = true }
