@@ -200,10 +200,8 @@ class UserService extends ChangeNotifier {
         final userDoc = emailSnap.docs.first;
         if (userDoc.id != myUid) {
           final data = userDoc.data();
-          if (data != null) {
-            data['uid'] = userDoc.id;
-            return data;
-          }
+          data['uid'] = userDoc.id;
+          return data;
         }
       }
 

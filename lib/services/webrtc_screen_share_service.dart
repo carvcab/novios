@@ -116,8 +116,7 @@ class WebRTCScreenShareService {
     // 7. Escuchar respuesta (Answer SDP) del Callee
     bool remoteDescriptionSet = false;
     _roomSubscription = roomRef.snapshots().listen((snapshot) async {
-      if (!snapshot.exists) return;
-      final data = snapshot.data() as Map<String, dynamic>?;
+      final data = snapshot.data();
       if (data != null && data['answer'] != null && !remoteDescriptionSet) {
         remoteDescriptionSet = true;
         final answerMap = data['answer'] as Map<String, dynamic>;

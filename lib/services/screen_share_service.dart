@@ -95,7 +95,9 @@ class ScreenShareService {
 
   int _hashBytes(Uint8List bytes) {
     int h = 0;
-    for (int i = 0; i < bytes.length; i += 500) h = 31 * h + bytes[i];
+    for (int i = 0; i < bytes.length; i += 500) {
+      h = 31 * h + bytes[i];
+    }
     return h;
   }
 

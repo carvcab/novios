@@ -91,6 +91,7 @@
 		9A0004A2C00000000000004A /* MemoryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004322C0000000000000432 /* MemoryDetailView.swift */; };
 		9A0004B2C00000000000004B /* MusicHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004332C0000000000000433 /* MusicHistoryView.swift */; };
 		9A0004C2C00000000000004C /* ScreenShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004342C0000000000000434 /* ScreenShareView.swift */; };
+		9A0004D2C00000000000004D /* FirebaseRESTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004352C0000000000000435 /* FirebaseRESTService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -179,6 +180,7 @@
 		9A004322C0000000000000432 /* MemoryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Memories/MemoryDetailView.swift; sourceTree = "<group>"; };
 		9A004332C0000000000000433 /* MusicHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Music/MusicHistoryView.swift; sourceTree = "<group>"; };
 		9A004342C0000000000000434 /* ScreenShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ScreenView/ScreenShareView.swift; sourceTree = "<group>"; };
+		9A004352C0000000000000435 /* FirebaseRESTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/FirebaseRESTService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -287,6 +289,7 @@
 				9A004322C0000000000000432 /* MemoryDetailView.swift */,
 				9A004332C0000000000000433 /* MusicHistoryView.swift */,
 				9A004342C0000000000000434 /* ScreenShareView.swift */,
+				9A004352C0000000000000435 /* FirebaseRESTService.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -432,6 +435,7 @@
 				9A0004A2C00000000000004A /* MemoryDetailView.swift in Sources */,
 				9A0004B2C00000000000004B /* MusicHistoryView.swift in Sources */,
 				9A0004C2C00000000000004C /* ScreenShareView.swift in Sources */,
+				9A0004D2C00000000000004D /* FirebaseRESTService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

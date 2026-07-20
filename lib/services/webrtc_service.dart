@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
@@ -70,7 +71,7 @@ class WebRTCService {
 
     final callerCandidatesCollection = roomRef.collection('callerCandidates');
     _peerConnection?.onIceCandidate = (RTCIceCandidate candidate) {
-      if (candidate.candidate != null && candidate.candidate.isNotEmpty) {
+      if (candidate.candidate != null && candidate.candidate!.isNotEmpty) {
         callerCandidatesCollection.add(candidate.toMap());
       }
     };

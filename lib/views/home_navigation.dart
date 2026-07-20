@@ -99,39 +99,38 @@ class _HomeNavigationState extends State<HomeNavigation> with WidgetsBindingObse
 
     return ConfettiOverlay(
       child: Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          appBar: AppBar(
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('💞', style: TextStyle(fontSize: 16)),
-                const SizedBox(width: 6),
-                Text(ProfileService().coupleDisplay.isNotEmpty ? ProfileService().coupleDisplay : 'EverUs',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-              ],
-            ),
-            actions: [
-              Container(
-                margin: const EdgeInsets.only(right: 4),
-                decoration: BoxDecoration(
-                  color: cs.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  icon: Icon(Icons.settings_outlined, color: cs.primary, size: 20),
-                  onPressed: _goToSettings,
-                ),
-              ),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('💞', style: TextStyle(fontSize: 16)),
+              const SizedBox(width: 6),
+              Text(ProfileService().coupleDisplay.isNotEmpty ? ProfileService().coupleDisplay : 'EverUs',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
             ],
           ),
-          body: IndexedStack(
-            index: _currentIndex,
-            children: List.generate(_tabs.length, (index) {
-              return _loadedTabs[index] ? _tabs[index] : const SizedBox.shrink();
-            }),
-          ),
-          bottomNavigationBar: _buildNav(cs, isDark),
+          actions: [
+            Container(
+              margin: const EdgeInsets.only(right: 4),
+              decoration: BoxDecoration(
+                color: cs.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: IconButton(
+                icon: Icon(Icons.settings_outlined, color: cs.primary, size: 20),
+                onPressed: _goToSettings,
+              ),
+            ),
+          ],
         ),
+        body: IndexedStack(
+          index: _currentIndex,
+          children: List.generate(_tabs.length, (index) {
+            return _loadedTabs[index] ? _tabs[index] : const SizedBox.shrink();
+          }),
+        ),
+        bottomNavigationBar: _buildNav(cs, isDark),
       ),
     );
   }

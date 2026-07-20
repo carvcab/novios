@@ -39,66 +39,77 @@ public class UserService: ObservableObject {
     
     public func searchUser(query: String) async -> [String: Any]? {
         await MainActor.run { self.isSearching = true }
-        try? await Task.sleep(nanoseconds: 400_000_000)
-        await MainActor.run { self.isSearching = false }
-        
+        defer { Task { await MainActor.run { self.isSearching = false } } }
+
         let cleaned = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if cleaned.isEmpty { return nil }
-        
+
+        // Try Firestore search by username or email
+        let fields = ["username": cleaned, "email": cleaned]
+        for (field, value) in fields {
+            if let docs = try? await FirebaseRESTService.shared.firestoreQuery(path: "users", field: field, op: "EQUAL", value: value),
+               let first = docs.first,
+               let f = first["fields"] as? [String: Any] {
+                let uid = (first["name"] as? String)?.split(separator: "/").last.map(String.init) ?? ""
+                let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String ?? value
+                let uname = (f["username"] as? [String: Any])?["stringValue"] as? String ?? value
+                let email = (f["email"] as? [String: Any])?["stringValue"] as? String ?? "\(value)@love.com"
+                return ["uid": uid, "displayName": displayName, "username": uname, "email": email, "pairCode": ""]
+            }
+        }
+
+        // Fallback to mock for offline
+        try? await Task.sleep(nanoseconds: 400_000_000)
         return [
             "uid": "partner_sample_123",
             "displayName": "Mi Amor ❤️",
             "username": cleaned.contains("@") ? cleaned.components(separatedBy: "@").first! : cleaned,
             "email": cleaned.contains("@") ? cleaned : "\(cleaned)@love.com",
-            "pairCode": "LOVE88"
+            "pairCode": ""
         ]
     }
     
     public func addPartner(codeOrEmail: String, foundUserData: [String: Any]? = nil) async -> AddPartnerResult {
-        try? await Task.sleep(nanoseconds: 600_000_000)
+        guard let partnerData = foundUserData else { return .notFound }
         guard var user = AuthService.shared.currentUser else { return .error("Usuario no autenticado") }
-        
         if user.isPaired { return .alreadyHasPartner }
-        
-        guard let partnerData = foundUserData else {
-            return .notFound
-        }
-        
-        let partnerId = partnerData["uid"] as? String ?? "partner_unknown"
+
+        let partnerId = partnerData["uid"] as? String ?? ""
         let displayName = partnerData["displayName"] as? String ?? "Mi Pareja ❤️"
         let username = partnerData["username"] as? String ?? "pareja"
-        let email = partnerData["email"] as? String ?? "pareja@love.com"
-        let pairCode = partnerData["pairCode"] as? String ?? "LOVE88"
-        
+        let email = partnerData["email"] as? String ?? ""
+        let myUid = FirebaseRESTService.shared.localId ?? user.id
+        let coupleId = [myUid, partnerId].sorted().joined(separator: "_")
+
+        // Write to Firestore
+        do {
+            try await FirebaseRESTService.shared.firestoreSet(path: "users/\(myUid)", fields: [
+                "partnerUid": partnerId, "partnerName": displayName, "coupleId": coupleId,
+                "displayName": user.displayName, "email": user.email, "username": user.username
+            ])
+            try await FirebaseRESTService.shared.firestoreSet(path: "users/\(partnerId)", fields: [
+                "partnerUid": myUid, "partnerName": user.displayName, "coupleId": coupleId,
+                "displayName": displayName, "email": email, "username": username
+            ])
+        } catch {
+            return .error("Error al vincular en Firestore")
+        }
+
         user.partnerUid = partnerId
         user.anniversaryDate = Date().addingTimeInterval(-86400 * 365)
         user.skippedPartner = false
-        
-        AuthService.shared.saveUser(user)
         AuthService.shared.currentUser = user
-        
-        let partner = UserModel(
-            id: partnerId,
-            email: email,
-            displayName: displayName,
-            username: username,
-            pairCode: pairCode,
-            partnerUid: user.id,
-            anniversaryDate: user.anniversaryDate,
-            mood: "🥰",
-            moodMessage: "Pensando en ti",
-            batteryLevel: 0.88,
-            isCharging: true,
-            latitude: 4.6097,
-            longitude: -74.0817
-        )
+        AuthService.shared.saveUser(user)
+
+        let partner = UserModel(id: partnerId, email: email, displayName: displayName, username: username,
+            pairCode: "", partnerUid: myUid, anniversaryDate: user.anniversaryDate,
+            mood: "🥰", moodMessage: "Pensando en ti", batteryLevel: 0.88, isCharging: true)
         self.partnerUser = partner
-        
+
         ChatNotificationService.shared.sendLocalNotification(
             title: "¡Pareja Vinculada! 🎉",
             body: "❤️ Te has vinculado exitosamente con \(partner.displayName). ¡Disfruten su espacio juntos!"
         )
-        
         return .success
     }
     
