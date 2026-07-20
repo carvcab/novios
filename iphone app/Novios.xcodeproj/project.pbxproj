@@ -93,6 +93,7 @@
 		9A0004C2C00000000000004C /* ScreenShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004342C0000000000000434 /* ScreenShareView.swift */; };
 		9A0004D2C00000000000004D /* FirebaseRESTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004352C0000000000000435 /* FirebaseRESTService.swift */; };
 		9A0004E2C00000000000004E /* StatusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004362C0000000000000436 /* StatusService.swift */; };
+		9A0004F2C00000000000004F /* FirestoreSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004372C0000000000000437 /* FirestoreSyncService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -183,6 +184,7 @@
 		9A004342C0000000000000434 /* ScreenShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ScreenView/ScreenShareView.swift; sourceTree = "<group>"; };
 		9A004352C0000000000000435 /* FirebaseRESTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/FirebaseRESTService.swift; sourceTree = "<group>"; };
 		9A004362C0000000000000436 /* StatusService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/StatusService.swift; sourceTree = "<group>"; };
+		9A004372C0000000000000437 /* FirestoreSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/FirestoreSyncService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -293,6 +295,7 @@
 				9A004342C0000000000000434 /* ScreenShareView.swift */,
 				9A004352C0000000000000435 /* FirebaseRESTService.swift */,
 				9A004362C0000000000000436 /* StatusService.swift */,
+				9A004372C0000000000000437 /* FirestoreSyncService.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -440,6 +443,7 @@
 				9A0004C2C00000000000004C /* ScreenShareView.swift in Sources */,
 				9A0004D2C00000000000004D /* FirebaseRESTService.swift in Sources */,
 				9A0004E2C00000000000004E /* StatusService.swift in Sources */,
+				9A0004F2C00000000000004F /* FirestoreSyncService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

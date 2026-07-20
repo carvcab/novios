@@ -1,11 +1,7 @@
 import SwiftUI
 
 public struct LoveView: View {
-    @State private var timelineEvents: [(date: String, emoji: String, title: String, description: String)] = [
-        ("10 Dic 2024", "💑", "Nos conocimos", "Fue amor a primera vista"),
-        ("14 Feb 2025", "💍", "Primera cita", "Cena romántica"),
-        ("01 Jun 2025", "✈️", "Primer viaje", "Viaje a la playa")
-    ]
+    @State private var timelineEvents: [(String, String, String, String)] = []
     @State private var lovePoints: Int = 450
     @State private var totalLovePoints: Int = 1000
     @State private var currentLevel: Int = 5
@@ -14,6 +10,10 @@ public struct LoveView: View {
     @State private var messagesSent: Int = 1234
     @State private var photosShared: Int = 567
     @State private var goalsCompleted: Int = 23
+    @State private var showAddEvent = false
+    @State private var newEventTitle = ""
+    @State private var newEventEmoji = "\u{1F491}"
+    @State private var newEventDescription = ""
 
     private let anniversaryDate: Date = {
         var components = DateComponents()
@@ -53,7 +53,52 @@ public struct LoveView: View {
                 }
             }
             .navigationTitle("Amor \u{2764}\u{FE0F}")
+            .task { await loadFromFirestore() }
+            .alert("Nuevo evento", isPresented: $showAddEvent) {
+                TextField("T\u{00ED}tulo", text: $newEventTitle)
+                TextField("Emoji", text: $newEventEmoji)
+                TextField("Descripci\u{00F3}n", text: $newEventDescription)
+                Button("Cancelar", role: .cancel) { resetNewEventFields() }
+                Button("Guardar") { addTimelineEvent() }
+            }
         }
+    }
+
+    private func loadFromFirestore() async {
+        let events = await FirestoreSyncService.shared.loadTimelineEvents()
+        var loaded: [(String, String, String, String)] = []
+        for event in events {
+            let id = event["id"] as? String ?? ""
+            let emoji = event["emoji"] as? String ?? "\u{1F491}"
+            let title = event["title"] as? String ?? ""
+            let desc = event["description"] as? String ?? ""
+            loaded.append((id, emoji, title, desc))
+        }
+        timelineEvents = loaded
+    }
+
+    private func addTimelineEvent() {
+        let title = newEventTitle
+        let emoji = newEventEmoji
+        let desc = newEventDescription
+        Task {
+            await FirestoreSyncService.shared.saveTimelineEvent(title: title, description: desc, date: Date(), emoji: emoji)
+            resetNewEventFields()
+            await loadFromFirestore()
+        }
+    }
+
+    private func deleteTimelineEvent(at id: String) {
+        Task {
+            await FirestoreSyncService.shared.deleteTimelineEvent(id: id)
+            await loadFromFirestore()
+        }
+    }
+
+    private func resetNewEventFields() {
+        newEventTitle = ""
+        newEventEmoji = "\u{1F491}"
+        newEventDescription = ""
     }
 
     private var anniversaryHeroSection: some View {
@@ -116,7 +161,7 @@ public struct LoveView: View {
                     ForEach(Array(timelineEvents.enumerated()), id: \.offset) { index, event in
                         HStack(alignment: .top, spacing: 14) {
                             VStack(spacing: 0) {
-                                Text(event.emoji)
+                                Text(event.1)
                                     .font(.system(size: 20))
                                     .frame(width: 36, height: 36)
                                     .background(ThemeManager.shared.primaryPink.opacity(0.1))
@@ -130,13 +175,10 @@ public struct LoveView: View {
                             }
 
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(event.date)
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.primary.opacity(0.5))
-                                Text(event.title)
+                                Text(event.2)
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.primary)
-                                Text(event.description)
+                                Text(event.3)
                                     .font(.system(size: 13))
                                     .foregroundColor(.primary.opacity(0.65))
                             }
@@ -144,12 +186,17 @@ public struct LoveView: View {
                             Spacer()
                         }
                         .padding(.bottom, index < timelineEvents.count - 1 ? 4 : 0)
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                deleteTimelineEvent(at: event.0)
+                            } label: {
+                                Label("Eliminar", systemImage: "trash")
+                            }
+                        }
                     }
 
                     Button {
-                        withAnimation {
-                            timelineEvents.append(("Nueva fecha", "\u{2795}", "Nuevo evento", "Descripci\u{00F3}n"))
-                        }
+                        showAddEvent = true
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "plus.circle.fill")

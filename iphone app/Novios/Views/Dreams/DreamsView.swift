@@ -1,23 +1,20 @@
 import SwiftUI
 
 public struct DreamsView: View {
+    @State private var dreams: [(String, String, String, Bool)] = []
     @State private var selectedFilter: DreamFilter = .todos
+    @State private var showAddAlert = false
+    @State private var newTitle = ""
+    @State private var newEmoji = ""
 
-    private let allDreams: [(String, String, String, String)] = [
-        ("\u{1F3E0}", "Casa propia", "Tener nuestra casa con jardín", "Cumplido"),
-        ("\u{2708}\u{FE0F}", "Viajar a Japón", "Conocer Tokyo juntos", "Pendiente"),
-        ("\u{1F415}", "Tener un perro", "Adoptar un golden retriever", "Pendiente"),
-        ("\u{1F393}", "Graduarnos", "Terminar nuestros estudios", "Cumplido")
-    ]
-
-    private var filteredDreams: [(String, String, String, String)] {
+    private var filteredDreams: [(String, String, String, Bool)] {
         switch selectedFilter {
         case .todos:
-            return allDreams
+            return dreams
         case .pendientes:
-            return allDreams.filter { $0.3 == "Pendiente" }
+            return dreams.filter { !$0.3 }
         case .cumplidos:
-            return allDreams.filter { $0.3 == "Cumplido" }
+            return dreams.filter { $0.3 }
         }
     }
 
@@ -30,16 +27,16 @@ public struct DreamsView: View {
                 ScrollView {
                     VStack(spacing: 16) {
                         HStack {
-                            Text("Sueños Compartidos")
+                            Text("Sue\u{00F1}os Compartidos")
                                 .font(.system(size: 26, weight: .bold))
                                 .foregroundColor(.primary)
 
                             Spacer()
 
-                            Button(action: {}) {
+                            Button(action: { showAddAlert = true }) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "plus")
-                                    Text("Agregar sueño")
+                                    Text("Agregar sue\u{00F1}o")
                                 }
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.white)
@@ -70,24 +67,23 @@ public struct DreamsView: View {
                             ForEach(Array(filteredDreams.enumerated()), id: \.offset) { _, dream in
                                 GlassCard(cornerRadius: 20) {
                                     VStack(alignment: .leading, spacing: 10) {
-                                        Text(dream.0)
+                                        Text(dream.2)
                                             .font(.system(size: 36))
 
                                         Text(dream.1)
                                             .font(.system(size: 16, weight: .bold))
                                             .foregroundColor(.primary)
 
-                                        Text(dream.2)
-                                            .font(.system(size: 12))
-                                            .foregroundColor(ThemeManager.shared.textSecondary)
-                                            .lineLimit(2)
-
-                                        HStack(spacing: 4) {
-                                            Text(dream.3 == "Cumplido" ? "\u{2705}" : "\u{23F3}")
-                                                .font(.system(size: 12))
-                                            Text(dream.3)
-                                                .font(.system(size: 11, weight: .semibold))
-                                                .foregroundColor(dream.3 == "Cumplido" ? .green : .orange)
+                                        Button {
+                                            toggleDream(dream)
+                                        } label: {
+                                            HStack(spacing: 4) {
+                                                Text(dream.3 ? "\u{2705}" : "\u{23F3}")
+                                                    .font(.system(size: 12))
+                                                Text(dream.3 ? "Cumplido" : "Pendiente")
+                                                    .font(.system(size: 11, weight: .semibold))
+                                                    .foregroundColor(dream.3 ? .green : .orange)
+                                            }
                                         }
                                     }
                                 }
@@ -98,7 +94,50 @@ public struct DreamsView: View {
                     .padding(.vertical, 20)
                 }
             }
-            .navigationTitle("Sueños")
+            .navigationTitle("Sue\u{00F1}os")
+            .task {
+                await loadDreams()
+            }
+            .alert("Nuevo sue\u{00F1}o", isPresented: $showAddAlert) {
+                TextField("T\u{00ED}tulo", text: $newTitle)
+                TextField("Emoji", text: $newEmoji)
+                Button("Cancelar", role: .cancel) {
+                    newTitle = ""
+                    newEmoji = ""
+                }
+                Button("Agregar") {
+                    let title = newTitle.trimmingCharacters(in: .whitespaces)
+                    let emoji = newEmoji.trimmingCharacters(in: .whitespaces).isEmpty ? "\u{2B50}" : newEmoji.trimmingCharacters(in: .whitespaces)
+                    guard !title.isEmpty else { return }
+                    Task {
+                        await FirestoreSyncService.shared.saveDream(title: title, emoji: emoji, isCompleted: false)
+                        await loadDreams()
+                    }
+                    newTitle = ""
+                    newEmoji = ""
+                }
+            }
+        }
+    }
+
+    private func loadDreams() async {
+        let items = await FirestoreSyncService.shared.loadDreams()
+        dreams = items.map { item in
+            let id = item["id"] as? String ?? UUID().uuidString
+            let title = item["title"] as? String ?? ""
+            let emoji = item["emoji"] as? String ?? "\u{2B50}"
+            let isCompleted = item["isCompleted"] as? Bool ?? false
+            return (id, title, emoji, isCompleted)
+        }
+    }
+
+    private func toggleDream(_ dream: (String, String, String, Bool)) {
+        let newValue = !dream.3
+        if let idx = dreams.firstIndex(where: { $0.0 == dream.0 }) {
+            dreams[idx].3 = newValue
+        }
+        Task {
+            await FirestoreSyncService.shared.toggleDream(id: dream.0, isCompleted: newValue)
         }
     }
 }

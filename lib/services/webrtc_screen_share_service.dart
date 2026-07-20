@@ -52,7 +52,14 @@ class WebRTCScreenShareService {
     // Limpiar sala previa si existía
     await _deleteRoomFirestore(roomRef);
 
-    // 1. Obtener captura de pantalla con resolución y FPS optimizados para Android (720p 15fps)
+    // 1. Iniciar servicio Foreground para Android 14+ (MediaProjection requirement)
+    try {
+      await Helper.startForegroundService();
+    } catch (e) {
+      debugPrint('Helper.startForegroundService error: $e');
+    }
+
+    // 2. Obtener captura de pantalla con resolución y FPS optimizados para Android (720p 15fps)
     try {
       _localStream = await navigator.mediaDevices.getDisplayMedia({
         'video': {
@@ -303,6 +310,10 @@ class WebRTCScreenShareService {
 
     await _peerConnection?.close();
     _peerConnection = null;
+
+    try {
+      await Helper.stopForegroundService();
+    } catch (_) {}
 
     _isSharing = false;
     _isViewing = false;
