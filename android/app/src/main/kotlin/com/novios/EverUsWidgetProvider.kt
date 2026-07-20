@@ -1,4 +1,4 @@
-package novios.novios
+package com.novios
 
 import android.content.Context
 import android.content.Intent
@@ -39,3 +39,4 @@ class ActionsWidget : AppWidgetProvider() {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
     }
 }
+

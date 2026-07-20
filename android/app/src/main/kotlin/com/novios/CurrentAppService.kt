@@ -1,4 +1,4 @@
-package novios.novios
+package com.novios
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -284,3 +284,4 @@ class CurrentAppService : Service() {
         } catch (_: Exception) {}
     }
 }
+

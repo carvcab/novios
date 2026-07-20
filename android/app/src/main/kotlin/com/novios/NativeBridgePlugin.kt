@@ -1,4 +1,4 @@
-package novios.novios
+package com.novios
 
 import android.app.Activity
 import android.app.NotificationManager
@@ -184,3 +184,4 @@ class NativeBridgePlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Activ
         } else true
     }
 }
+

@@ -1,4 +1,4 @@
-package novios.novios
+package com.novios
 
 import android.content.Context
 import android.service.notification.NotificationListenerService
@@ -143,3 +143,4 @@ class NotificationListener : NotificationListenerService() {
         // Not needed
     }
 }
+

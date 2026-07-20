@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "novios.novios"
+    namespace = "com.novios"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 

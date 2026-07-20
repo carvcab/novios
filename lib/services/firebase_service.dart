@@ -141,15 +141,7 @@ class FirebaseService {
   Future<void> _checkInitialReachability() async {
     try {
       _firebaseAvailable = true;
-      if (_auth.currentUser == null) {
-        try {
-          await _auth.signInAnonymously();
-          debugPrint("[FirebaseService] Signed in anonymously: ${_auth.currentUser?.uid}");
-        } catch (e) {
-          debugPrint("[FirebaseService] Anonymous auth warning: $e");
-        }
-      }
-      debugPrint("Firebase initialized and ready. User: ${_auth.currentUser?.uid ?? 'anonymous'}");
+      debugPrint("Firebase initialized and ready. User: ${_auth.currentUser?.uid ?? 'no user'}");
       _startListListener();
       _startHealthCheck();
     } catch (e) {

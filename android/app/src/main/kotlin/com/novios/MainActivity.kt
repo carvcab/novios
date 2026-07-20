@@ -1,4 +1,4 @@
-package novios.novios
+package com.novios
 
 import android.app.Activity
 import android.content.Intent
@@ -221,3 +221,4 @@ class MainActivity : FlutterActivity() {
         }
     }
 }
+
