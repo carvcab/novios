@@ -24,7 +24,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     private var currentUserId: String { AuthService.shared.currentUser?.id ?? FirebaseRESTService.shared.localId ?? "me" }
     private var partnerId: String { UserDefaults.standard.string(forKey: "partner_uid") ?? "partner" }
 
-    private init() { startPolling() }
+    override private init() { startPolling() }
 
     public func startPolling() {
         stopPolling()
