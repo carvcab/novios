@@ -1,14 +1,20 @@
 import SwiftUI
 
+private struct Idea: Identifiable {
+    let id: String
+    let emoji: String
+    let title: String
+}
+
 private struct WatchItem: Identifiable {
-    let id = UUID()
+    let id: String
     let emoji: String
     let title: String
     var isWatched: Bool
 }
 
-private struct Restaurant: Identifiable {
-    let id = UUID()
+private struct RestaurantItem: Identifiable {
+    let id: String
     let emoji: String
     let name: String
     var visited: Bool
@@ -22,33 +28,10 @@ private struct Plan: Identifiable {
 }
 
 public struct PlannerView: View {
-    @State private var dateIdeas: [(emoji: String, title: String)] = [
-        ("🍕", "Cena romántica"),
-        ("🎬", "Noche de cine"),
-        ("🌳", "Picnic en el parque"),
-        ("🎳", "Bowling"),
-        ("🎭", "Teatro")
-    ]
-
-    @State private var watchList: [WatchItem] = [
-        WatchItem(emoji: "🎬", title: "Interestelar", isWatched: false),
-        WatchItem(emoji: "📺", title: "Modern Family", isWatched: false),
-        WatchItem(emoji: "🎬", title: "Up", isWatched: false),
-        WatchItem(emoji: "📺", title: "Friends", isWatched: false)
-    ]
-
-    @State private var restaurants: [Restaurant] = [
-        Restaurant(emoji: "🍜", name: "Sushi House", visited: false),
-        Restaurant(emoji: "🌮", name: "Taquería", visited: false),
-        Restaurant(emoji: "🍝", name: "Italianni's", visited: false),
-        Restaurant(emoji: "🥘", name: "Paella", visited: false)
-    ]
-
-    @State private var upcomingPlans: [Plan] = [
-        Plan(date: "14 Feb", title: "Cena romántica", emoji: "🍕"),
-        Plan(date: "20 Feb", title: "Noche de juegos", emoji: "🎲"),
-        Plan(date: "01 Mar", title: "Fin de semana", emoji: "✈️")
-    ]
+    @State private var dateIdeas: [Idea] = []
+    @State private var watchList: [WatchItem] = []
+    @State private var restaurants: [RestaurantItem] = []
+    @State private var upcomingPlans: [Plan] = []
 
     @State private var newWatchText = ""
     @State private var showNewIdeaAlert = false
@@ -79,7 +62,11 @@ public struct PlannerView: View {
                 Button("Agregar") {
                     let trimmed = newIdeaText.trimmingCharacters(in: .whitespaces)
                     if !trimmed.isEmpty {
-                        dateIdeas.append(("💡", trimmed))
+                        let idea = Idea(id: UUID().uuidString, emoji: "💡", title: trimmed)
+                        dateIdeas.append(idea)
+                        Task {
+                            await FirestoreSyncService.shared.savePlannerItem(title: trimmed, type: "idea", emoji: "💡")
+                        }
                         newIdeaText = ""
                     }
                 }
@@ -90,9 +77,33 @@ public struct PlannerView: View {
                 Button("Agregar") {
                     let trimmed = newRestaurantText.trimmingCharacters(in: .whitespaces)
                     if !trimmed.isEmpty {
-                        restaurants.append(Restaurant(emoji: "🍽️", name: trimmed, visited: false))
+                        let item = RestaurantItem(id: UUID().uuidString, emoji: "🍽️", name: trimmed, visited: false)
+                        restaurants.append(item)
+                        Task {
+                            await FirestoreSyncService.shared.savePlannerItem(title: trimmed, type: "restaurant", emoji: "🍽️")
+                        }
                         newRestaurantText = ""
                     }
+                }
+            }
+            .task {
+                let items = await FirestoreSyncService.shared.loadPlannerItems()
+                dateIdeas = items.filter { $0["type"] as? String == "idea" }.map {
+                    Idea(id: $0["id"] as? String ?? UUID().uuidString,
+                         emoji: $0["emoji"] as? String ?? "💡",
+                         title: $0["title"] as? String ?? "")
+                }
+                watchList = items.filter { $0["type"] as? String == "movie" }.map {
+                    WatchItem(id: $0["id"] as? String ?? UUID().uuidString,
+                              emoji: $0["emoji"] as? String ?? "🎬",
+                              title: $0["title"] as? String ?? "",
+                              isWatched: $0["isDone"] as? Bool ?? false)
+                }
+                restaurants = items.filter { $0["type"] as? String == "restaurant" }.map {
+                    RestaurantItem(id: $0["id"] as? String ?? UUID().uuidString,
+                                   emoji: $0["emoji"] as? String ?? "🍽️",
+                                   name: $0["title"] as? String ?? "",
+                                   visited: $0["isDone"] as? Bool ?? false)
                 }
             }
         }
@@ -108,8 +119,7 @@ public struct PlannerView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(dateIdeas.indices, id: \.self) { idx in
-                        let idea = dateIdeas[idx]
+                    ForEach(dateIdeas) { idea in
                         GlassCard {
                             VStack(spacing: 8) {
                                 Text(idea.emoji)
@@ -204,7 +214,11 @@ public struct PlannerView: View {
                             let trimmed = newWatchText.trimmingCharacters(in: .whitespaces)
                             if !trimmed.isEmpty {
                                 let emoji = trimmed.contains("(") ? "📺" : "🎬"
-                                watchList.append(WatchItem(emoji: emoji, title: trimmed, isWatched: false))
+                                let item = WatchItem(id: UUID().uuidString, emoji: emoji, title: trimmed, isWatched: false)
+                                watchList.append(item)
+                                Task {
+                                    await FirestoreSyncService.shared.savePlannerItem(title: trimmed, type: "movie", emoji: emoji)
+                                }
                                 newWatchText = ""
                             }
                         } label: {

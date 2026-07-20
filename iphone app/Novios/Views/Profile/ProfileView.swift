@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import PhotosUI
 
@@ -13,6 +14,7 @@ public struct ProfileView: View {
     @State private var newDatePicker = Date()
     @State private var showPhotoPicker = false
     @State private var selectedPhoto: PhotosPickerItem?
+    @State private var importantDates: [ImportantDate2] = []
 
     private let streakKey = "streak_days"
     private let bestStreakKey = "best_streak"
@@ -34,7 +36,7 @@ public struct ProfileView: View {
                 }
             }
             .navigationBarHidden(true)
-            .onAppear { loadStreak(); checkAndUpdateStreak() }
+            .onAppear { loadStreak(); checkAndUpdateStreak(); Task { await loadDates() } }
             .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhoto, matching: .images)
             .alert("Agregar fecha importante", isPresented: $showAddDate) {
                 TextField("Título", text: $newDateTitle)
@@ -42,7 +44,7 @@ public struct ProfileView: View {
                 Button("Cancelar", role: .cancel) { newDateTitle = "" }
                 Button("Guardar") {
                     if !newDateTitle.isEmpty {
-                        saveImportantDate(title: newDateTitle, date: newDatePicker)
+                        Task { await saveImportantDate(title: newDateTitle, date: newDatePicker) }
                         newDateTitle = ""
                     }
                 }
@@ -120,8 +122,7 @@ public struct ProfileView: View {
                 Text("Fechas Importantes").font(.system(size: 16, weight: .semibold)).foregroundColor(.primary)
                 Spacer()
             }
-            let dates = loadImportantDates()
-            ForEach(dates) { d in
+            ForEach(importantDates) { d in
                 GlassCard {
                     HStack(spacing: 14) {
                         Image(systemName: "calendar.badge.clock").font(.system(size: 22)).foregroundColor(ThemeManager.shared.primaryPink)
@@ -134,7 +135,7 @@ public struct ProfileView: View {
                     }
                 }
                 .swipeActions(edge: .trailing) {
-                    Button(role: .destructive) { deleteImportantDate(d) } label: { Label("Eliminar", systemImage: "trash") }
+                    Button(role: .destructive) { Task { await deleteImportantDate(d) } } label: { Label("Eliminar", systemImage: "trash") }
                 }
             }
             Button {
@@ -236,31 +237,25 @@ public struct ProfileView: View {
     }
 
     // MARK: - Important Dates Persistence
-    private func loadImportantDates() -> [ImportantDate2] {
-        guard let data = UserDefaults.standard.data(forKey: "important_dates"),
-              let decoded = try? JSONDecoder().decode([ImportantDate2].self, from: data) else {
-            return []
-        }
-        return decoded
-    }
-
-    private func saveImportantDate(title: String, date: Date) {
-        var dates = loadImportantDates()
-        let formatter = DateFormatter()
-        formatter.dateStyle = .long
-        formatter.locale = Locale(identifier: "es_MX")
-        dates.append(ImportantDate2(title: title, date: date))
-        if let encoded = try? JSONEncoder().encode(dates) {
-            UserDefaults.standard.set(encoded, forKey: "important_dates")
+    private func loadDates() async {
+        let items = await FirestoreSyncService.shared.loadImportantDates()
+        importantDates = items.compactMap { dict in
+            guard let id = dict["id"] as? String,
+                  let title = dict["title"] as? String,
+                  let date = dict["date"] as? Date else { return nil }
+            let icon = dict["icon"] as? String ?? "calendar.badge.clock"
+            return ImportantDate2(id: id, title: title, date: date, icon: icon)
         }
     }
 
-    private func deleteImportantDate(_ d: ImportantDate2) {
-        var dates = loadImportantDates()
-        dates.removeAll { $0.id == d.id }
-        if let encoded = try? JSONEncoder().encode(dates) {
-            UserDefaults.standard.set(encoded, forKey: "important_dates")
-        }
+    private func saveImportantDate(title: String, date: Date) async {
+        await FirestoreSyncService.shared.saveImportantDate(title: title, date: date, icon: "calendar.badge.clock")
+        await loadDates()
+    }
+
+    private func deleteImportantDate(_ d: ImportantDate2) async {
+        await FirestoreSyncService.shared.deleteImportantDate(id: d.id)
+        await loadDates()
     }
 
     private func formatDate(_ date: Date) -> String {
@@ -277,10 +272,11 @@ public struct ProfileView: View {
     }
 }
 
-private struct ImportantDate2: Identifiable, Codable {
-    let id = UUID()
+private struct ImportantDate2: Identifiable {
+    let id: String
     let title: String
     let date: Date
+    let icon: String
 }
 
 private struct PartnerInfoView: View {

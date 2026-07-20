@@ -1,22 +1,16 @@
 import SwiftUI
 
+private struct Song: Identifiable {
+    let id: String
+    let name: String
+    let artist: String
+    let isFavorite: Bool
+}
+
 public struct MusicView: View {
     @State private var isPlaying = false
     @State private var progress = 0.3
-
-    private let queue: [(String, String, String)] = [
-        ("Nuestra Canción", "Artista", "\u{2764}\u{FE0F}"),
-        ("Amor Eterno", "Artista", "\u{2606}"),
-        ("Tú y Yo", "Artista", "\u{2764}\u{FE0F}"),
-        ("Para Siempre", "Artista", "\u{2606}"),
-        ("Solo Tú", "Artista", "\u{2764}\u{FE0F}")
-    ]
-
-    private let history: [(String, String)] = [
-        ("Beso", "Nuestra Canción"),
-        ("Mi Persona Favorita", "Amor Eterno"),
-        ("Contigo", "Tú y Yo")
-    ]
+    @State private var songs: [Song] = []
 
     public var body: some View {
         NavigationStack {
@@ -84,51 +78,26 @@ public struct MusicView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
 
                         VStack(spacing: 10) {
-                            ForEach(queue, id: \.0) { song in
+                            ForEach(songs) { song in
                                 GlassCard(cornerRadius: 16, opacity: 0.1) {
                                     HStack {
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text(song.0)
+                                            Text(song.name)
                                                 .font(.system(size: 15, weight: .semibold))
                                                 .foregroundColor(.primary)
 
-                                            Text(song.1)
+                                            Text(song.artist)
                                                 .font(.system(size: 12))
                                                 .foregroundColor(ThemeManager.shared.textSecondary)
                                         }
 
                                         Spacer()
 
-                                        Text(song.2)
-                                            .font(.system(size: 16))
-                                    }
-                                }
-                            }
-                        }
-
-                        Text("Historial")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.primary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        VStack(spacing: 10) {
-                            ForEach(history, id: \.0) { item in
-                                GlassCard(cornerRadius: 16, opacity: 0.1) {
-                                    HStack {
-                                        Image(systemName: "clock.arrow.circlepath")
-                                            .foregroundColor(ThemeManager.shared.textSecondary)
-
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(item.0)
-                                                .font(.system(size: 15, weight: .semibold))
-                                                .foregroundColor(.primary)
-
-                                            Text(item.1)
-                                                .font(.system(size: 12))
-                                                .foregroundColor(ThemeManager.shared.textSecondary)
+                                        if song.isFavorite {
+                                            Image(systemName: "heart.fill")
+                                                .foregroundColor(ThemeManager.shared.primaryPink)
+                                                .font(.system(size: 14))
                                         }
-
-                                        Spacer()
                                     }
                                 }
                             }
@@ -138,6 +107,15 @@ public struct MusicView: View {
                 }
             }
             .navigationTitle("Música")
+            .task {
+                let items = await FirestoreSyncService.shared.loadSongs()
+                songs = items.map {
+                    Song(id: $0["id"] as? String ?? UUID().uuidString,
+                         name: $0["name"] as? String ?? "",
+                         artist: $0["artist"] as? String ?? "",
+                         isFavorite: $0["isFavorite"] as? Bool ?? false)
+                }
+            }
         }
     }
 }

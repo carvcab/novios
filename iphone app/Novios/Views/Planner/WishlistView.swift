@@ -1,21 +1,14 @@
 import SwiftUI
 
 private struct Wish: Identifiable {
-    let id = UUID()
+    let id: String
     let emoji: String
     let name: String
     var isPurchased: Bool
 }
 
 public struct WishlistView: View {
-    @State private var wishes: [Wish] = [
-        Wish(emoji: "🎸", name: "Guitarra", isPurchased: false),
-        Wish(emoji: "📸", name: "Cámara", isPurchased: false),
-        Wish(emoji: "💻", name: "Laptop", isPurchased: false),
-        Wish(emoji: "🌺", name: "Flores", isPurchased: false),
-        Wish(emoji: "💍", name: "Anillo", isPurchased: false),
-        Wish(emoji: "🧸", name: "Peluche", isPurchased: false)
-    ]
+    @State private var wishes: [Wish] = []
 
     @State private var showAddAlert = false
     @State private var newWishText = ""
@@ -95,9 +88,22 @@ public struct WishlistView: View {
                 Button("Agregar") {
                     let trimmed = newWishText.trimmingCharacters(in: .whitespaces)
                     if !trimmed.isEmpty {
-                        wishes.append(Wish(emoji: "🎁", name: trimmed, isPurchased: false))
+                        let wish = Wish(id: UUID().uuidString, emoji: "🎁", name: trimmed, isPurchased: false)
+                        wishes.append(wish)
+                        Task {
+                            await FirestoreSyncService.shared.saveWish(title: trimmed, emoji: "🎁")
+                        }
                         newWishText = ""
                     }
+                }
+            }
+            .task {
+                let items = await FirestoreSyncService.shared.loadWishlist()
+                wishes = items.map {
+                    Wish(id: $0["id"] as? String ?? UUID().uuidString,
+                         emoji: $0["emoji"] as? String ?? "🎁",
+                         name: $0["title"] as? String ?? "",
+                         isPurchased: $0["isPurchased"] as? Bool ?? false)
                 }
             }
         }
