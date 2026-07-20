@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/local_storage.dart';
 import '../../services/auth_service.dart';
+import '../../permissions/permissions_screen.dart';
 import 'profile_setup_screen.dart';
 import 'add_partner_screen.dart';
 import '../home_navigation.dart';
@@ -87,11 +88,18 @@ class _LoginScreenState extends State<LoginScreen>
               MaterialPageRoute(builder: (_) => const AddPartnerScreen()),
             );
           } else {
-            await LocalStorage().setBool('permissions_granted', true);
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const HomeNavigation()),
-            );
+            final permissionsDone = LocalStorage().getBool('permissions_granted') == true;
+            if (permissionsDone) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const HomeNavigation()),
+              );
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const PermissionsScreen()),
+              );
+            }
           }
         }
       }

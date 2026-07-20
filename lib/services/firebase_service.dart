@@ -856,8 +856,14 @@ class FirebaseService {
         final data = doc.data()!;
         final user = UserModel.fromMap(data);
         _syncUserToLocalStorage(user);
-        
+
         final ls = LocalStorage();
+        if (data.containsKey('username') && (data['username'] as String).isNotEmpty) {
+          ls.setString('username', data['username'] as String);
+        }
+        if (data.containsKey('dob') && (data['dob'] as String).isNotEmpty) {
+          ls.setString('dob', data['dob'] as String);
+        }
         if (data.containsKey('privacySettings') && data['privacySettings'] is Map) {
           final ps = data['privacySettings'] as Map<String, dynamic>;
           if (ps['shareLocation'] is bool) ls.setBool('privacy_share_location', ps['shareLocation'] as bool);
