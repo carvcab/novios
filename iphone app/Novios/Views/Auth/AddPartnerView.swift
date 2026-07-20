@@ -36,28 +36,21 @@ public struct AddPartnerView: View {
                         Image(systemName: "magnifyingglass").foregroundColor(.primary.opacity(0.4))
                         TextField("", text: $searchText, prompt: Text("Nombre de usuario o correo de tu pareja").foregroundColor(.primary.opacity(0.4)))
                             .foregroundColor(.primary).autocapitalization(.none)
+                            .onSubmit { performSearch() }
+                        
                         if isSearching {
                             ProgressView().tint(ThemeManager.shared.primaryPink)
                         } else if foundUser != nil {
                             Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                        } else {
+                            Button("Buscar") {
+                                performSearch()
+                            }
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(ThemeManager.shared.primaryPink)
                         }
                     }
                     .padding(4)
-                }
-                .onChange(of: searchText) { newValue in
-                    let trimmed = newValue.trimmingCharacters(in: .whitespaces)
-                    if trimmed.count >= 3 {
-                        isSearching = true; errorMessage = nil; foundUser = nil
-                        Task {
-                            foundUser = await userService.searchUser(query: trimmed)
-                            isSearching = false
-                            if foundUser == nil && trimmed.count >= 3 {
-                                errorMessage = "No se encontró ningún usuario con ese nombre o correo."
-                            }
-                        }
-                    } else {
-                        foundUser = nil; errorMessage = nil
-                    }
                 }
 
                 // Found user card

@@ -170,7 +170,7 @@ public class FirebaseRESTService {
 
     public func firestoreQuery(path: String, field: String, op: String, value: Any) async throws -> [[String: Any]] {
         let headers = try await getAuthHeader()
-        let url = URL(string: firestoreURL(":runQuery"))!
+        let url = URL(string: "https://firestore.googleapis.com/v1/projects/\(currentProjectID)/databases/(default)/documents:runQuery")!
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.allHTTPHeaderFields = headers
@@ -185,13 +185,24 @@ public class FirebaseRESTService {
             "structuredQuery": [
                 "from": [["collectionId": path]],
                 "where": filter,
-                "limit": 1
+                "limit": 10
             ]
         ]
         req.httpBody = try JSONSerialization.data(withJSONObject: structuredQuery)
         let data = try await performRequest(req)
         let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] ?? []
         return json.compactMap { $0["document"] as? [String: Any] }
+    }
+
+    public func firestoreList(path: String) async throws -> [[String: Any]] {
+        let headers = try await getAuthHeader()
+        let url = URL(string: firestoreURL(path))!
+        var req = URLRequest(url: url)
+        req.allHTTPHeaderFields = headers
+        let data = try await performRequest(req)
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let documents = json["documents"] as? [[String: Any]] else { return [] }
+        return documents
     }
 
     public func firestoreDelete(path: String) async throws {
