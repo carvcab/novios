@@ -29,77 +29,39 @@ public class UserService: ObservableObject {
         let cleanUsername = cleaned.hasPrefix("@") ? String(cleaned.dropFirst()) : cleaned
         if cleanUsername.isEmpty { return nil }
 
-        // 1. Direct read from usernames/{username}
+        // 1. Try direct read from usernames/{username} (no index needed)
         if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(cleanUsername)"),
            let fields = doc["fields"] as? [String: Any],
            let uid = (fields["uid"] as? [String: Any])?["stringValue"] as? String {
             if let uDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                let uf = uDoc["fields"] as? [String: Any] {
-                let displayName = (uf["displayName"] as? [String: Any])?["stringValue"] as? String ?? 
-                                  (uf["name"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
+                let displayName = (uf["displayName"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
                 let uname = (uf["username"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
                 let email = (uf["email"] as? [String: Any])?["stringValue"] as? String ?? ""
                 let partnerUid = (uf["partnerUid"] as? [String: Any])?["stringValue"] as? String ?? ""
                 return ["uid": uid, "displayName": displayName, "username": uname, "email": email, "hasPartner": !partnerUid.isEmpty]
             }
-            return ["uid": uid, "displayName": cleanUsername, "username": cleanUsername, "email": "", "hasPartner": false]
+            return ["uid": uid, "displayName": cleanUsername, "username": cleanUsername, "email": ""]
         }
 
-        // 2. Search by Pair Code (e.g. LOVE-8492 or 8492)
-        let upperCode = cleaned.uppercased()
-        let formattedCode = upperCode.hasPrefix("LOVE-") ? upperCode : "LOVE-\(upperCode)"
-        if let codeDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "pair_codes/\(formattedCode)"),
-           let cf = codeDoc["fields"] as? [String: Any],
-           let uid = (cf["uid"] as? [String: Any])?["stringValue"] as? String {
-            if let uDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
-               let uf = uDoc["fields"] as? [String: Any] {
-                let displayName = (uf["displayName"] as? [String: Any])?["stringValue"] as? String ?? "Usuario"
-                let uname = (uf["username"] as? [String: Any])?["stringValue"] as? String ?? ""
-                let email = (uf["email"] as? [String: Any])?["stringValue"] as? String ?? ""
-                let partnerUid = (uf["partnerUid"] as? [String: Any])?["stringValue"] as? String ?? ""
-                return ["uid": uid, "displayName": displayName, "username": uname, "email": email, "hasPartner": !partnerUid.isEmpty]
-            }
-        }
-
-        // 3. Try Firestore query on users collection by username
-        if let docs = try? await FirebaseRESTService.shared.firestoreQuery(path: "users", field: "username", op: "EQUAL", value: cleanUsername),
-           let first = docs.first,
-           let f = first["fields"] as? [String: Any] {
-            let uid = (first["name"] as? String)?.split(separator: "/").last.map(String.init) ?? ""
-            let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String ?? 
-                              (f["name"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
-            let email = (f["email"] as? [String: Any])?["stringValue"] as? String ?? ""
-            let partnerUid = (f["partnerUid"] as? [String: Any])?["stringValue"] as? String ?? ""
-            return ["uid": uid, "displayName": displayName, "username": cleanUsername, "email": email, "hasPartner": !partnerUid.isEmpty]
-        }
-
-        // 4. Try by email
+        // 2. Try as email (if contains @)
         if cleaned.contains("@") {
-            if let docs = try? await FirebaseRESTService.shared.firestoreQuery(path: "users", field: "email", op: "EQUAL", value: cleaned),
-               let first = docs.first,
-               let f = first["fields"] as? [String: Any] {
-                let uid = (first["name"] as? String)?.split(separator: "/").last.map(String.init) ?? ""
-                let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String ?? ""
-                let uname = (f["username"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
-                let email = (f["email"] as? [String: Any])?["stringValue"] as? String ?? cleaned
-                let partnerUid = (f["partnerUid"] as? [String: Any])?["stringValue"] as? String ?? ""
-                return ["uid": uid, "displayName": displayName, "username": uname, "email": email, "hasPartner": !partnerUid.isEmpty]
-            }
-            // Also try email search by reading usernames collection
-            if let docs = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames?pageSize=100"),
-               let documents = docs["documents"] as? [[String: Any]] {
-                for doc in documents {
+            // Try to find the user by checking if their email exists in the system
+            // We can't search Firestore by email without an index, but we can try a direct document read
+            // by checking if there's a usernames document with this email
+            if let allDocs = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames?pageSize=200"),
+               let docs = allDocs["documents"] as? [[String: Any]] {
+                for doc in docs {
                     if let f = doc["fields"] as? [String: Any],
-                       let emailVal = (f["email"] as? [String: Any])?["stringValue"] as? String,
-                       emailVal.lowercased() == cleaned {
+                       let emailVal = (f["email"] as? [String: Any])?["stringValue"]?.lowercased(),
+                       emailVal == cleaned {
                         let uid = (f["uid"] as? [String: Any])?["stringValue"] as? String ?? ""
                         if !uid.isEmpty {
                             if let uDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                                let uf = uDoc["fields"] as? [String: Any] {
-                                let displayName = (uf["displayName"] as? [String: Any])?["stringValue"] as? String ?? ""
+                                let displayName = (uf["displayName"] as? [String: Any])?["stringValue"] as? String ?? cleaned
                                 let uname = (uf["username"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
-                                let partnerUid = (uf["partnerUid"] as? [String: Any])?["stringValue"] as? String ?? ""
-                                return ["uid": uid, "displayName": displayName, "username": uname, "email": emailVal, "hasPartner": !partnerUid.isEmpty]
+                                return ["uid": uid, "displayName": displayName, "username": uname, "email": emailVal]
                             }
                         }
                     }
@@ -107,18 +69,19 @@ public class UserService: ObservableObject {
             }
         }
 
-        // 5. Fallback: list all users and find by username locally (no index needed)
-        if let docs = try? await FirebaseRESTService.shared.firestoreGet(path: "users?pageSize=100"),
-           let documents = docs["documents"] as? [[String: Any]] {
-            for doc in documents {
+        // 3. Fallback: list all users and filter locally
+        if let usersList = try? await FirebaseRESTService.shared.firestoreGet(path: "users?pageSize=200"),
+           let docs = usersList["documents"] as? [[String: Any]] {
+            for doc in docs {
                 guard let f = doc["fields"] as? [String: Any],
                       let name = doc["name"] as? String else { continue }
                 let uid = name.split(separator: "/").last.map(String.init) ?? ""
-                let username = (f["username"] as? [String: Any])?["stringValue"] as? String ?? ""
-                let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String ?? username
-                let email = (f["email"] as? [String: Any])?["stringValue"] as? String ?? ""
+                let username = ((f["username"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
+                let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String ?? (f["name"] as? [String: Any])?["stringValue"] as? String ?? username
+                let email = ((f["email"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
                 let partnerUid = (f["partnerUid"] as? [String: Any])?["stringValue"] as? String ?? ""
-                if username.lowercased() == cleanUsername {
+
+                if username == cleanUsername || email == cleaned || displayName.lowercased() == cleaned {
                     return ["uid": uid, "displayName": displayName, "username": username, "email": email, "hasPartner": !partnerUid.isEmpty]
                 }
             }
