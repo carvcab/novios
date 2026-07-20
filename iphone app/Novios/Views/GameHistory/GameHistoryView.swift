@@ -17,9 +17,9 @@ public struct GameHistoryView: View {
                     VStack(spacing: 16) {
                         // Stats summary
                         HStack(spacing: 10) {
-                            StatCardView(value: "\(games.count)", label: "Jugados", icon: "gamecontroller.fill", color: ThemeManager.shared.primaryPink)
-                            StatCardView(value: "\(games.filter { $0.winner == "Ganó: Tú" }.count)", label: "Ganados", icon: "trophy.fill", color: Color(red: 1.0, green: 0.72, blue: 0.3))
-                            StatCardView(value: "\(games.filter { $0.winner == "Empate" }.count)", label: "Empates", icon: "hand.raised.fill", color: Color(red: 0.49, green: 0.51, blue: 1.0))
+                            GameStatCardView(value: "\(games.count)", label: "Jugados", icon: "gamecontroller.fill", color: ThemeManager.shared.primaryPink)
+                            GameStatCardView(value: "\(games.filter { $0.winner == "Ganó: Tú" }.count)", label: "Ganados", icon: "trophy.fill", color: Color(red: 1.0, green: 0.72, blue: 0.3))
+                            GameStatCardView(value: "\(games.filter { $0.winner == "Empate" }.count)", label: "Empates", icon: "hand.raised.fill", color: Color(red: 0.49, green: 0.51, blue: 1.0))
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
@@ -93,7 +93,7 @@ public struct GameHistoryView: View {
     ]
 }
 
-public struct StatCardView: View {
+public struct GameStatCardView: View {
     public let value: String
     public let label: String
     public let icon: String
