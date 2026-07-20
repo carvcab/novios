@@ -40,12 +40,7 @@ public struct LoginView: View {
                             
                             CustomTextField(placeholder: "Contraseña", text: $password, icon: "lock.fill", isSecure: true)
                             
-                            if let error = authService.authError {
-                                Text(error)
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.red)
-                            }
-                            
+                            if authService.currentUser == nil {
                             GradientButton(
                                 title: isSignUp ? "Registrarme" : "Entrar",
                                 icon: isSignUp ? "person.badge.plus" : "lock.open.fill",

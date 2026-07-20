@@ -138,6 +138,15 @@ public class AuthService: ObservableObject {
         defaults.set(true, forKey: "partner_skipped")
     }
 
+    public func saveUser(_ user: UserModel) {
+        currentUser = user
+        defaults.set(user.id, forKey: "auth_user_id")
+        defaults.set(user.email, forKey: "auth_user_email")
+        defaults.set(user.displayName, forKey: "auth_user_name")
+        defaults.set(user.pairCode, forKey: "auth_pair_code")
+        if let partnerUid = user.partnerUid { defaults.set(partnerUid, forKey: "partner_uid") }
+    }
+
     public var currentUserName: String {
         currentUser?.displayName ?? "Usuario"
     }
