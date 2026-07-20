@@ -34,16 +34,21 @@ public struct LoveLettersView: View {
                                         openLetter = (letter.title, letter.content)
                                         logLetterOpened(letter)
                                     } label: {
-                                        HStack(spacing: 14) {
-                                            Image(systemName: "envelope.fill").font(.system(size: 24)).foregroundColor(ThemeManager.shared.primaryPink)
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(letter.title).font(.system(size: 14, weight: .semibold)).foregroundColor(.primary)
-                                                Text(letter.content.prefix(60) + "...").font(.system(size: 11)).foregroundColor(.primary.opacity(0.5))
-                                            }
-                                            Spacer()
-                                            Image(systemName: "chevron.right").font(.system(size: 12)).foregroundColor(.primary.opacity(0.3))
-                                        }
+                                HStack(spacing: 14) {
+                                    Image(systemName: "envelope.fill").font(.system(size: 24)).foregroundColor(ThemeManager.shared.primaryPink)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(letter.title).font(.system(size: 14, weight: .semibold)).foregroundColor(.primary)
+                                        Text(letter.content.prefix(60) + "...").font(.system(size: 11)).foregroundColor(.primary.opacity(0.5))
                                     }
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.system(size: 12)).foregroundColor(.primary.opacity(0.3))
+                                }
+                            }
+                            .onTapGesture {
+                                openLetter = (letter.title, letter.content)
+                                showLetterDetail = true
+                                logLetterOpened(letter)
+                            }
                                 }.padding(.horizontal, 20)
                             }
                         }
@@ -55,6 +60,7 @@ public struct LoveLettersView: View {
                             ForEach(letters.indices, id: \.self) { i in
                                 Button {
                                     openLetter = letters[i]
+                                    showLetterDetail = true
                                     sendLetterToPartner(letters[i])
                                 } label: {
                                     GlassCard {
@@ -85,8 +91,10 @@ public struct LoveLettersView: View {
                 }
             }
             .navigationTitle("Cartas")
-            .sheet(item: $openLetter.map()) { letter in
-                letterDetailView(letter)
+            .sheet(isPresented: $showLetterDetail) {
+                if let letter = openLetter {
+                    letterDetailView(letter)
+                }
             }
             .alert("Nueva carta", isPresented: $showCompose) {
                 TextField("Título", text: $newTitle)
@@ -157,19 +165,4 @@ public struct LoveLettersView: View {
         guard !partnerUid.isEmpty else { return nil }
         return [myUid, partnerUid].sorted().joined(separator: "_")
     }
-}
-
-private extension Binding where Value == (title: String, content: String)? {
-    func map() -> Binding<IdentifiableLetter?> {
-        Binding<IdentifiableLetter?>(
-            get: { self.wrappedValue.map { IdentifiableLetter(title: $0.title, content: $0.content) } },
-            set: { self.wrappedValue = $0.map { (title: $0.title, content: $0.content) } }
-        )
-    }
-}
-
-private struct IdentifiableLetter: Identifiable {
-    let id = UUID()
-    let title: String
-    let content: String
 }
