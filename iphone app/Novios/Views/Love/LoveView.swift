@@ -14,6 +14,15 @@ public struct LoveView: View {
     @State private var newEventDescription = ""
 
     private let anniversaryDate: Date = {
+        if let saved = UserDefaults.standard.string(forKey: "anniversary_date"),
+           let date = ISO8601DateFormatter().date(from: saved) {
+            return date
+        }
+        if let saved = UserDefaults.standard.string(forKey: "profile_dob") ?? UserDefaults.standard.string(forKey: "anniversary_date") {
+            let f = DateFormatter()
+            f.dateFormat = "yyyy-MM-dd"
+            if let date = f.date(from: saved) { return date }
+        }
         var components = DateComponents()
         components.year = 2024
         components.month = 12
