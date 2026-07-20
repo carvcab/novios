@@ -1,0 +1,17 @@
+{
+  "project": "Novios",
+  "platform": "ios",
+  "github": {
+    "owner": "carvcab",
+    "repo": "novios"
+  },
+  "ios": {
+    "path": "iphone app",
+    "scheme": "Novios",
+    "signing": false,
+    "configuration": "Debug"
+  },
+  "flutter": {
+    "version": "3.32.2"
+  }
+}
