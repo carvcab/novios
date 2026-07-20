@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 /// Servicio responsable de la señalización WebRTC y la captura de pantalla
@@ -40,10 +39,8 @@ class WebRTCService {
     final roomId = customRoomId ?? _firestore.collection('rooms').doc().id;
     final roomRef = _firestore.collection('rooms').doc(roomId);
 
-    // 1. Crear RTCPeerConnection con servidores STUN
     _peerConnection = await createPeerConnection(_configuration);
 
-    // 2. Capturar pantalla mediante MediaProjection getDisplayMedia
     try {
       final mediaConstraints = <String, dynamic>{
         'audio': false,
@@ -56,65 +53,54 @@ class WebRTCService {
           'optional': [],
         }
       };
-      _localStream = await navigator.mediaDevices.getDisplayMedia(mediaConstraints);
+      _localStream = await navigator.mediaDevices
+          .getDisplayMedia(mediaConstraints)
+          .timeout(const Duration(seconds: 15));
       localRenderer.srcObject = _localStream;
     } catch (e) {
       debugPrint('[WebRTCService] Error al capturar pantalla: $e');
+      await _peerConnection?.close();
+      _peerConnection = null;
       rethrow;
     }
 
-    // 3. Agregar Pistas de Video al PeerConnection
     _localStream?.getTracks().forEach((track) {
       _peerConnection?.addTrack(track, _localStream!);
     });
 
-    // 4. Recolectar candidatos ICE del transmisor y guardarlos en subcolección callerCandidates
     final callerCandidatesCollection = roomRef.collection('callerCandidates');
     _peerConnection?.onIceCandidate = (RTCIceCandidate candidate) {
-      if (candidate.candidate != null) {
+      if (candidate.candidate != null && candidate.candidate.isNotEmpty) {
         callerCandidatesCollection.add(candidate.toMap());
       }
     };
 
-    // 5. Crear SDP Offer y guardarlo en Firestore
     final offer = await _peerConnection!.createOffer();
     await _peerConnection!.setLocalDescription(offer);
 
-    final roomWithOffer = <String, dynamic>{
-      'offer': {
-        'type': offer.type,
-        'sdp': offer.sdp,
-      },
+    await roomRef.set({
+      'offer': {'type': offer.type, 'sdp': offer.sdp},
       'createdAt': FieldValue.serverTimestamp(),
       'status': 'active',
-    };
-    await roomRef.set(roomWithOffer);
+    });
 
-    // 6. Escuchar la Respuesta SDP (Answer) de la contraparte (Receiver)
     _answerSubscription = roomRef.snapshots().listen((snapshot) async {
       if (!snapshot.exists) return;
       final data = snapshot.data();
       if (data != null && data['answer'] != null && _peerConnection?.getRemoteDescription() == null) {
-        final answer = RTCSessionDescription(
-          data['answer']['sdp'],
-          data['answer']['type'],
+        await _peerConnection?.setRemoteDescription(
+          RTCSessionDescription(data['answer']['sdp'], data['answer']['type']),
         );
-        await _peerConnection?.setRemoteDescription(answer);
       }
     });
 
-    // 7. Escuchar candidatos ICE del receptor (calleeCandidates)
     _calleeCandidatesSubscription = roomRef.collection('calleeCandidates').snapshots().listen((snapshot) {
       for (final change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.added) {
           final data = change.doc.data();
-          if (data != null) {
+          if (data != null && data['candidate'] != null) {
             _peerConnection?.addCandidate(
-              RTCIceCandidate(
-                data['candidate'],
-                data['sdpMid'],
-                data['sdpMLineIndex'],
-              ),
+              RTCIceCandidate(data['candidate'], data['sdpMid'], data['sdpMLineIndex']),
             );
           }
         }

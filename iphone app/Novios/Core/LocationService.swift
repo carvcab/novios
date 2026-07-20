@@ -37,6 +37,15 @@ public class LocationService: NSObject, ObservableObject {
     public func requestLocation() {
         manager.requestLocation()
     }
+
+    public func formattedDistance(to coordinate: CLLocationCoordinate2D) -> String {
+        guard let current = currentLocation else { return "Sin datos" }
+        let distance = current.distance(from: CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude))
+        if distance < 1000 {
+            return "\(Int(distance)) m"
+        }
+        return String(format: "%.1f km", distance / 1000)
+    }
 }
 
 extension LocationService: CLLocationManagerDelegate {

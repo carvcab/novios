@@ -43,23 +43,7 @@ public struct AICoupleAssistantView: View {
                     VStack(spacing: 16) {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
                             ForEach(modes, id: \.self) { mode in
-                                Button {
-                                    selectedMode = mode
-                                    showResult = false
-                                    result = ""
-                                } label: {
-                                    Text(mode)
-                                        .font(.system(size: 13))
-                                        .foregroundColor(.primary)
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 10)
-                                }
-                                .background(
-                                    selectedMode == mode
-                                    ? ThemeManager.shared.neonGlowGradient
-                                    : Color.white.opacity(0.08)
-                                )
-                                .cornerRadius(20)
+                                modeButton(for: mode)
                             }
                         }
                         .padding(.horizontal)
@@ -104,6 +88,19 @@ public struct AICoupleAssistantView: View {
             }
             .navigationTitle("Asistente IA")
         }
+    }
+
+    @ViewBuilder
+    private func modeButton(for mode: String) -> some View {
+        Button {
+            selectedMode = mode
+            showResult = false
+            result = ""
+        } label: {
+            Text(mode).font(.system(size: 13)).foregroundColor(.primary).padding(.horizontal, 16).padding(.vertical, 10)
+        }
+        .background(selectedMode == mode ? ThemeManager.shared.neonGlowGradient : Color.white.opacity(0.08))
+        .cornerRadius(20)
     }
 
     @ViewBuilder
