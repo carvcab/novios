@@ -52,6 +52,8 @@
 		9A0002B2C0000000000002B /* PlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004132C0000000000000413 /* PlannerView.swift */; };
 		9A0002C2C0000000000002C /* WishlistView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004142C0000000000000414 /* WishlistView.swift */; };
 		9A0002D2C0000000000002D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004152C0000000000000415 /* SettingsView.swift */; };
+		9A0002E2C00000000000002E /* QuickFeatureTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004162C0000000000000416 /* QuickFeatureTile.swift */; };
+		9A0002F2C00000000000002F /* MoreOptionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004172C0000000000000417 /* MoreOptionCard.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -101,6 +103,8 @@
 		9A004132C0000000000000413 /* PlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Planner/PlannerView.swift; sourceTree = "<group>"; };
 		9A004142C0000000000000414 /* WishlistView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Planner/WishlistView.swift; sourceTree = "<group>"; };
 		9A004152C0000000000000415 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/SettingsView.swift; sourceTree = "<group>"; };
+		9A004162C0000000000000416 /* QuickFeatureTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/QuickFeatureTile.swift; sourceTree = "<group>"; };
+		9A004172C0000000000000417 /* MoreOptionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/MoreOptionCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -170,6 +174,8 @@
 				9A004132C0000000000000413 /* PlannerView.swift */,
 				9A004142C0000000000000414 /* WishlistView.swift */,
 				9A004152C0000000000000415 /* SettingsView.swift */,
+				9A004162C0000000000000416 /* QuickFeatureTile.swift */,
+				9A004172C0000000000000417 /* MoreOptionCard.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -276,6 +282,8 @@
 				9A0002B2C0000000000002B /* PlannerView.swift in Sources */,
 				9A0002C2C0000000000002C /* WishlistView.swift in Sources */,
 				9A0002D2C0000000000002D /* SettingsView.swift in Sources */,
+				9A0002E2C00000000000002E /* QuickFeatureTile.swift in Sources */,
+				9A0002F2C00000000000002F /* MoreOptionCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
