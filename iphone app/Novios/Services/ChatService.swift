@@ -190,14 +190,20 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     // MARK: - Voice Recording
 
     public func startRecording() {
-        AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
-            DispatchQueue.main.async {
-                guard granted else {
-                    self?.errorMessage = "Permiso de micrófono denegado"
-                    return
+        switch AVAudioSession.sharedInstance().recordPermission {
+        case .granted:
+            actuallyStartRecording()
+        case .denied:
+            errorMessage = "Permiso de micrófono denegado. Actívalo en Ajustes."
+        case .undetermined:
+            AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
+                DispatchQueue.main.async {
+                    if granted { self?.actuallyStartRecording() }
+                    else { self?.errorMessage = "Permiso de micrófono requerido para grabar audio" }
                 }
-                self?.actuallyStartRecording()
             }
+        @unknown default:
+            actuallyStartRecording()
         }
     }
 

@@ -3,7 +3,6 @@ import PhotosUI
 
 public struct MessagesView: View {
     @StateObject private var chatService = ChatService.shared
-    @StateObject private var audioService = AudioService.shared
     @EnvironmentObject var authService: AuthService
     @State private var textInput = ""
     @State private var floatingHearts: [ChatHeartParticle] = []
@@ -95,9 +94,9 @@ public struct MessagesView: View {
                         Button {
                             toggleRecording()
                         } label: {
-                            Image(systemName: audioService.isRecording ? "stop.circle.fill" : "mic.fill")
+                            Image(systemName: chatService.isRecording ? "stop.circle.fill" : "mic.fill")
                                 .font(.system(size: 20))
-                                .foregroundColor(audioService.isRecording ? .red : .primary.opacity(0.5))
+                                .foregroundColor(chatService.isRecording ? .red : .primary.opacity(0.5))
                         }
 
                         Button {
