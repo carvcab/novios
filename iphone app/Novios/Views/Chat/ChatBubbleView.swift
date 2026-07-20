@@ -3,384 +3,163 @@ import SwiftUI
 public struct ChatBubbleView: View {
     public let message: MessageModel
     public var isFromMe: Bool
-    public var onReaction: ((String) -> Void)?
-    public var onReply: (() -> Void)?
-    public var onCopy: (() -> Void)?
+    public var onReply: () -> Void
+    public var onReact: (String) -> Void
 
-    @State private var showContextMenu = false
+    @State private var showMenu = false
 
-    private let reactionEmojis = ["❤️", "😘", "😂", "😮", "😢", "🔥", "💖", "👍", "👎"]
-    private let theme = ThemeManager.shared
+    private let reactions = ["❤️", "😘", "😂", "😮", "😢", "🔥", "💖", "👍", "👎"]
 
     public var body: some View {
-        VStack(alignment: isFromMe ? .trailing : .leading, spacing: 2) {
-            if message.isDisappearing {
-                HStack(spacing: 3) {
-                    Image(systemName: "timer")
-                        .font(.system(size: 10))
-                        .foregroundColor(.orange)
-                    Text("Desaparece después de leer")
-                        .font(.system(size: 9))
-                        .foregroundColor(.orange.opacity(0.7))
-                }
-                .padding(.horizontal, 4)
-                .padding(.vertical, 2)
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(4)
-            }
+        VStack(spacing: 2) {
+            HStack {
+                if isFromMe { Spacer(minLength: 60) }
+                if !isFromMe { Spacer(minLength: 40) }
 
-            HStack(alignment: .bottom, spacing: 6) {
-                if isFromMe { Spacer(minLength: 50) }
-
-                VStack(alignment: isFromMe ? .trailing : .leading, spacing: 3) {
-                    if hasReply {
-                        replyPreview
+                VStack(alignment: .leading, spacing: 4) {
+                    // Reply preview
+                    if let replyText = message.replyToText {
+                        HStack(spacing: 6) {
+                            Rectangle()
+                                .fill(ThemeManager.shared.primaryPink)
+                                .frame(width: 2.5)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(message.replyToSenderId == message.senderId ? "Tú" : "Ella/Él")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(ThemeManager.shared.primaryPink)
+                                Text(replyText)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.primary.opacity(0.7))
+                                    .lineLimit(2)
+                            }
+                        }
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(Color(.systemBackground).opacity(0.5))
+                        .cornerRadius(6)
                     }
 
-                    bubbleContent
-                        .background(bubbleBackground)
-                        .cornerRadius(18)
+                    // Message content
+                    if message.type == .voice {
+                        voiceContent
+                    } else if message.type == .image || message.type == .video {
+                        mediaContent
+                    } else {
+                        Text(message.text ?? "")
+                            .font(.system(size: 15, weight: message.type == .kiss || message.type == .hug || message.type == .touch ? .bold : .regular))
+                            .foregroundColor(.primary)
+                            .lineSpacing(4)
+                    }
 
-                    VStack(spacing: 1) {
-                        timestampRow
+                    // Reactions
+                    if let reactions = message.reactions, !reactions.isEmpty {
+                        HStack(spacing: 2) {
+                            ForEach(Array(reactions.values), id: \.self) { emoji in
+                                Text(emoji)
+                                    .font(.system(size: 14))
+                                    .padding(.horizontal, 5).padding(.vertical, 1)
+                                    .background(Color(.systemBackground).opacity(0.8))
+                                    .cornerRadius(10)
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(.primary.opacity(0.1)))
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
 
-                        if let reactions = message.reactions, !reactions.isEmpty {
-                            reactionsRow(reactions: reactions)
+                    // Timestamp + read receipt
+                    HStack(spacing: 5) {
+                        Text(message.timestamp, style: .time)
+                            .font(.system(size: 10))
+                            .foregroundColor(isFromMe ? .white.opacity(0.7) : .primary.opacity(0.6))
+                        if isFromMe {
+                            Image(systemName: message.readTimestamp != nil ? "heart.fill" : "heart")
+                                .font(.system(size: 11))
+                                .foregroundColor(message.readTimestamp != nil ? .pink : .white.opacity(0.4))
                         }
                     }
                 }
+                .padding(.horizontal, 16).padding(.vertical, 12)
+                .background(isFromMe ? ThemeManager.shared.neonGlowGradient : Color(.systemGray5))
+                .clipShape(CustomBubbleShape(isFromMe: isFromMe))
+                .frame(maxWidth: UIScreen.main.bounds.width * 0.72, alignment: isFromMe ? .trailing : .leading)
 
-                if !isFromMe { Spacer(minLength: 50) }
+                if !isFromMe { Spacer(minLength: 60) }
+                if isFromMe { Spacer(minLength: 40) }
             }
         }
-        .padding(.horizontal, 12)
         .padding(.vertical, 3)
-        .contextMenu {
-            reactionContextMenu
-            Divider()
-            if message.replyToId == nil {
-                Button {
-                    onReply?()
-                } label: {
-                    Label("Responder", systemImage: "arrowshape.turn.up.left")
-                }
-            }
-            if message.type == .text, message.text != nil {
-                Button {
-                    onCopy?()
-                } label: {
-                    Label("Copiar", systemImage: "doc.on.doc")
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var bubbleContent: some View {
-        switch message.type {
-        case .text, .disappearing:
-            if let text = message.text {
-                Text(text)
-                    .font(.system(size: 16))
-                    .foregroundColor(isFromMe ? .white : .primary)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-            }
-        case .voice:
-            voiceMessageContent
-        case .video:
-            videoMessageContent
-        case .image:
-            imageMessageContent
-        case .gift:
-            giftMessageContent
-        case .kiss:
-            HStack(spacing: 8) {
-                Text("💋")
-                    .font(.system(size: 32))
-                Text("Te di un beso")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(isFromMe ? .white : theme.primaryPink)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-        case .hug:
-            HStack(spacing: 8) {
-                Text("🤗")
-                    .font(.system(size: 32))
-                Text("Te di un abrazo")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(isFromMe ? .white : theme.primaryPink)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-        case .touch:
-            HStack(spacing: 8) {
-                Text("✨")
-                    .font(.system(size: 32))
-                Text("Siente mi toque")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(isFromMe ? .white : theme.primaryPink)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-        case .letter:
-            letterMessageContent
-        }
-    }
-
-    private var voiceMessageContent: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "waveform")
-                .font(.system(size: 20))
-                .foregroundColor(isFromMe ? .white : theme.primaryPink)
-            HStack(spacing: 3) {
-                ForEach(0..<5) { i in
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(isFromMe ? Color.white.opacity(0.8) : theme.primaryPink.opacity(0.7))
-                        .frame(width: 3, height: 8 + CGFloat(i * 4))
-                }
-            }
-            Text("0:\(Int.random(in: 3..<12))")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(isFromMe ? .white.opacity(0.8) : theme.textSecondary)
-            Image(systemName: "speaker.fill")
-                .font(.system(size: 12))
-                .foregroundColor(isFromMe ? .white.opacity(0.7) : theme.textSecondary)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-    }
-
-    private var videoMessageContent: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.gray.opacity(0.25))
-                .frame(width: 180, height: 130)
-            Image(systemName: "play.rectangle.fill")
-                .font(.system(size: 40))
-                .foregroundColor(.white)
-                .shadow(radius: 4)
-            VStack {
-                Spacer()
-                HStack {
-                    Image(systemName: "video.fill")
-                        .font(.system(size: 10))
-                    Text("Video")
-                        .font(.system(size: 10))
-                }
-                .foregroundColor(.white.opacity(0.8))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(Color.black.opacity(0.4))
-                .cornerRadius(6)
-                .padding(6)
-            }
-        }
-        .frame(width: 180, height: 130)
-    }
-
-    private var imageMessageContent: some View {
-        VStack(spacing: 6) {
-            Image(systemName: "photo.fill")
-                .font(.system(size: 50))
-                .foregroundColor(isFromMe ? .white.opacity(0.7) : theme.textSecondary)
-            Text("Tap para ver")
-                .font(.system(size: 11))
-                .foregroundColor(isFromMe ? .white.opacity(0.7) : theme.textSecondary)
-        }
-        .frame(width: 160, height: 120)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(isFromMe ? Color.white.opacity(0.15) : Color.black.opacity(0.05))
-        )
-    }
-
-    private var giftMessageContent: some View {
-        HStack(spacing: 10) {
-            Text("🎁")
-                .font(.system(size: 36))
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Regalo especial")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(isFromMe ? .white : theme.primaryPink)
-                if let gid = message.giftId {
-                    Text(gid.replacingOccurrences(of: "_", with: " ").capitalized)
-                        .font(.system(size: 11))
-                        .foregroundColor(isFromMe ? .white.opacity(0.7) : theme.textSecondary)
-                }
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-    }
-
-    private var letterMessageContent: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Image(systemName: "envelope.fill")
-                    .font(.system(size: 18))
-                    .foregroundColor(isFromMe ? .white : theme.primaryPink)
-                Text("Carta")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(isFromMe ? .white : theme.primaryPink)
-            }
-            if let title = message.letterTitle {
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(isFromMe ? .white.opacity(0.9) : .primary)
-                    .lineLimit(1)
-            }
-            if let preview = message.text {
-                Text(preview)
-                    .font(.system(size: 12))
-                    .foregroundColor(isFromMe ? .white.opacity(0.7) : theme.textSecondary)
-                    .lineLimit(2)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-    }
-
-    @ViewBuilder
-    private var replyPreview: some View {
-        if let replyText = message.replyToText {
-            HStack(spacing: 0) {
-                Rectangle()
-                    .fill(isFromMe ? Color.white : theme.primaryPink)
-                    .frame(width: 3)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(message.replyToSenderId == currentUserId ? "Tú" : partnerName)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(isFromMe ? .white.opacity(0.8) : theme.primaryPink)
-                    Text(replyText)
-                        .font(.system(size: 12))
-                        .foregroundColor(isFromMe ? .white.opacity(0.7) : theme.textSecondary)
-                        .lineLimit(1)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: 200)
-            .background(isFromMe ? Color.white.opacity(0.12) : Color.black.opacity(0.04))
-            .cornerRadius(8)
-        }
-    }
-
-    private var timestampRow: some View {
-        HStack(spacing: 4) {
-            if let read = message.readTimestamp {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(isFromMe ? theme.primaryPink : theme.textSecondary.opacity(0.6))
-                Text(timeString(read))
-                    .font(.system(size: 9))
-                    .foregroundColor(isFromMe ? theme.primaryPink.opacity(0.7) : theme.textSecondary.opacity(0.6))
-            } else if isFromMe {
-                Image(systemName: "clock")
-                    .font(.system(size: 9))
-                    .foregroundColor(theme.textSecondary.opacity(0.5))
-            }
-            Text(timeString(message.timestamp))
-                .font(.system(size: 10))
-                .foregroundColor(isFromMe ? theme.primaryPink.opacity(0.7) : theme.textSecondary.opacity(0.6))
-        }
-        .padding(.horizontal, 4)
-    }
-
-    private func reactionsRow(reactions: [String: String]) -> some View {
-        HStack(spacing: 3) {
-            ForEach(Array(Set(reactions.values)).sorted(), id: \.self) { emoji in
-                let count = reactions.values.filter { $0 == emoji }.count
-                let isMine = reactions[currentUserId] == emoji
-                HStack(spacing: 2) {
-                    Text(emoji)
-                        .font(.system(size: 12))
-                    if count > 1 {
-                        Text("\(count)")
-                            .font(.system(size: 9))
-                            .foregroundColor(isMine ? theme.primaryPink : theme.textSecondary)
+        .onLongPressGesture { showMenu = true }
+        .sheet(isPresented: $showMenu) {
+            VStack(spacing: 12) {
+                Capsule().fill(Color.gray.opacity(0.3)).frame(width: 40, height: 4).padding(.top, 8)
+                Text("Reacciones").font(.system(size: 14, weight: .semibold))
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 5), spacing: 8) {
+                    ForEach(reactions, id: \.self) { emoji in
+                        Button {
+                            onReact(emoji)
+                            showMenu = false
+                        } label: {
+                            Text(emoji).font(.system(size: 28))
+                                .padding(6)
+                                .background(ThemeManager.shared.primaryPink.opacity(0.08))
+                                .cornerRadius(12)
+                        }
                     }
                 }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(
-                    Capsule()
-                        .fill(isMine ? theme.primaryPink.opacity(0.15) : Color.gray.opacity(0.1))
-                )
-                .overlay(
-                    Capsule()
-                        .stroke(isMine ? theme.primaryPink.opacity(0.4) : Color.clear, lineWidth: 1)
-                )
-            }
-        }
-    }
+                .padding(.horizontal, 20)
 
-    private var reactionContextMenu: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 6) {
-                ForEach(reactionEmojis, id: \.self) { emoji in
-                    Button {
-                        onReaction?(emoji)
-                    } label: {
-                        Text(emoji)
-                            .font(.system(size: 26))
+                Divider()
+
+                Button {
+                    onReply()
+                    showMenu = false
+                } label: {
+                    HStack {
+                        Image(systemName: "arrowshape.turn.up.left").foregroundColor(ThemeManager.shared.primaryPink)
+                        Text("Responder").foregroundColor(.primary)
+                        Spacer()
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, 20)
                 }
+                Spacer().frame(height: 20)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .presentationDetents([.height(280)])
         }
     }
 
-    private var bubbleBackground: some View {
-        Group {
-            if isFromMe {
-                theme.neonGlowGradient
-            } else {
-                LinearGradient(
-                    colors: [
-                        Color(UIColor.systemBackground).opacity(0.92),
-                        Color(UIColor.systemBackground).opacity(0.88)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                )
-            }
+    private var voiceContent: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "play.fill").font(.system(size: 14)).foregroundColor(ThemeManager.shared.primaryPink)
+                .padding(6).background(ThemeManager.shared.primaryPink.opacity(0.1)).clipShape(Circle())
+            Text("Nota de voz").font(.system(size: 12, weight: .semibold)).foregroundColor(.primary)
+            Text("0:05").font(.system(size: 10)).foregroundColor(.primary.opacity(0.5))
         }
     }
 
-    private var hasReply: Bool {
-        message.replyToId != nil && message.replyToText != nil
-    }
-
-    private var currentUserId: String { AuthService.shared.currentUser?.id ?? "user_me" }
-    private var partnerName: String { UserService.shared.partnerUser?.displayName ?? "Mi Amor" }
-
-    private func timeString(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: date)
+    private var mediaContent: some View {
+        VStack(spacing: 4) {
+            Image(systemName: message.type == .video ? "video.fill" : "photo.fill")
+                .font(.system(size: 32)).foregroundColor(.primary.opacity(0.3))
+                .frame(width: 180, height: message.type == .video ? 120 : 160)
+                .background(.gray.opacity(0.1)).cornerRadius(12)
+            if message.type == .video {
+                Image(systemName: "play.circle.fill").font(.system(size: 28)).foregroundColor(.white.opacity(0.8))
+                    .offset(y: -60)
+            }
+        }
     }
 }
 
-#Preview {
-    VStack {
-        ChatBubbleView(
-            message: MessageModel(id: "p1", senderId: "me", text: "Hola amor ❤️", timestamp: Date(), type: .text, reactions: ["them": "😘"]),
-            isFromMe: true
-        )
-        ChatBubbleView(
-            message: MessageModel(id: "p2", senderId: "them", text: "¡Hola cielo! 🥰", timestamp: Date(), type: .text, readTimestamp: Date()),
-            isFromMe: false
-        )
+private struct CustomBubbleShape: Shape {
+    let isFromMe: Bool
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let r: CGFloat = 20
+        if isFromMe {
+            path.addRoundedRect(in: rect, cornerSize: CGSize(width: r, height: r), style: .continuous)
+        } else {
+            path.addRoundedRect(in: rect, cornerSize: CGSize(width: r, height: r), style: .continuous)
+        }
+        return path
     }
-    .padding()
-    .background(Color.black.opacity(0.05))
 }

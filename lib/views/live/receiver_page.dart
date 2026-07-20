@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/local_storage.dart';
+import '../../services/screen_share_service.dart';
 
 class ReceiverPage extends StatefulWidget {
   final String? initialRoomId;
@@ -13,16 +15,23 @@ class ReceiverPage extends StatefulWidget {
 }
 
 class _ReceiverPageState extends State<ReceiverPage> {
+  final _remoteRenderer = RTCVideoRenderer();
+  final _service = ScreenShareService();
+  bool _isInitialized = false;
   bool _isConnected = false;
   bool _isLoading = false;
   String? _errorMessage;
-  ImageProvider? _remoteImage;
+  Uint8List? _remoteBytes;
   Timer? _pollTimer;
   String? _partnerUid;
+  String _mode = '';
 
   @override
   void initState() {
     super.initState();
+    _remoteRenderer.initialize().then((_) {
+      if (mounted) setState(() => _isInitialized = true);
+    });
     _findPartner();
   }
 
@@ -32,49 +41,60 @@ class _ReceiverPageState extends State<ReceiverPage> {
     try {
       final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
       if (!doc.exists) return;
-      final data = doc.data()!;
-      final partner = data['partnerUid'] as String?;
-      if (partner != null && partner.isNotEmpty) {
-        setState(() => _partnerUid = partner);
-      }
+      final p = doc.data()!['partnerUid'] as String?;
+      if (p != null && p.isNotEmpty) setState(() => _partnerUid = p);
     } catch (_) {}
   }
 
   Future<void> _connect() async {
+    setState(() { _isLoading = true; _errorMessage = null; });
+
     if (_partnerUid == null) {
-      setState(() => _errorMessage = 'No tienes una pareja vinculada. Vincúlate primero.');
+      if (mounted) setState(() { _errorMessage = 'Vincula una pareja primero'; _isLoading = false; });
       return;
     }
 
-    setState(() { _isLoading = true; _errorMessage = null; });
+    try {
+      final coupleId = LocalStorage().getString('couple_id') ?? '';
+      if (coupleId.isNotEmpty) {
+        await _service.joinWebRTC(coupleId, _remoteRenderer);
+        if (mounted) setState(() { _isConnected = true; _isLoading = false; _mode = 'webrtc'; });
+        return;
+      }
+    } catch (e) {
+      debugPrint('[Receiver] WebRTC failed, trying frames: $e');
+    }
 
     _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _pollFrame());
-    setState(() { _isConnected = true; _isLoading = false; });
+    if (mounted) setState(() { _isConnected = true; _isLoading = false; _mode = 'frames'; });
   }
 
   Future<void> _pollFrame() async {
     if (_partnerUid == null) return;
     try {
-      final frameDoc = await FirebaseFirestore.instance
+      final doc = await FirebaseFirestore.instance
           .collection('screen_shares').doc(_partnerUid)
           .collection('frames').doc('latest').get();
-      if (!frameDoc.exists) return;
-      final b64 = frameDoc.get('data') as String?;
+      if (!doc.exists) return;
+      final b64 = doc.get('data') as String?;
       if (b64 == null || b64.isEmpty) return;
       final bytes = base64Decode(b64);
-      if (mounted) setState(() => _remoteImage = MemoryImage(bytes));
+      if (mounted) setState(() => _remoteBytes = bytes);
     } catch (_) {}
   }
 
   void _disconnect() {
     _pollTimer?.cancel();
     _pollTimer = null;
-    setState(() { _isConnected = false; _remoteImage = null; });
+    if (_mode == 'webrtc') _service.hangUpWebRTC(remote: _remoteRenderer);
+    setState(() { _isConnected = false; _remoteBytes = null; _mode = ''; });
   }
 
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _service.hangUpWebRTC(remote: _remoteRenderer);
+    _remoteRenderer.dispose();
     super.dispose();
   }
 
@@ -94,36 +114,32 @@ class _ReceiverPageState extends State<ReceiverPage> {
               if (_errorMessage != null)
                 Container(
                   width: double.infinity, padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                  ),
+                  decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.3))),
                   child: Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent, fontSize: 13), textAlign: TextAlign.center),
                 ),
               Expanded(
-                child: _remoteImage != null
+                child: _mode == 'webrtc' && _isInitialized
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: Image(image: _remoteImage!, fit: BoxFit.contain),
+                        child: RTCVideoView(_remoteRenderer, objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain),
                       )
-                    : Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1C1C1E),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.tv_rounded, size: 64, color: Colors.white.withValues(alpha: 0.2)),
-                              const SizedBox(height: 12),
-                              Text(_isConnected ? 'Esperando transmisión...' : 'Presiona "Conectar" para ver la pantalla de tu pareja',
-                                style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 14), textAlign: TextAlign.center,
-                              ),
-                            ],
+                    : _remoteBytes != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.memory(_remoteBytes!, fit: BoxFit.contain),
+                          )
+                        : Container(
+                            decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(16)),
+                            child: Center(
+                              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                Icon(Icons.tv_rounded, size: 64, color: Colors.white.withValues(alpha: 0.2)),
+                                const SizedBox(height: 12),
+                                Text(_isConnected ? 'Esperando transmisión...' : 'Conéctate para ver la pantalla de tu pareja',
+                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 14), textAlign: TextAlign.center),
+                              ]),
+                            ),
                           ),
-                        ),
-                      ),
               ),
               const SizedBox(height: 20),
               SizedBox(
