@@ -292,7 +292,8 @@ class ChatNotificationService {
       if (data == null) return;
 
       String? partnerUid = data['partnerUid'] as String?;
-      if (partnerUid == null || partnerUid.isEmpty) {
+      if (partnerUid == null || partnerUid.isEmpty || partnerUid == userId) {
+        debugPrint("[ChatNotif] Partner notif: partnerUid invalido o soy yo mismo ($partnerUid == $userId)");
         final coupleId = data['coupleId'] as String? ?? FirebaseService().coupleId;
         if (coupleId.isNotEmpty && coupleId != 'default_couple_id') {
           final users = await FirebaseFirestore.instance
@@ -304,15 +305,14 @@ class ChatNotificationService {
             }
           }
         }
-      }
-
-      if (partnerUid == null || partnerUid.isEmpty) {
-        debugPrint("[ChatNotif] Partner notif: could not find partnerUid, will retry in 10s");
-        _partnerNotifRetryTimer?.cancel();
-        _partnerNotifRetryTimer = Timer(const Duration(seconds: 10), () {
-          _startPartnerNotifListener();
-        });
-        return;
+        if (partnerUid == null || partnerUid.isEmpty || partnerUid == userId) {
+          debugPrint("[ChatNotif] Partner notif: no se pudo encontrar partnerUid, reintento en 10s");
+          _partnerNotifRetryTimer?.cancel();
+          _partnerNotifRetryTimer = Timer(const Duration(seconds: 10), () {
+            _startPartnerNotifListener();
+          });
+          return;
+        }
       }
 
       _partnerNotifRetryTimer?.cancel();

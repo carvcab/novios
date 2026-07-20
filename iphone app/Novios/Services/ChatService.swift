@@ -92,14 +92,16 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             guard let myUid = FirebaseRESTService.shared.localId else { return }
             let partnerUid = partnerId
             let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
-            let msgId = "\(myUid)_\(Int(Date().timeIntervalSince1970 * 1000))"
+            let msgId = UUID().uuidString
             let path = "couples/\(coupleId)/messages/\(msgId)"
 
             sentLocalIds.insert(msgId)
             let fields: [String: Any] = ["senderId": myUid, "text": text, "timestamp": Date(),
                 "type": isShowingDisappearing ? "disappearing" : "text",
                 "isDisappearing": isShowingDisappearing, "disappearDurationSeconds": isShowingDisappearing ? 15 : 0]
-            try? await FirebaseRESTService.shared.firestoreSet(path: path, fields: fields)
+            if (try? await FirebaseRESTService.shared.firestoreSet(path: path, fields: fields)) == nil {
+                // Firestore write might have failed, but message still shows locally
+            }
 
             let msg = MessageModel(id: msgId, senderId: myUid, text: text, timestamp: Date(),
                 type: isShowingDisappearing ? .disappearing : .text,
@@ -119,7 +121,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             guard let myUid = FirebaseRESTService.shared.localId else { return }
             let partnerUid = partnerId
             let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
-            let msgId = "\(myUid)_\(Int(Date().timeIntervalSince1970 * 1000))"
+            let msgId = UUID().uuidString
 
             let b64 = imageData.base64EncodedString()
             sentLocalIds.insert(msgId)
@@ -147,7 +149,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             guard let myUid = FirebaseRESTService.shared.localId else { return }
             let partnerUid = partnerId
             let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
-            let msgId = "\(myUid)_\(Int(Date().timeIntervalSince1970 * 1000))"
+            let msgId = UUID().uuidString
 
             let b64 = audioData.base64EncodedString()
             sentLocalIds.insert(msgId)

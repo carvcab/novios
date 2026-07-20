@@ -143,7 +143,8 @@ public class FirebaseRESTService {
     }
 
     private func firestoreURL(_ path: String) -> String {
-        return "https://firestore.googleapis.com/v1/projects/\(currentProjectID)/databases/(default)/documents/\(path)"
+        let encoded = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
+        return "https://firestore.googleapis.com/v1/projects/\(currentProjectID)/databases/(default)/documents/\(encoded)"
     }
 
     public func firestoreGet(path: String) async throws -> [String: Any]? {
