@@ -186,12 +186,11 @@
 
 				9A0004D2C00000000000004D /* FirebaseRESTService.swift in Sources */,
 				9A0004E2C00000000000004E /* StatusService.swift in Sources */,
-
+					C7D0452E86ED57769C9C771B /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-				C7D0452E86ED57769C9C771B /* SettingsView.swift in Sources */,
-			/* End PBXSourcesBuildPhase section */
+/* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
 		9A9000002C00000000000000 /* Debug */ = {
