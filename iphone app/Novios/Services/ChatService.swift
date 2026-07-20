@@ -41,7 +41,8 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     }
 
     private func fetchNewMessages() {
-        guard let myUid = FirebaseRESTService.shared.localId else { return }
+        let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id ?? ""
+        guard !myUid.isEmpty else { return }
         let partnerUid = partnerId
         guard partnerUid != "partner" else { return }
         let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
@@ -89,7 +90,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     public func sendMessage(text: String) {
         Task { @MainActor in
-            guard let myUid = FirebaseRESTService.shared.localId else { return }
+            let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id ?? "me"
             let partnerUid = partnerId
             let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
             let msgId = UUID().uuidString
@@ -99,8 +100,10 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             let fields: [String: Any] = ["senderId": myUid, "text": text, "timestamp": Date(),
                 "type": isShowingDisappearing ? "disappearing" : "text",
                 "isDisappearing": isShowingDisappearing, "disappearDurationSeconds": isShowingDisappearing ? 15 : 0]
-            if (try? await FirebaseRESTService.shared.firestoreSet(path: path, fields: fields)) == nil {
-                // Firestore write might have failed, but message still shows locally
+            do {
+                try await FirebaseRESTService.shared.firestoreSet(path: path, fields: fields)
+            } catch {
+                print("[ChatService] send failed: \(error)")
             }
 
             let msg = MessageModel(id: msgId, senderId: myUid, text: text, timestamp: Date(),
@@ -118,7 +121,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     public func sendImage(imageData: Data) {
         Task { @MainActor in
-            guard let myUid = FirebaseRESTService.shared.localId else { return }
+            let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id ?? "me"
             let partnerUid = partnerId
             let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
             let msgId = UUID().uuidString
@@ -146,7 +149,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     public func sendVoiceNote(audioData: Data) {
         Task { @MainActor in
-            guard let myUid = FirebaseRESTService.shared.localId else { return }
+            let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id ?? "me"
             let partnerUid = partnerId
             let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
             let msgId = UUID().uuidString
