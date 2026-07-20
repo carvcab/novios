@@ -10,29 +10,29 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     @Published public var isRecording = false
     @Published public var isShowingDisappearing = false
     @Published public var replyToMessage: MessageModel?
-    @Published public var isLoading = false
-    @Published public var errorMessage: String?
     @Published public var recordingDuration: TimeInterval = 0
 
     public let didSendMessage = PassthroughSubject<Void, Never>()
     public let autoScrollToBottom = PassthroughSubject<Void, Never>()
 
     private var pollingTimer: Timer?
-    private var sentLocalIds = Set<String>()
+    private var sentIds = Set<String>()
     private var audioRecorder: AVAudioRecorder?
     private var recordingTimer: Timer?
-    private var currentUserId: String { AuthService.shared.currentUser?.id ?? FirebaseRESTService.shared.localId ?? "me" }
-    private var partnerId: String { UserDefaults.standard.string(forKey: "partner_uid") ?? "partner" }
 
-    override private init() {
+    private var myUid: String { AuthService.shared.currentUser?.id ?? FirebaseRESTService.shared.localId ?? "me" }
+    private var partnerUid: String { UserDefaults.standard.string(forKey: "partner_uid") ?? "" }
+    private var coupleId: String { [myUid, partnerUid].sorted().joined(separator: "_") }
+
+    override public init() {
         super.init()
         startPolling()
     }
 
     public func startPolling() {
         stopPolling()
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
-            self?.fetchNewMessages()
+        pollingTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            self?.fetchMessages()
         }
     }
 
@@ -40,249 +40,138 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         pollingTimer?.invalidate(); pollingTimer = nil
     }
 
-    private func fetchNewMessages() {
-        let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id ?? ""
-        guard !myUid.isEmpty else { return }
-        let partnerUid = partnerId
-        guard partnerUid != "partner" else { return }
-        let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
-        let path = "couples/\(coupleId)/messages?pageSize=100"
+    private func fetchMessages() {
+        let puid = partnerUid
+        guard !puid.isEmpty, puid != "partner" else { return }
 
         Task { @MainActor in
-            guard let docs = try? await FirebaseRESTService.shared.firestoreGet(path: path),
+            guard let docs = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(coupleId)/messages?pageSize=100"),
                   let documents = (docs["documents"] as? [[String: Any]]) else { return }
 
-            var newMessages: [MessageModel] = []
-            let existingIds = Set(self.messages.map { $0.id })
-
+            var newFound = false
             for doc in documents {
                 guard let name = doc["name"] as? String,
-                      let fields = doc["fields"] as? [String: Any],
-                      let createTime = doc["createTime"] as? String else { continue }
-
+                      let fields = doc["fields"] as? [String: Any] else { continue }
                 let msgId = name.split(separator: "/").last.map(String.init) ?? UUID().uuidString
-                if existingIds.contains(msgId) || sentLocalIds.contains(msgId) { continue }
+                if messages.contains(where: { $0.id == msgId }) || sentIds.contains(msgId) { continue }
 
                 let senderId = (fields["senderId"] as? [String: Any])?["stringValue"] as? String ?? ""
                 let text = (fields["text"] as? [String: Any])?["stringValue"] as? String ?? ""
                 let typeRaw = (fields["type"] as? [String: Any])?["stringValue"] as? String ?? "text"
-                let timestamp = ISO8601DateFormatter().date(from: createTime) ?? Date()
+                let timestamp = ISO8601DateFormatter().date(from: doc["createTime"] as? String ?? "") ?? Date()
                 let mediaUrl = (fields["mediaUrl"] as? [String: Any])?["stringValue"] as? String
-                let readTS = (fields["readTimestamp"] as? [String: Any])?["stringValue"] as? String
-                let readTSValue = (fields["readTimestamp"] as? [String: Any])?["timestampValue"] as? String
-                let readDate = readTS.flatMap { ISO8601DateFormatter().date(from: $0) } ?? readTSValue.flatMap { ISO8601DateFormatter().date(from: $0) }
 
-                let msg = MessageModel(id: msgId, senderId: senderId, text: text,
-                    timestamp: timestamp, type: MessageType(rawValue: typeRaw) ?? .text,
-                    isDisappearing: (fields["isDisappearing"] as? [String: Any])?["booleanValue"] as? Bool ?? false,
-                    disappearDurationSeconds: Int((fields["disappearDurationSeconds"] as? [String: Any])?["integerValue"] as? String ?? "0") ?? 0,
-                    readTimestamp: readDate, mediaUrl: mediaUrl)
-                newMessages.append(msg)
+                let msg = MessageModel(id: msgId, senderId: senderId, text: text, timestamp: timestamp,
+                    type: MessageType(rawValue: typeRaw) ?? .text, mediaUrl: mediaUrl)
+                messages.append(msg)
+                newFound = true
             }
-
-            if !newMessages.isEmpty {
-                self.messages.append(contentsOf: newMessages)
-                self.messages.sort { $0.timestamp < $1.timestamp }
-                self.autoScrollToBottom.send()
+            if newFound {
+                messages.sort { $0.timestamp < $1.timestamp }
+                autoScrollToBottom.send()
             }
         }
     }
 
     public func sendMessage(text: String) {
-        Task { @MainActor in
-            let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id ?? "me"
-            let partnerUid = partnerId
-            let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
-            let msgId = UUID().uuidString
-            let path = "couples/\(coupleId)/messages/\(msgId)"
+        let msgId = UUID().uuidString
+        sentIds.insert(msgId)
 
-            sentLocalIds.insert(msgId)
-            let fields: [String: Any] = ["senderId": myUid, "text": text, "timestamp": Date(),
-                "type": isShowingDisappearing ? "disappearing" : "text",
-                "isDisappearing": isShowingDisappearing, "disappearDurationSeconds": isShowingDisappearing ? 15 : 0]
-            do {
-                try await FirebaseRESTService.shared.firestoreSet(path: path, fields: fields)
-            } catch {
-                print("[ChatService] send failed: \(error)")
-            }
+        let localMsg = MessageModel(id: msgId, senderId: myUid, text: text, timestamp: Date(),
+            type: isShowingDisappearing ? .disappearing : .text,
+            isDisappearing: isShowingDisappearing, disappearDurationSeconds: isShowingDisappearing ? 15 : 0,
+            replyToId: replyToMessage?.id, replyToText: replyToMessage?.text,
+            replyToSenderId: replyToMessage?.senderId)
+        messages.append(localMsg)
+        clearReply()
+        didSendMessage.send()
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
-            let msg = MessageModel(id: msgId, senderId: myUid, text: text, timestamp: Date(),
-                type: isShowingDisappearing ? .disappearing : .text,
-                isDisappearing: isShowingDisappearing, disappearDurationSeconds: isShowingDisappearing ? 15 : 0,
-                replyToId: replyToMessage?.id, replyToText: replyToMessage?.text,
-                replyToSenderId: replyToMessage?.senderId)
-            self.messages.append(msg)
-            self.clearReply()
-            self.didSendMessage.send()
-            let impact = UIImpactFeedbackGenerator(style: .light)
-            impact.impactOccurred()
-        }
+        let puid = partnerUid
+        guard !puid.isEmpty, puid != "partner" else { return }
+        let path = "couples/\(coupleId)/messages/\(msgId)"
+        let fields: [String: Any] = ["senderId": myUid, "text": text,
+            "timestamp": ISO8601DateFormatter().string(from: Date()),
+            "type": isShowingDisappearing ? "disappearing" : "text"]
+
+        Task { try? await FirebaseRESTService.shared.firestoreSet(path: path, fields: fields) }
     }
 
     public func sendImage(imageData: Data) {
-        Task { @MainActor in
-            let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id ?? "me"
-            let partnerUid = partnerId
-            let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
-            let msgId = UUID().uuidString
-
-            let b64 = imageData.base64EncodedString()
-            sentLocalIds.insert(msgId)
-
-            // Store image in Firestore as base64
-            try? await FirebaseRESTService.shared.firestoreSet(
-                path: "pairs/\(coupleId)/photos/\(msgId)",
-                fields: ["data": b64, "timestamp": Date()])
-
-            let mediaUrl = "firestore://pairs/\(coupleId)/photos/\(msgId)"
-            let fields: [String: Any] = ["senderId": myUid, "text": "📷 Foto", "timestamp": Date(),
-                "type": "image", "mediaUrl": mediaUrl]
-            try? await FirebaseRESTService.shared.firestoreSet(
-                path: "couples/\(coupleId)/messages/\(msgId)", fields: fields)
-
-            let msg = MessageModel(id: msgId, senderId: myUid, text: "📷 Foto", timestamp: Date(),
-                type: .image, mediaUrl: mediaUrl)
-            self.messages.append(msg)
-            self.didSendMessage.send()
+        let msgId = UUID().uuidString; sentIds.insert(msgId)
+        let couple = coupleId
+        Task {
+            try? await FirebaseRESTService.shared.firestoreSet(path: "pairs/\(couple)/photos/\(msgId)",
+                fields: ["data": imageData.base64EncodedString(), "timestamp": ISO8601DateFormatter().string(from: Date())])
+            try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(couple)/messages/\(msgId)", fields: [
+                "senderId": myUid, "text": "📷 Foto", "type": "image",
+                "timestamp": ISO8601DateFormatter().string(from: Date()),
+                "mediaUrl": "firestore://pairs/\(couple)/photos/\(msgId)"])
         }
+        messages.append(MessageModel(id: msgId, senderId: myUid, text: "📷 Foto", timestamp: Date(), type: .image))
+        didSendMessage.send()
     }
 
     public func sendVoiceNote(audioData: Data) {
-        Task { @MainActor in
-            let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id ?? "me"
-            let partnerUid = partnerId
-            let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
-            let msgId = UUID().uuidString
-
-            let b64 = audioData.base64EncodedString()
-            sentLocalIds.insert(msgId)
-
-            try? await FirebaseRESTService.shared.firestoreSet(
-                path: "pairs/\(coupleId)/audio/\(msgId)",
-                fields: ["data": b64, "timestamp": Date()])
-
-            let mediaUrl = "firestore://pairs/\(coupleId)/audio/\(msgId)"
-            let fields: [String: Any] = ["senderId": myUid, "text": "🎤 Nota de voz",
-                "timestamp": Date(), "type": "voice", "mediaUrl": mediaUrl,
-                "voiceNotePath": mediaUrl]
-            try? await FirebaseRESTService.shared.firestoreSet(
-                path: "couples/\(coupleId)/messages/\(msgId)", fields: fields)
-
-            let msg = MessageModel(id: msgId, senderId: myUid, text: "🎤 Nota de voz",
-                timestamp: Date(), type: .voice, mediaUrl: mediaUrl)
-            self.messages.append(msg)
-            self.didSendMessage.send()
+        let msgId = UUID().uuidString; sentIds.insert(msgId)
+        let couple = coupleId
+        Task {
+            try? await FirebaseRESTService.shared.firestoreSet(path: "pairs/\(couple)/audio/\(msgId)",
+                fields: ["data": audioData.base64EncodedString(), "timestamp": ISO8601DateFormatter().string(from: Date())])
+            try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(couple)/messages/\(msgId)", fields: [
+                "senderId": myUid, "text": "🎤 Nota de voz", "type": "voice",
+                "timestamp": ISO8601DateFormatter().string(from: Date()),
+                "mediaUrl": "firestore://pairs/\(couple)/audio/\(msgId)"])
         }
+        messages.append(MessageModel(id: msgId, senderId: myUid, text: "🎤 Nota de voz", timestamp: Date(), type: .voice))
+        didSendMessage.send()
     }
 
     public func markAsRead(messageId: String) {
-        Task { @MainActor in
-            guard let myUid = FirebaseRESTService.shared.localId else { return }
-            let partnerUid = partnerId
-            let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
-
-            // Update local
-            if let idx = self.messages.firstIndex(where: { $0.id == messageId }) {
-                self.messages[idx].readTimestamp = Date()
-            }
-
-            // Update Firestore
-            try? await FirebaseRESTService.shared.firestoreSet(
-                path: "couples/\(coupleId)/messages/\(messageId)",
-                fields: ["readTimestamp": Date()])
+        if let idx = messages.firstIndex(where: { $0.id == messageId }) {
+            messages[idx].readTimestamp = Date()
         }
+        Task { try? await FirebaseRESTService.shared.firestoreSet(
+            path: "couples/\(coupleId)/messages/\(messageId)",
+            fields: ["readTimestamp": ISO8601DateFormatter().string(from: Date())]) }
     }
-
-    // MARK: - Voice Recording
-
-    public func startRecording() {
-        switch AVAudioSession.sharedInstance().recordPermission {
-        case .granted:
-            actuallyStartRecording()
-        case .undetermined:
-            AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
-                DispatchQueue.main.async {
-                    if granted { self?.actuallyStartRecording() }
-                }
-            }
-        case .denied:
-            break // Silently fail, permission denied
-        @unknown default:
-            actuallyStartRecording()
-        }
-    }
-
-    private func actuallyStartRecording() {
-        do {
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playAndRecord, mode: .default, options: .defaultToSpeaker)
-            try audioSession.setActive(true)
-
-            let settings: [String: Any] = [
-                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                AVSampleRateKey: 44100,
-                AVNumberOfChannelsKey: 1,
-                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-            ]
-
-            let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("voice_\(Int(Date().timeIntervalSince1970 * 1000)).m4a")
-            audioRecorder = try AVAudioRecorder(url: url, settings: settings)
-            audioRecorder?.isMeteringEnabled = true
-            audioRecorder?.delegate = self
-
-            if audioRecorder?.prepareToRecord() == false {
-                errorMessage = "Error al preparar grabación"
-                return
-            }
-            if audioRecorder?.record() == false {
-                errorMessage = "Error al iniciar grabación"
-                return
-            }
-            isRecording = true
-            recordingDuration = 0
-
-            recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-                self?.recordingDuration = self?.audioRecorder?.currentTime ?? 0
-            }
-        } catch {
-            print("[ChatService] Recording error: \(error.localizedDescription)")
-            errorMessage = "Error al grabar: \(error.localizedDescription)"
-        }
-    }
-
-    public func stopRecording() -> Data? {
-        recordingTimer?.invalidate(); recordingTimer = nil
-        audioRecorder?.stop()
-        isRecording = false
-        guard let url = audioRecorder?.url, let data = try? Data(contentsOf: url) else { return nil }
-        sendVoiceNote(audioData: data)
-        return data
-    }
-
-    // MARK: - Other actions
-
-    public func sendKissAction() { sendMessage(text: "💋") }
-    public func sendHugAction() { sendMessage(text: "🤗") }
-    public func sendTouchAction() { sendMessage(text: "✨") }
-
-    public func sendGift(giftId: String) { sendMessage(text: "🎁 Regalo") }
-    public func sendMedia(url: String) { sendMessage(text: "📸 \(url)") }
 
     public func addReaction(to messageId: String, emoji: String) {
         guard let idx = messages.firstIndex(where: { $0.id == messageId }) else { return }
-        var msg = messages[idx]
-        var reactions = msg.reactions ?? [:]
-        if reactions[currentUserId] == emoji { reactions.removeValue(forKey: currentUserId) }
-        else { reactions[currentUserId] = emoji }
-        msg.reactions = reactions.isEmpty ? nil : reactions
-        messages[idx] = msg
+        var reactions = messages[idx].reactions ?? [:]
+        if reactions[myUid] == emoji { reactions.removeValue(forKey: myUid) }
+        else { reactions[myUid] = emoji }
+        messages[idx].reactions = reactions.isEmpty ? nil : reactions
     }
 
     public func setReplyTo(message: MessageModel) { replyToMessage = message }
     public func clearReply() { replyToMessage = nil }
-    public func startDisappearingMode() { isShowingDisappearing = true }
-    public func stopDisappearingMode() { isShowingDisappearing = false }
-    public func deleteExpiredMessages() { messages.removeAll { !$0.isVisible } }
+
+    public func startRecording() {
+        guard AVAudioSession.sharedInstance().recordPermission == .granted else { return }
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playAndRecord, mode: .default)
+            try session.setActive(true)
+            let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("voice_\(Date().timeIntervalSince1970).m4a")
+            audioRecorder = try AVAudioRecorder(url: url, settings: [
+                AVFormatIDKey: Int(kAudioFormatMPEG4AAC), AVSampleRateKey: 44100,
+                AVNumberOfChannelsKey: 1, AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue])
+            audioRecorder?.delegate = self
+            audioRecorder?.record()
+            isRecording = true
+            recordingDuration = 0
+            recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+                self?.recordingDuration = self?.audioRecorder?.currentTime ?? 0 }
+        } catch { print("[Chat] record error: \(error)") }
+    }
+
+    public func stopRecording() -> Data? {
+        recordingTimer?.invalidate(); audioRecorder?.stop(); isRecording = false
+        guard let url = audioRecorder?.url, let data = try? Data(contentsOf: url) else { return nil }
+        sendVoiceNote(audioData: data)
+        return data
+    }
 
     deinit { stopPolling() }
 }
