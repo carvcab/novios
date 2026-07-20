@@ -36,18 +36,11 @@ public struct AddPartnerView: View {
                         Image(systemName: "magnifyingglass").foregroundColor(.primary.opacity(0.4))
                         TextField("", text: $searchText, prompt: Text("Nombre de usuario o correo de tu pareja").foregroundColor(.primary.opacity(0.4)))
                             .foregroundColor(.primary).autocapitalization(.none)
-                            .onSubmit { performSearch() }
-                        
+
                         if isSearching {
                             ProgressView().tint(ThemeManager.shared.primaryPink)
                         } else if foundUser != nil {
                             Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                        } else {
-                            Button("Buscar") {
-                                performSearch()
-                            }
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(ThemeManager.shared.primaryPink)
                         }
                     }
                     .padding(4)
