@@ -22,7 +22,6 @@ public struct LiveStatusView: View {
                                 .font(.system(size: 46)).foregroundColor(.white)
                         }
 
-                        let partnerName = UserDefaults.standard.string(forKey: "partner_name") ?? "Pareja"
                         Text(partnerName).font(.system(size: 22, weight: .bold)).foregroundColor(.primary)
 
                         // Online badge
@@ -151,7 +150,7 @@ public struct LiveStatusView: View {
         let hasApp = !currentApp.isEmpty && statusService.isOnline
         let color: Color
         let icon: String
-        let label = currentAppLabel
+        var label = currentAppLabel
         let a = currentApp.lowercased()
 
         if !hasApp {
