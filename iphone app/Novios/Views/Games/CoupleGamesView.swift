@@ -480,17 +480,17 @@ public struct CoupleGamesView: View {
     private func localGameView(for type: String) -> some View {
         switch type {
         case "quiz":
-            PlaceholderGameView(gameName: "Quiz", mode: "local")
+            QuizGameView()
         case "truth_dare":
             TruthOrDareView()
         case "memorama":
-            PlaceholderGameView(gameName: "Memorama", mode: "local")
+            MemoramaGameView()
         case "tictactoe":
-            PlaceholderGameView(gameName: "Tres en Raya", mode: "local")
+            TicTacToeGameView()
         case "rps":
-            PlaceholderGameView(gameName: "Piedra Papel Tijera", mode: "local")
+            RPSGameView()
         case "hangman":
-            PlaceholderGameView(gameName: "Ahorcado", mode: "local")
+            HangmanGameView()
         case "dice":
             LoveDiceView()
         case "cards":
@@ -506,27 +506,5 @@ public struct CoupleGamesView: View {
         default:
             PlaceholderGameView(gameName: type, mode: "local")
         }
-    }
-}
-
-private struct PlaceholderGameView: View {
-    let gameName: String
-    let mode: String
-
-    var body: some View {
-        ZStack {
-            ThemeManager.shared.backgroundGradient
-                .ignoresSafeArea()
-
-            VStack(spacing: 16) {
-                Text(gameName)
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(.primary)
-                Text("Modo: \(mode == "online" ? "Online" : "Local")")
-                    .font(.system(size: 16))
-                    .foregroundColor(ThemeManager.shared.textSecondary)
-            }
-        }
-        .navigationTitle(gameName)
     }
 }
