@@ -10,6 +10,8 @@ public struct AddPartnerView: View {
     @State private var errorMessage: String?
     @State private var myPairCode = ""
 
+    public var onComplete: (() -> Void)?
+
     public var body: some View {
         ZStack {
             ThemeManager.shared.backgroundGradient.ignoresSafeArea()
@@ -84,6 +86,7 @@ public struct AddPartnerView: View {
                                     switch res {
                                     case .success:
                                         authService.savePartner(uid: found["uid"] as? String ?? "", name: found["displayName"] as? String ?? "Pareja")
+                                        onComplete?()
                                     case .alreadyHasPartner:
                                         errorMessage = "Ya tienes una pareja vinculada."
                                     case .targetHasPartner:
@@ -103,6 +106,7 @@ public struct AddPartnerView: View {
 
                 Button {
                     authService.didSkipPartner()
+                    onComplete?()
                 } label: {
                     Text("Vincular más tarde").font(.system(size: 14)).foregroundColor(.primary.opacity(0.5))
                 }

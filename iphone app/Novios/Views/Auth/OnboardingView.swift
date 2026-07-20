@@ -13,6 +13,9 @@ public struct OnboardingView: View {
     @State private var showAnniversaryPicker = false
     @State private var errorMessage: String?
     @State private var isLoading = false
+    @State private var isComplete = false
+
+    public var onComplete: (() -> Void)?
 
     private let userService = UserService.shared
 
@@ -33,6 +36,9 @@ public struct OnboardingView: View {
                 else if step == 4 { completeStep }
             }
             .padding(.horizontal, 32)
+        }
+        .onAppear {
+            if name.isEmpty { name = authService.currentUser?.displayName ?? "" }
         }
     }
 
@@ -163,7 +169,9 @@ public struct OnboardingView: View {
         }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                authService.checkProfileAndPartner()
+                authService.saveProfile(dob: birthday, username: (authService.currentUser?.username ?? name).lowercased().replacingOccurrences(of: " ", with: "_"), partnerName: nil)
+                isComplete = true
+                onComplete?()
             }
         }
     }
