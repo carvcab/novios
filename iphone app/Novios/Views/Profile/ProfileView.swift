@@ -164,24 +164,12 @@ public struct ProfileView: View {
                 quickItem(icon: "gearshape", title: "Ajustes", dest: AnyView(SettingsView()))
                 quickItem(icon: "lock.shield", title: "Bloqueo", dest: AnyView(LockScreenView()))
                 quickItem(icon: "bell.badge", title: "Notificaciones", dest: AnyView(NotificationsView()))
-                quickItem(icon: "arrow.right.square", title: "Cerrar sesión", action: { authService.signOut() })
             }
         }.padding(.horizontal, 16)
     }
 
     private func quickItem(icon: String, title: String, dest: AnyView) -> some View {
         NavigationLink(destination: dest) {
-            GlassCard {
-                VStack(spacing: 8) {
-                    Image(systemName: icon).font(.system(size: 24)).foregroundColor(ThemeManager.shared.primaryPink)
-                    Text(title).font(.system(size: 12, weight: .medium)).foregroundColor(.primary)
-                }.frame(maxWidth: .infinity).padding(.vertical, 12)
-            }
-        }.buttonStyle(.plain)
-    }
-
-    private func quickItem(icon: String, title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
             GlassCard {
                 VStack(spacing: 8) {
                     Image(systemName: icon).font(.system(size: 24)).foregroundColor(ThemeManager.shared.primaryPink)

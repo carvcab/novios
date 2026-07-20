@@ -1,137 +1,95 @@
 import SwiftUI
+import UserNotifications
+import CoreLocation
+import AVFoundation
+import Photos
 
 public struct PermissionsView: View {
+    public var onComplete: (() -> Void)?
+    @State private var permissionsGranted = false
     @State private var notificationsGranted = false
     @State private var locationGranted = false
     @State private var microphoneGranted = false
     @State private var photosGranted = false
 
-    private let permissions: [(icon: String, title: String, description: String, binding: Binding<Bool>)] = [
-        ("bell.badge.fill", "Notificaciones", "Recibe alertas y mensajes de tu pareja al instante", .init(get: { false }, set: { _, _ in })),
-        ("location.fill", "Ubicación", "Comparte tu ubicación en tiempo real con tu ser querido", .init(get: { false }, set: { _, _ in })),
-        ("mic.fill", "Micrófono", "Envía notas de voz y mensajes de audio románticos", .init(get: { false }, set: { _, _ in })),
-        ("photo.on.rectangle.fill", "Fotos", "Accede a tu álbum compartido de momentos especiales", .init(get: { false }, set: { _, _ in }))
-    ]
-
-    private var allGranted: Bool {
-        notificationsGranted && locationGranted && microphoneGranted && photosGranted
-    }
-
     public var body: some View {
         ZStack {
             ThemeManager.shared.backgroundGradient.ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: 24) {
-                    VStack(spacing: 8) {
-                        Image(systemName: "hand.raised.fill")
-                            .font(.system(size: 48))
-                            .foregroundStyle(ThemeManager.shared.neonGlowGradient)
-                            .shadow(color: ThemeManager.shared.primaryPink.opacity(0.5), radius: 15)
+            VStack(spacing: 24) {
+                Spacer().frame(height: 40)
 
-                        Text("Permisos")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.primary)
+                Image(systemName: "hand.raised.fill").font(.system(size: 48)).foregroundColor(ThemeManager.shared.primaryPink)
 
-                        Text("Concede los permisos para disfrutar de Novios al máximo")
-                            .font(.system(size: 15))
-                            .foregroundColor(ThemeManager.shared.textSecondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                    }
-                    .padding(.top, 20)
+                Text("Permisos").font(.system(size: 28, weight: .bold)).foregroundColor(.primary)
+                Text("Concede los permisos para disfrutar de Novios al máximo")
+                    .font(.system(size: 14)).foregroundColor(ThemeManager.shared.textSecondary).multilineTextAlignment(.center)
 
-                    VStack(spacing: 16) {
-                        PermissionCard(
-                            icon: "bell.badge.fill",
-                            title: "Notificaciones",
-                            description: "Recibe alertas y mensajes de tu pareja al instante",
-                            isGranted: $notificationsGranted
-                        )
-                        PermissionCard(
-                            icon: "location.fill",
-                            title: "Ubicación",
-                            description: "Comparte tu ubicación en tiempo real con tu ser querido",
-                            isGranted: $locationGranted
-                        )
-                        PermissionCard(
-                            icon: "mic.fill",
-                            title: "Micrófono",
-                            description: "Envía notas de voz y mensajes de audio románticos",
-                            isGranted: $microphoneGranted
-                        )
-                        PermissionCard(
-                            icon: "photo.on.rectangle.fill",
-                            title: "Fotos",
-                            description: "Accede a tu álbum compartido de momentos especiales",
-                            isGranted: $photosGranted
-                        )
-                    }
-                    .padding(.horizontal, 20)
-
-                    if allGranted {
-                        GradientButton(title: "Continuar", icon: "arrow.right.circle.fill") {
+                VStack(spacing: 12) {
+                    permissionCard(icon: "bell.badge.fill", title: "Notificaciones", description: "Recibe mensajes y notificaciones de tu pareja", isGranted: $notificationsGranted) {
+                        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+                            notificationsGranted = granted
                         }
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 32)
+                    }
+
+                    permissionCard(icon: "location.fill", title: "Ubicación", description: "Comparte tu ubicación con tu pareja", isGranted: $locationGranted) {
+                        let manager = CLLocationManager()
+                        manager.requestWhenInUseAuthorization()
+                        locationGranted = manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways
+                    }
+
+                    permissionCard(icon: "mic.fill", title: "Micrófono", description: "Envía notas de voz a tu pareja", isGranted: $microphoneGranted) {
+                        AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                            microphoneGranted = granted
+                        }
+                    }
+
+                    permissionCard(icon: "photo.on.rectangle.fill", title: "Fotos", description: "Comparte fotos y recuerdos", isGranted: $photosGranted) {
+                        PHPhotoLibrary.requestAuthorization { status in
+                            photosGranted = status == .authorized || status == .limited
+                        }
                     }
                 }
+                .padding(.horizontal, 20)
+
+                Spacer()
+
+                Button {
+                    permissionsGranted = true
+                    onComplete?()
+                } label: {
+                    Text("Continuar").font(.system(size: 16, weight: .bold)).foregroundColor(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 16)
+                        .background(ThemeManager.shared.primaryPink).cornerRadius(16)
+                }
+                .padding(.horizontal, 40)
                 .padding(.bottom, 40)
             }
         }
-        .navigationTitle("Permisos")
-        .navigationBarTitleDisplayMode(.inline)
     }
-}
 
-private struct PermissionCard: View {
-    let icon: String
-    let title: String
-    let description: String
-    @Binding var isGranted: Bool
-
-    var body: some View {
+    private func permissionCard(icon: String, title: String, description: String, isGranted: Binding<Bool>, action: @escaping () -> Void) -> some View {
         GlassCard {
-            HStack(spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(ThemeManager.shared.primaryPink.opacity(0.15))
-                        .frame(width: 52, height: 52)
+            HStack(spacing: 14) {
+                Image(systemName: icon).font(.system(size: 22)).foregroundColor(ThemeManager.shared.primaryPink)
+                    .padding(10).background(ThemeManager.shared.primaryPink.opacity(0.12)).cornerRadius(12)
 
-                    Image(systemName: icon)
-                        .font(.system(size: 22))
-                        .foregroundColor(ThemeManager.shared.primaryPink)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.primary)
-
-                    Text(description)
-                        .font(.system(size: 13))
-                        .foregroundColor(ThemeManager.shared.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.system(size: 15, weight: .semibold)).foregroundColor(.primary)
+                    Text(description).font(.system(size: 11)).foregroundColor(ThemeManager.shared.textSecondary)
                 }
 
                 Spacer()
 
-                if isGranted {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.green)
+                if isGranted.wrappedValue {
+                    Image(systemName: "checkmark.circle.fill").foregroundColor(.green).font(.system(size: 22))
                 } else {
                     Button("Conceder") {
-                        let impact = UIImpactFeedbackGenerator(style: .light)
-                        impact.impactOccurred()
-                        isGranted = true
+                        action()
                     }
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(ThemeManager.shared.neonGlowGradient)
-                    .cornerRadius(10)
+                    .font(.system(size: 13, weight: .bold)).foregroundColor(ThemeManager.shared.primaryPink)
+                    .padding(.horizontal, 16).padding(.vertical, 8)
+                    .background(ThemeManager.shared.primaryPink.opacity(0.12)).cornerRadius(12)
                 }
             }
         }

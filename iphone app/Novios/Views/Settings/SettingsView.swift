@@ -3,7 +3,6 @@ import SwiftUI
 public struct SettingsView: View {
     @EnvironmentObject var authService: AuthService
     @EnvironmentObject var themeManager: ThemeManager
-    @StateObject private var firebaseService = FirebaseService.shared
     @StateObject private var userService = UserService.shared
     
     @State private var enablePin = false
