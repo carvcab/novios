@@ -41,7 +41,7 @@ public class AuthService: ObservableObject {
             let result = try await FirebaseRESTService.shared.signIn(email: email, password: password)
             
             // Sync profile & partner from Firestore synchronously before unlocking UI
-            try? await syncUserFromFirestore(uid: result.localId)
+            try? await syncUserFromFirestore(uid: result.localId, email: email)
             
             let data = try? await FirebaseRESTService.shared.getUserData()
             let name = data?["displayName"] as? String ?? email.components(separatedBy: "@").first?.capitalized ?? "Usuario"
@@ -90,43 +90,73 @@ public class AuthService: ObservableObject {
         }
     }
 
-    private func syncUserFromFirestore(uid: String) async throws {
-        guard let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
-              let fields = doc["fields"] as? [String: Any] else { return }
-        
-        let username = (fields["username"] as? [String: Any])?["stringValue"] as? String ?? ""
-        let dob = (fields["dob"] as? [String: Any])?["stringValue"] as? String ?? 
-                  (fields["birthdayDate"] as? [String: Any])?["stringValue"] as? String ?? 
-                  (fields["birthday_date"] as? [String: Any])?["stringValue"] as? String ?? "2000-01-01"
-        let partnerUid = (fields["partnerUid"] as? [String: Any])?["stringValue"] as? String ?? ""
-        let displayName = (fields["displayName"] as? [String: Any])?["stringValue"] as? String ?? 
-                          (fields["name"] as? [String: Any])?["stringValue"] as? String ?? ""
-        
+    private func syncUserFromFirestore(uid: String, email: String) async throws {
         let defaults = UserDefaults.standard
-        if !username.isEmpty || !displayName.isEmpty {
-            defaults.set(dob, forKey: "profile_dob")
-            defaults.set(username.isEmpty ? displayName.lowercased() : username, forKey: "profile_username")
-            defaults.set(true, forKey: "onboarding_complete")
-            if !displayName.isEmpty {
-                defaults.set(displayName, forKey: "auth_user_name")
+        let defaultUsername = email.components(separatedBy: "@").first?.lowercased() ?? "usuario"
+        let defaultName = email.components(separatedBy: "@").first?.capitalized ?? "Usuario"
+
+        if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
+           let fields = doc["fields"] as? [String: Any] {
+            
+            let extract = { (key: String) -> String? in
+                guard let map = fields[key] as? [String: Any] else { return nil }
+                return map["stringValue"] as? String ?? map["timestampValue"] as? String ?? map["integerValue"] as? String
             }
+            
+            let username = extract("username") ?? defaultUsername
+            let dob = extract("dob") ?? extract("birthdayDate") ?? extract("birthday_date") ?? "2000-01-01"
+            let partnerUid = extract("partnerUid") ?? ""
+            let partnerName = extract("partnerName") ?? "Pareja"
+            let displayName = extract("displayName") ?? extract("name") ?? defaultName
+            
+            defaults.set(dob, forKey: "profile_dob")
+            defaults.set(username, forKey: "profile_username")
+            defaults.set(displayName, forKey: "auth_user_name")
+            defaults.set(true, forKey: "onboarding_complete")
+            
+            if !partnerUid.isEmpty {
+                defaults.set(partnerUid, forKey: "partner_uid")
+                defaults.set(partnerName, forKey: "partner_name")
+                await MainActor.run {
+                    self.hasPartner = true
+                }
+            }
+            
             await MainActor.run {
                 self.hasProfile = true
             }
-        }
-        
-        if !partnerUid.isEmpty {
-            let pname = (fields["partnerName"] as? [String: Any])?["stringValue"] as? String ?? "Pareja"
-            defaults.set(partnerUid, forKey: "partner_uid")
-            defaults.set(pname, forKey: "partner_name")
+        } else {
+            // If user document is absent or temporary network drop, set default profile for existing auth account
+            defaults.set("2000-01-01", forKey: "profile_dob")
+            defaults.set(defaultUsername, forKey: "profile_username")
+            defaults.set(defaultName, forKey: "auth_user_name")
+            defaults.set(true, forKey: "onboarding_complete")
+            
             await MainActor.run {
-                self.hasPartner = true
+                self.hasProfile = true
+            }
+            
+            // Create user document in Firestore asynchronously
+            Task {
+                try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [
+                    "username": defaultUsername,
+                    "dob": "2000-01-01",
+                    "birthdayDate": "2000-01-01",
+                    "displayName": defaultName,
+                    "name": defaultName,
+                    "email": email
+                ])
+                try? await FirebaseRESTService.shared.firestoreSet(path: "usernames/\(defaultUsername)", fields: [
+                    "uid": uid,
+                    "email": email
+                ])
             }
         }
     }
 
     public func checkProfileAndPartner() {
         hasProfile = defaults.bool(forKey: "onboarding_complete") ||
+            (isLoggedIn && currentUser != nil) ||
             ((defaults.string(forKey: "profile_dob") != nil || defaults.string(forKey: "profile_username") != nil) &&
              !(defaults.string(forKey: "profile_username")?.isEmpty ?? true))
         hasPartner = defaults.string(forKey: "partner_uid") != nil &&
