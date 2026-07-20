@@ -92,7 +92,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             guard let myUid = FirebaseRESTService.shared.localId else { return }
             let partnerUid = partnerId
             let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
-            let msgId = "\(myUid)_\(Date().timeIntervalSince1970)"
+            let msgId = "\(myUid)_\(Int(Date().timeIntervalSince1970 * 1000))"
             let path = "couples/\(coupleId)/messages/\(msgId)"
 
             sentLocalIds.insert(msgId)
@@ -119,7 +119,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             guard let myUid = FirebaseRESTService.shared.localId else { return }
             let partnerUid = partnerId
             let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
-            let msgId = "\(myUid)_\(Date().timeIntervalSince1970)"
+            let msgId = "\(myUid)_\(Int(Date().timeIntervalSince1970 * 1000))"
 
             let b64 = imageData.base64EncodedString()
             sentLocalIds.insert(msgId)
@@ -147,7 +147,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             guard let myUid = FirebaseRESTService.shared.localId else { return }
             let partnerUid = partnerId
             let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
-            let msgId = "\(myUid)_\(Date().timeIntervalSince1970)"
+            let msgId = "\(myUid)_\(Int(Date().timeIntervalSince1970 * 1000))"
 
             let b64 = audioData.base64EncodedString()
             sentLocalIds.insert(msgId)
@@ -220,7 +220,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
             ]
 
-            let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("voice_\(Date().timeIntervalSince1970).m4a")
+            let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("voice_\(Int(Date().timeIntervalSince1970 * 1000)).m4a")
             audioRecorder = try AVAudioRecorder(url: url, settings: settings)
             audioRecorder?.isMeteringEnabled = true
             audioRecorder?.delegate = self
