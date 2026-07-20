@@ -147,23 +147,38 @@ public class FirebaseRESTService {
     }
 
     public func firestoreGet(path: String) async throws -> [String: Any]? {
-        let headers = try await getAuthHeader()
+        var headers = try await getAuthHeader()
         let url = URL(string: firestoreURL(path))!
         var req = URLRequest(url: url)
         req.allHTTPHeaderFields = headers
-        let data = try await performRequest(req)
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        return json
+        do {
+            let data = try await performRequest(req)
+            return try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        } catch FirebaseError.serverError(let msg) where msg.contains("401") || msg.contains("403") || msg.contains("unauthenticated") || msg.contains("UNAUTHENTICATED") {
+            // Token expired, refresh and retry
+            try await refreshIdToken()
+            headers = try await getAuthHeader()
+            req.allHTTPHeaderFields = headers
+            let data = try await performRequest(req)
+            return try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        }
     }
 
     public func firestoreSet(path: String, fields: [String: Any]) async throws {
-        let headers = try await getAuthHeader()
+        var headers = try await getAuthHeader()
         let url = URL(string: firestoreURL(path))!
         var req = URLRequest(url: url)
         req.httpMethod = "PATCH"
         req.allHTTPHeaderFields = headers
         req.httpBody = try JSONSerialization.data(withJSONObject: ["fields": encodeFields(fields)])
-        _ = try await performRequest(req)
+        do {
+            _ = try await performRequest(req)
+        } catch FirebaseError.serverError(let msg) where msg.contains("401") || msg.contains("403") || msg.contains("unauthenticated") || msg.contains("UNAUTHENTICATED") {
+            try await refreshIdToken()
+            headers = try await getAuthHeader()
+            req.allHTTPHeaderFields = headers
+            _ = try await performRequest(req)
+        }
     }
 
     public func firestoreCreate(path: String, fields: [String: Any]) async throws -> String? {
