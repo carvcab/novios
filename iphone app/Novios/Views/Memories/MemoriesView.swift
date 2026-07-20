@@ -92,25 +92,53 @@ public struct MemoriesView: View {
     }
 
     private func saveImage(_ image: UIImage) {
-        guard let data = image.jpegData(compressionQuality: 0.8),
-              let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-        else { return }
-        let filename = "\(UUID().uuidString).jpg"
+        guard let data = image.jpegData(compressionQuality: 0.6),
+              let myUid = FirebaseRESTService.shared.localId else { return }
+        let partnerUid = UserDefaults.standard.string(forKey: "partner_uid") ?? ""
+        let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
+        let photoId = UUID().uuidString
+
+        // Save to Firestore base64
+        let b64 = data.base64EncodedString()
+        Task {
+            try? await FirebaseRESTService.shared.firestoreSet(
+                path: "pairs/\(coupleId)/photos/\(photoId)",
+                fields: ["data": b64, "timestamp": Date(), "uploadedBy": myUid])
+        }
+
+        // Also save locally
+        guard let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let filename = "\(photoId).jpg"
         try? data.write(to: documentsDir.appendingPathComponent(filename))
     }
 
     private func loadSavedPhotos() {
-        guard let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-        else { return }
-        let files = (
-            try? FileManager.default.contentsOfDirectory(at: documentsDir, includingPropertiesForKeys: nil)
-        ) ?? []
-        let jpegs = files
-            .filter { $0.pathExtension == "jpg" }
-            .sorted { $0.lastPathComponent > $1.lastPathComponent }
-        photos = jpegs.compactMap {
-            guard let data = try? Data(contentsOf: $0) else { return nil }
-            return UIImage(data: data)
+        guard let myUid = FirebaseRESTService.shared.localId else { return }
+        let partnerUid = UserDefaults.standard.string(forKey: "partner_uid") ?? ""
+        let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
+
+        // Load from Firestore
+        Task { @MainActor in
+            guard let docs = try? await FirebaseRESTService.shared.firestoreGet(path: "pairs/\(coupleId)/photos?pageSize=50"),
+                  let documents = (docs["documents"] as? [[String: Any]]) else { return }
+
+            var loaded: [UIImage] = []
+            for doc in documents {
+                guard let fields = doc["fields"] as? [String: Any],
+                      let b64 = (fields["data"] as? [String: Any])?["stringValue"] as? String,
+                      let data = Data(base64Encoded: b64),
+                      let image = UIImage(data: data) else { continue }
+                loaded.append(image)
+            }
+            if !loaded.isEmpty { self.photos = loaded }
+        }
+
+        // Also load local files
+        guard let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let files = (try? FileManager.default.contentsOfDirectory(at: documentsDir, includingPropertiesForKeys: nil)) ?? []
+        let jpegs = files.filter { $0.pathExtension == "jpg" }.sorted { $0.lastPathComponent > $1.lastPathComponent }
+        if photos.isEmpty {
+            photos = jpegs.compactMap { guard let data = try? Data(contentsOf: $0) else { return nil }; return UIImage(data: data) }
         }
     }
 
