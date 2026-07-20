@@ -146,6 +146,9 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     public func setReplyTo(message: MessageModel) { replyToMessage = message }
     public func clearReply() { replyToMessage = nil }
+    public func sendKissAction() { sendMessage(text: "💋") }
+    public func sendHugAction() { sendMessage(text: "🤗") }
+    public func sendTouchAction() { sendMessage(text: "✨") }
 
     public func startRecording() {
         guard AVAudioSession.sharedInstance().recordPermission == .granted else { return }
