@@ -26,31 +26,37 @@ public class UserService: ObservableObject {
         defer { Task { await MainActor.run { self.isSearching = false } } }
 
         let cleaned = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if cleaned.isEmpty { return nil }
+        let cleanUsername = cleaned.hasPrefix("@") ? String(cleaned.dropFirst()) : cleaned
+        if cleanUsername.isEmpty { return nil }
 
-        // Try Firestore search by username or email
-        let fields = ["username": cleaned, "email": cleaned]
-        for (field, value) in fields {
+        // 1. Search in usernames/{username} collection
+        if let usernameDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(cleanUsername)"),
+           let fields = usernameDoc["fields"] as? [String: Any],
+           let uid = (fields["uid"] as? [String: Any])?["stringValue"] as? String {
+            if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
+               let uf = userDoc["fields"] as? [String: Any] {
+                let displayName = (uf["displayName"] as? [String: Any])?["stringValue"] as? String ?? (uf["name"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
+                let uname = (uf["username"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
+                let email = (uf["email"] as? [String: Any])?["stringValue"] as? String ?? ""
+                return ["uid": uid, "displayName": displayName, "username": uname, "email": email]
+            }
+        }
+
+        // 2. Search by username or email field in users collection
+        let searchFields = ["username": cleanUsername, "email": cleaned]
+        for (field, value) in searchFields {
             if let docs = try? await FirebaseRESTService.shared.firestoreQuery(path: "users", field: field, op: "EQUAL", value: value),
                let first = docs.first,
                let f = first["fields"] as? [String: Any] {
                 let uid = (first["name"] as? String)?.split(separator: "/").last.map(String.init) ?? ""
-                let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String ?? value
+                let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String ?? (f["name"] as? [String: Any])?["stringValue"] as? String ?? value
                 let uname = (f["username"] as? [String: Any])?["stringValue"] as? String ?? value
-                let email = (f["email"] as? [String: Any])?["stringValue"] as? String ?? "\(value)@love.com"
-                return ["uid": uid, "displayName": displayName, "username": uname, "email": email, "pairCode": ""]
+                let email = (f["email"] as? [String: Any])?["stringValue"] as? String ?? ""
+                return ["uid": uid, "displayName": displayName, "username": uname, "email": email]
             }
         }
 
-        // Fallback to mock for offline
-        try? await Task.sleep(nanoseconds: 400_000_000)
-        return [
-            "uid": "partner_sample_123",
-            "displayName": "Mi Amor ❤️",
-            "username": cleaned.contains("@") ? cleaned.components(separatedBy: "@").first! : cleaned,
-            "email": cleaned.contains("@") ? cleaned : "\(cleaned)@love.com",
-            "pairCode": ""
-        ]
+        return nil
     }
     
     public func addPartner(codeOrEmail: String, foundUserData: [String: Any]? = nil) async -> AddPartnerResult {

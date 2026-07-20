@@ -54,7 +54,7 @@ public class StatusService: ObservableObject {
     }
 
     private func startPresenceUpdates() {
-        presenceTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+        presenceTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
             self?.updatePresence()
         }
         updatePresence()
