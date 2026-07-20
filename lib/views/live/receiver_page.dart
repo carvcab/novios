@@ -1,15 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
-import '../../services/webrtc_service.dart';
-import '../../services/firebase_service.dart';
-import '../../widgets/video_renderer.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/local_storage.dart';
 
-/// Pantalla del Receptor (Receiver / Ver Pantalla)
-/// Conecta con la sala mediante WebRTC en Firestore para recibir y renderizar
-/// la transmisión de pantalla remota en tiempo real.
 class ReceiverPage extends StatefulWidget {
   final String? initialRoomId;
-
   const ReceiverPage({super.key, this.initialRoomId});
 
   @override
@@ -17,86 +13,68 @@ class ReceiverPage extends StatefulWidget {
 }
 
 class _ReceiverPageState extends State<ReceiverPage> {
-  final _webRTCService = WebRTCService();
-  final _remoteRenderer = RTCVideoRenderer();
-  final _roomIdController = TextEditingController();
-
-  bool _isInitialized = false;
   bool _isConnected = false;
   bool _isLoading = false;
   String? _errorMessage;
+  ImageProvider? _remoteImage;
+  Timer? _pollTimer;
+  String? _partnerUid;
 
   @override
   void initState() {
     super.initState();
-    _initRenderer();
+    _findPartner();
   }
 
-  Future<void> _initRenderer() async {
-    await _remoteRenderer.initialize();
-    final coupleId = FirebaseService().coupleId;
-    final defaultId = widget.initialRoomId ?? (coupleId.isNotEmpty ? coupleId : '');
-    _roomIdController.text = defaultId;
-
-    if (mounted) {
-      setState(() => _isInitialized = true);
-    }
+  Future<void> _findPartner() async {
+    final uid = LocalStorage().getUserId();
+    if (uid == null) return;
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if (!doc.exists) return;
+      final data = doc.data()!;
+      final partner = data['partnerUid'] as String?;
+      if (partner != null && partner.isNotEmpty) {
+        setState(() => _partnerUid = partner);
+      }
+    } catch (_) {}
   }
 
-  Future<void> _joinRoom() async {
-    final roomId = _roomIdController.text.trim();
-    if (roomId.isEmpty) {
-      setState(() => _errorMessage = 'Por favor ingresa un ID de sala válido.');
+  Future<void> _connect() async {
+    if (_partnerUid == null) {
+      setState(() => _errorMessage = 'No tienes una pareja vinculada. Vincúlate primero.');
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    setState(() { _isLoading = true; _errorMessage = null; });
 
-    try {
-      await _webRTCService.joinRoom(
-        roomId: roomId,
-        remoteRenderer: _remoteRenderer,
-      );
-
-      if (mounted) {
-        setState(() {
-          _isConnected = true;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'No se pudo conectar a la sala: $e';
-          _isLoading = false;
-        });
-      }
-    }
+    _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _pollFrame());
+    setState(() { _isConnected = true; _isLoading = false; });
   }
 
-  Future<void> _disconnect() async {
-    setState(() => _isLoading = true);
-    await _webRTCService.hangUp(
-      remoteRenderer: _remoteRenderer,
-    );
-    if (mounted) {
-      setState(() {
-        _isConnected = false;
-        _isLoading = false;
-      });
-    }
+  Future<void> _pollFrame() async {
+    if (_partnerUid == null) return;
+    try {
+      final frameDoc = await FirebaseFirestore.instance
+          .collection('screen_shares').doc(_partnerUid)
+          .collection('frames').doc('latest').get();
+      if (!frameDoc.exists) return;
+      final b64 = frameDoc.get('data') as String?;
+      if (b64 == null || b64.isEmpty) return;
+      final bytes = base64Decode(b64);
+      if (mounted) setState(() => _remoteImage = MemoryImage(bytes));
+    } catch (_) {}
+  }
+
+  void _disconnect() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+    setState(() { _isConnected = false; _remoteImage = null; });
   }
 
   @override
   void dispose() {
-    _webRTCService.hangUp(
-      remoteRenderer: _remoteRenderer,
-    );
-    _remoteRenderer.dispose();
-    _roomIdController.dispose();
+    _pollTimer?.cancel();
     super.dispose();
   }
 
@@ -106,88 +84,58 @@ class _ReceiverPageState extends State<ReceiverPage> {
       backgroundColor: const Color(0xFF09090B),
       appBar: AppBar(
         title: const Text('Ver Pantalla Remota', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white,
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              // Campo de Entrada para ID de Sala si no está conectado
-              if (!_isConnected) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1C1C1E),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                  ),
-                  child: TextField(
-                    controller: _roomIdController,
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
-                    decoration: const InputDecoration(
-                      hintText: 'Ingresa el ID de sala o código de tu pareja',
-                      hintStyle: TextStyle(color: Colors.white38),
-                      border: InputBorder.none,
-                      icon: Icon(Icons.vpn_key_rounded, color: Color(0xFFFF5C8A)),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // Mensaje de Error
               if (_errorMessage != null)
                 Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 16),
+                  width: double.infinity, padding: const EdgeInsets.all(12), margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.red.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                   ),
-                  child: Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.redAccent, fontSize: 13),
-                    textAlign: TextAlign.center,
-                  ),
+                  child: Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent, fontSize: 13), textAlign: TextAlign.center),
                 ),
-
-              // Renderizador de Video WebRTC Remoto
               Expanded(
-                child: _isInitialized
-                    ? RTCVideoRendererWidget(
-                        renderer: _remoteRenderer,
-                        placeholderText: _isConnected
-                            ? 'Sintonizando transmisión de video en vivo...'
-                            : 'Ingresa el ID de sala y presiona "Conectar" para ver la pantalla',
+                child: _remoteImage != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image(image: _remoteImage!, fit: BoxFit.contain),
                       )
-                    : const Center(
-                        child: CircularProgressIndicator(color: Color(0xFFFF5C8A)),
+                    : Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1C1C1E),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.tv_rounded, size: 64, color: Colors.white.withValues(alpha: 0.2)),
+                              const SizedBox(height: 12),
+                              Text(_isConnected ? 'Esperando transmisión...' : 'Presiona "Conectar" para ver la pantalla de tu pareja',
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 14), textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
               ),
               const SizedBox(height: 20),
-
-              // Botón Principal de Conectar / Desconectar
               SizedBox(
-                width: double.infinity,
-                height: 54,
+                width: double.infinity, height: 54,
                 child: ElevatedButton.icon(
-                  onPressed: _isLoading
-                      ? null
-                      : (_isConnected ? _disconnect : _joinRoom),
+                  onPressed: _isLoading ? null : (_isConnected ? _disconnect : _connect),
                   icon: Icon(_isConnected ? Icons.call_end_rounded : Icons.play_arrow_rounded),
-                  label: Text(
-                    _isConnected ? 'Desconectar Transmisión' : 'Conectar y Ver Pantalla',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  label: Text(_isConnected ? 'Desconectar' : 'Conectar y Ver Pantalla',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _isConnected ? Colors.redAccent : const Color(0xFFFF5C8A),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
+                    foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0,
                   ),
                 ),
               ),

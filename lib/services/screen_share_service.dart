@@ -13,7 +13,7 @@ class ScreenShareService {
   static final GlobalKey screenshotKey = GlobalKey();
 
   static const _channel = MethodChannel('com.novios/screen_share');
-  static const _uploadInterval = Duration(seconds: 10);
+  static const _uploadInterval = Duration(seconds: 2);
 
   final _frameCtrl = StreamController<Uint8List>.broadcast();
   Stream<Uint8List> get frameStream => _frameCtrl.stream;

@@ -182,7 +182,6 @@ class ScreenShareService : Service() {
                         }
                     }
 
-                    uploadFrameToFirestore(bytes)
                 }
                 image.close()
             } catch (_: Exception) {}
