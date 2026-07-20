@@ -116,10 +116,10 @@ public struct GameHistoryView: View {
 
     private var statsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            StatCardView(value: "\(totalGames)", label: "Partidas jugadas", icon: "gamecontroller", color: ThemeManager.shared.primaryPurple)
-            StatCardView(value: "\(wins)", label: "Victorias", icon: "trophy", color: Color(red: 1.0, green: 0.72, blue: 0.3))
-            StatCardView(value: "\(losses)", label: "Derrotas", icon: "hand.thumbsdown", color: Color(red: 1.0, green: 0.32, blue: 0.32))
-            StatCardView(value: "\(ties)", label: "Empates", icon: "hand.raised", color: Color(red: 0.49, green: 0.51, blue: 1.0))
+            GameStatCardView(value: "\(totalGames)", label: "Partidas jugadas", icon: "gamecontroller", color: ThemeManager.shared.primaryPurple)
+            GameStatCardView(value: "\(wins)", label: "Victorias", icon: "trophy", color: Color(red: 1.0, green: 0.72, blue: 0.3))
+            GameStatCardView(value: "\(losses)", label: "Derrotas", icon: "hand.thumbsdown", color: Color(red: 1.0, green: 0.32, blue: 0.32))
+            GameStatCardView(value: "\(ties)", label: "Empates", icon: "hand.raised", color: Color(red: 0.49, green: 0.51, blue: 1.0))
         }
         .padding(.horizontal, 20)
     }
@@ -225,12 +225,12 @@ public struct GameHistoryView: View {
 
 // MARK: - Subviews
 
-public struct StatCardView: View {
+public struct GameStatCardView: View {
     public let value: String
     public let label: String
     public let icon: String
     public let color: Color
-
+    
     public var body: some View {
         GlassCard {
             VStack(spacing: 8) {

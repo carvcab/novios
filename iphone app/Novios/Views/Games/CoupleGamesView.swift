@@ -1,6 +1,6 @@
 import SwiftUI
 
-private struct GameEntry {
+private struct GameEntry: Identifiable {
     let id: GameType
     let title: String
     let subtitle: String
@@ -259,8 +259,4 @@ private struct PlaceholderGameView: View {
         }
         .navigationTitle(gameName)
     }
-}
-
-extension GameEntry: Identifiable {
-    var id: GameType { self.id }
 }

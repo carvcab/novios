@@ -1,13 +1,13 @@
 import Foundation
 import Combine
 
-public struct GameSession: Identifiable, Codable {
+public struct OnlineSession: Identifiable, Codable {
     public var id: String = UUID().uuidString
-    public var gameType: String // "truth_or_dare", "roulette", "quiz"
+    public var gameType: String
     public var currentTurnUserId: String
     public var currentQuestion: String?
     public var isTruth: Bool?
-    public var scores: [String: Int] // [userId: score]
+    public var scores: [String: Int]
     public var updatedAt: Date = Date()
 }
 

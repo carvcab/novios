@@ -6,7 +6,7 @@ public struct MessagesView: View {
 
     @State private var textInput = ""
     @State private var showAttachmentSheet = false
-    @State private var floatingHearts: [HeartParticle] = []
+    @State private var floatingHearts: [ChatHeartParticle] = []
 
     private let theme = ThemeManager.shared
     private let quickEmojis = ["❤️", "😘", "🥺", "💖", "💑", "🔥", "🌹", "✨", "💍"]
@@ -343,7 +343,7 @@ public struct MessagesView: View {
     private func spawnHearts(count: Int) {
         let screenWidth = UIScreen.main.bounds.width
         for _ in 0..<count {
-            let heart = HeartParticle(
+            let heart = ChatHeartParticle(
                 id: UUID(),
                 emoji: ["❤️", "💕", "💖", "🥰", "💗", "✨"].randomElement() ?? "❤️",
                 position: CGPoint(
@@ -401,7 +401,7 @@ public struct MessagesView: View {
 
 // MARK: - Heart Particle Model
 
-private struct HeartParticle: Identifiable {
+private struct ChatHeartParticle: Identifiable {
     let id: UUID
     let emoji: String
     var position: CGPoint
