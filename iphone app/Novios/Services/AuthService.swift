@@ -95,6 +95,14 @@ public class AuthService: ObservableObject {
             let partnerName = extract("partnerName") ?? "Pareja"
             let displayName = extract("displayName") ?? extract("name") ?? defaultName
             
+            // Sync important dates
+            let dateFields = ["anniversaryDate": "anniversary_date", "metDate": "met_date", "datingDate": "dating_date", "weddingDate": "wedding_date"]
+            for (firestoreKey, defaultsKey) in dateFields {
+                if let val = extract(firestoreKey), !val.isEmpty {
+                    defaults.set(val, forKey: defaultsKey)
+                }
+            }
+            
             defaults.set(dob, forKey: "profile_dob")
             defaults.set(username, forKey: "profile_username")
             defaults.set(displayName, forKey: "auth_user_name")
@@ -192,6 +200,15 @@ public class AuthService: ObservableObject {
         let extract = { (key: String) -> String? in
             (fields[key] as? [String: Any])?["stringValue"] as? String
         }
+        let extractDate = { (key: String) -> Date? in
+            if let str = (fields[key] as? [String: Any])?["stringValue"] as? String {
+                return ISO8601DateFormatter().date(from: str)
+            }
+            if let ts = (fields[key] as? [String: Any])?["timestampValue"] as? String {
+                return ISO8601DateFormatter().date(from: ts)
+            }
+            return nil
+        }
         let username = extract("username") ?? ""
         let dob = extract("dob") ?? extract("birthdayDate") ?? extract("birthday_date") ?? ""
         let partnerUid = extract("partnerUid") ?? ""
@@ -199,6 +216,19 @@ public class AuthService: ObservableObject {
         let displayName = extract("displayName") ?? extract("name") ?? ""
 
         let defaults = UserDefaults.standard
+
+        // Sync important dates from Firestore
+        let dateFields = [
+            "anniversaryDate": "anniversary_date",
+            "metDate": "met_date",
+            "datingDate": "dating_date",
+            "weddingDate": "wedding_date"
+        ]
+        for (firestoreKey, defaultsKey) in dateFields {
+            if let date = extractDate(firestoreKey) {
+                defaults.set(ISO8601DateFormatter().string(from: date), forKey: defaultsKey)
+            }
+        }
 
         // Always save what we got from Firestore
         if !username.isEmpty || !displayName.isEmpty {
