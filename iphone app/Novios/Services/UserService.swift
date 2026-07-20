@@ -54,13 +54,22 @@ public class UserService: ObservableObject {
         ]
     }
     
-    public func addPartner(codeOrEmail: String) async -> AddPartnerResult {
+    public func addPartner(codeOrEmail: String, foundUserData: [String: Any]? = nil) async -> AddPartnerResult {
         try? await Task.sleep(nanoseconds: 600_000_000)
         guard var user = AuthService.shared.currentUser else { return .error("Usuario no autenticado") }
         
         if user.isPaired { return .alreadyHasPartner }
         
-        let partnerId = "partner_sample_123"
+        guard let partnerData = foundUserData else {
+            return .notFound
+        }
+        
+        let partnerId = partnerData["uid"] as? String ?? "partner_unknown"
+        let displayName = partnerData["displayName"] as? String ?? "Mi Pareja ❤️"
+        let username = partnerData["username"] as? String ?? "pareja"
+        let email = partnerData["email"] as? String ?? "pareja@love.com"
+        let pairCode = partnerData["pairCode"] as? String ?? "LOVE88"
+        
         user.partnerUid = partnerId
         user.anniversaryDate = Date().addingTimeInterval(-86400 * 365)
         user.skippedPartner = false
@@ -70,10 +79,10 @@ public class UserService: ObservableObject {
         
         let partner = UserModel(
             id: partnerId,
-            email: "amor@love.com",
-            displayName: "Mi Pareja ❤️",
-            username: "mi_pareja",
-            pairCode: "LOVE88",
+            email: email,
+            displayName: displayName,
+            username: username,
+            pairCode: pairCode,
             partnerUid: user.id,
             anniversaryDate: user.anniversaryDate,
             mood: "🥰",
@@ -85,7 +94,6 @@ public class UserService: ObservableObject {
         )
         self.partnerUser = partner
         
-        // Disparar notificación de vinculación exitosa
         ChatNotificationService.shared.sendLocalNotification(
             title: "¡Pareja Vinculada! 🎉",
             body: "❤️ Te has vinculado exitosamente con \(partner.displayName). ¡Disfruten su espacio juntos!"

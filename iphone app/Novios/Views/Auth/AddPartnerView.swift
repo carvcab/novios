@@ -130,12 +130,19 @@ public struct AddPartnerView: View {
                                     GradientButton(title: "Vincular Pareja Ahora 💖", icon: "heart.fill", isLoading: isLinking) {
                                         Task {
                                             isLinking = true
-                                            let res = await userService.addPartner(codeOrEmail: searchCode)
+                                            let res = await userService.addPartner(codeOrEmail: searchCode, foundUserData: found)
                                             isLinking = false
-                                            if case .success = res {
-                                                // Paired!
-                                            } else {
-                                                errorMessage = "No se pudo vincular la pareja. Intenta de nuevo."
+                                            switch res {
+                                            case .success:
+                                                errorMessage = nil
+                                            case .notFound:
+                                                errorMessage = "No se pudo encontrar el usuario, verifica el código de usuario."
+                                            case .alreadyHasPartner:
+                                                errorMessage = "Ya tienes una pareja vinculada."
+                                            case .targetHasPartner:
+                                                errorMessage = "Este usuario ya tiene pareja."
+                                            case .error(let msg):
+                                                errorMessage = msg
                                             }
                                         }
                                     }

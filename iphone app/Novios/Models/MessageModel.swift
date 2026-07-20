@@ -1,60 +1,50 @@
 import Foundation
 
-public enum MessageType: String, Codable {
-    case text
-    case image
-    case audio
-    case doodle
-    case kiss
-    case hug
-    case touch
+public struct MessageModel: Identifiable, Codable, Equatable {
+    public let id: String
+    public var senderId: String
+    public var text: String?
+    public var timestamp: Date
+    public var type: MessageType
+    public var isDisappearing: Bool
+    public var disappearDurationSeconds: Int
+    public var readTimestamp: Date?
+    public var scheduledTime: Date?
+    public var letterTitle: String?
+    public var voiceNotePath: String?
+    public var videoMessagePath: String?
+    public var mediaUrl: String?
+    public var giftId: String?
+    public var replyToId: String?
+    public var replyToText: String?
+    public var replyToSenderId: String?
+    public var reactions: [String: String]?
+
+    public init(id: String, senderId: String, text: String?, timestamp: Date, type: MessageType = .text,
+                isDisappearing: Bool = false, disappearDurationSeconds: Int = 0,
+                readTimestamp: Date? = nil, scheduledTime: Date? = nil,
+                letterTitle: String? = nil, voiceNotePath: String? = nil,
+                videoMessagePath: String? = nil, mediaUrl: String? = nil,
+                giftId: String? = nil, replyToId: String? = nil,
+                replyToText: String? = nil, replyToSenderId: String? = nil,
+                reactions: [String: String]? = nil) {
+        self.id = id; self.senderId = senderId; self.text = text; self.timestamp = timestamp
+        self.type = type; self.isDisappearing = isDisappearing
+        self.disappearDurationSeconds = disappearDurationSeconds; self.readTimestamp = readTimestamp
+        self.scheduledTime = scheduledTime; self.letterTitle = letterTitle
+        self.voiceNotePath = voiceNotePath; self.videoMessagePath = videoMessagePath
+        self.mediaUrl = mediaUrl; self.giftId = giftId; self.replyToId = replyToId
+        self.replyToText = replyToText; self.replyToSenderId = replyToSenderId
+        self.reactions = reactions
+    }
+
+    public var isVisible: Bool {
+        if !isDisappearing { return true }
+        guard let read = readTimestamp else { return true }
+        return Date().timeIntervalSince(read) < Double(disappearDurationSeconds)
+    }
 }
 
-public struct MessageModel: Identifiable, Codable, Equatable {
-    public var id: String
-    public var senderId: String
-    public var receiverId: String
-    public var text: String?
-    public var mediaUrl: String?
-    public var type: MessageType
-    public var timestamp: Date
-    public var reactions: [String: String]? // [userId: emoji]
-    public var isRead: Bool
-
-    public init(
-        id: String = UUID().uuidString,
-        senderId: String,
-        receiverId: String,
-        text: String? = nil,
-        mediaUrl: String? = nil,
-        type: MessageType = .text,
-        timestamp: Date = Date(),
-        reactions: [String: String]? = nil,
-        isRead: Bool = false
-    ) {
-        self.id = id
-        self.senderId = senderId
-        self.receiverId = receiverId
-        self.text = text
-        self.mediaUrl = mediaUrl
-        self.type = type
-        self.timestamp = timestamp
-        self.reactions = reactions
-        self.isRead = isRead
-    }
-
-    public func dictionaryRepresentation() -> [String: Any] {
-        var dict: [String: Any] = [
-            "id": id,
-            "senderId": senderId,
-            "receiverId": receiverId,
-            "type": type.rawValue,
-            "timestamp": timestamp.timeIntervalSince1970,
-            "isRead": isRead
-        ]
-        if let text = text { dict["text"] = text }
-        if let mediaUrl = mediaUrl { dict["mediaUrl"] = mediaUrl }
-        if let reactions = reactions { dict["reactions"] = reactions }
-        return dict
-    }
+public enum MessageType: String, Codable {
+    case text, image, voice, video, gift, letter, kiss, hug, touch, disappearing
 }
