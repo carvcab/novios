@@ -5,86 +5,153 @@ public struct MessagesView: View {
     @StateObject private var chatService = ChatService.shared
     @EnvironmentObject var authService: AuthService
     @State private var textInput = ""
+    @State private var floatingHearts: [ChatHeartParticle] = []
+    @State private var heartCounter = 0
     @State private var showImagePicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
-    @State private var floatingHearts: [HeartP] = []
-    @State private var heartId = 0
 
-    private let emojis = ["❤️", "😘", "🥺", "💖", "💑", "🔥", "🌹", "✨", "💍"]
+    private let quickEmojis = ["❤️", "😘", "🥺", "💖", "💑", "🔥", "🌹", "✨", "💍"]
 
     public var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(chatService.messages.reversed()) { msg in
-                                let isMe = msg.senderId == (authService.currentUser?.id ?? FirebaseRESTService.shared.localId ?? "me")
-                                BubbleView(msg: msg, isMe: isMe, chatService: chatService)
+            ZStack {
+                ThemeManager.shared.backgroundGradient.ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    // Messages list
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVStack(spacing: 0) {
+                                ForEach(chatService.messages) { msg in
+                                    let isMe = msg.senderId == (authService.currentUser?.id ?? "me")
+                                    ChatBubbleView(
+                                        message: msg,
+                                        isFromMe: isMe,
+                                        onReply: { chatService.setReplyTo(message: msg) },
+                                        onReact: { emoji in chatService.addReaction(to: msg.id, emoji: emoji) }
+                                    )
                                     .id(msg.id)
+                                }
+                                Color.clear.frame(height: 4).id("bottom_scroll")
                             }
-                            Color.clear.frame(height: 4).id("bottom")
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
                         }
-                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .onChange(of: chatService.messages.count) { _ in
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                proxy.scrollTo("bottom_scroll", anchor: .bottom)
+                            }
+                            // Mark partner messages as read
+                            let myId = authService.currentUser?.id ?? FirebaseRESTService.shared.localId ?? ""
+                            for msg in chatService.messages where msg.senderId != myId && msg.readTimestamp == nil {
+                                chatService.markAsRead(messageId: msg.id)
+                                break
+                            }
+                        }
                     }
-                    .onReceive(chatService.autoScrollToBottom) { _ in
-                        withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
-                    }
-                }
 
-                // Emoji bar
-                ScrollView(.horizontal, showsIndicators: false) {
+                    // Reply bar
+                    if let reply = chatService.replyToMessage {
+                        replyBar(for: reply)
+                    }
+
+                    // Disappearing mode banner
+                    if chatService.isShowingDisappearing {
+                        HStack(spacing: 6) {
+                            Image(systemName: "timer").font(.system(size: 12)).foregroundColor(.pink)
+                            Text("Modo Secreto Activo: los mensajes desaparecerán en 15s al ser leídos")
+                                .font(.system(size: 10, weight: .semibold)).foregroundColor(.pink)
+                            Spacer()
+                        }
+                        .padding(.vertical, 6).padding(.horizontal, 16)
+                        .background(Color.pink.opacity(0.1))
+                    }
+
+                    // Quick emoji bar
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(quickEmojis, id: \.self) { emoji in
+                                Button {
+                                    chatService.sendMessage(text: emoji)
+                                    spawnHearts(count: 25)
+                                } label: {
+                                    Text(emoji).font(.system(size: 15))
+                                        .padding(.horizontal, 10).padding(.vertical, 4)
+                                        .background(ThemeManager.shared.primaryPink.opacity(0.08))
+                                        .cornerRadius(16)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                    }
+                    .frame(height: 38)
+                    .background(Color(.systemBackground).opacity(0.5))
+
+                    // Input bar
                     HStack(spacing: 8) {
-                        ForEach(emojis, id: \.self) { e in
-                            Button {
-                                chatService.sendMessage(text: e)
-                                spawnHearts(25)
-                            } label: {
-                                Text(e).font(.system(size: 15)).padding(.horizontal, 10).padding(.vertical, 4)
-                                    .background(ThemeManager.shared.primaryPink.opacity(0.08)).cornerRadius(16)
-                            }
+                        Button {
+                            chatService.isShowingDisappearing.toggle()
+                        } label: {
+                            Image(systemName: chatService.isShowingDisappearing ? "timer" : "timer")
+                                .font(.system(size: 20))
+                                .foregroundColor(chatService.isShowingDisappearing ? .pink : .primary.opacity(0.5))
                         }
-                    }.padding(.horizontal, 12)
-                }.frame(height: 38).background(Color(.systemBackground).opacity(0.5))
 
-                // Input
-                HStack(spacing: 8) {
-                    Button { chatService.isShowingDisappearing.toggle() } label: {
-                        Image(systemName: "timer").font(.system(size: 20))
-                            .foregroundColor(chatService.isShowingDisappearing ? .pink : .primary.opacity(0.3))
-                    }
-                    Button {
-                        if chatService.isRecording { _ = chatService.stopRecording() }
-                        else { chatService.startRecording() }
-                    } label: {
-                        Image(systemName: chatService.isRecording ? "stop.circle.fill" : "mic.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(chatService.isRecording ? .red : .primary.opacity(0.3))
-                    }
-                    Button { showImagePicker = true } label: {
-                        Image(systemName: "plus.circle").font(.system(size: 20)).foregroundColor(.primary.opacity(0.3))
-                    }
-                    TextField("Escribe un mensaje...", text: $textInput)
-                        .font(.system(size: 15)).foregroundColor(.primary)
-                        .padding(.horizontal, 16).padding(.vertical, 10)
-                        .background(Color(.systemGray6)).cornerRadius(24)
-                    Button {
-                        let t = textInput.trimmingCharacters(in: .whitespaces)
-                        if !t.isEmpty {
-                            chatService.sendMessage(text: t)
-                            textInput = ""
-                            let special = t.contains("❤️") || t.contains("😘") || t.lowercased().contains("te amo")
-                            spawnHearts(special ? 30 : 6)
+                        Button {
+                            toggleRecording()
+                        } label: {
+                            Image(systemName: chatService.isRecording ? "stop.circle.fill" : "mic.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(chatService.isRecording ? .red : .primary.opacity(0.5))
                         }
-                    } label: {
-                        Image(systemName: "paperplane.fill").font(.system(size: 16)).foregroundColor(.white)
-                            .padding(12).background(ThemeManager.shared.primaryPink).clipShape(Circle())
+
+                        Button {
+                            showAttachmentMenu()
+                        } label: {
+                            Image(systemName: "plus.circle")
+                                .font(.system(size: 20)).foregroundColor(.primary.opacity(0.5))
+                        }
+
+                        TextField(chatService.replyToMessage != nil ? "Escribe tu respuesta..." : "Escribe un mensaje...",
+                                  text: $textInput)
+                            .font(.system(size: 15))
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 16).padding(.vertical, 10)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(24)
+
+                        Button {
+                            let trimmed = textInput.trimmingCharacters(in: .whitespaces)
+                            if !trimmed.isEmpty {
+                                chatService.sendMessage(text: trimmed)
+                                textInput = ""
+                                let lower = trimmed.lowercased()
+                                let isSpecial = lower.contains("te amo") || lower.contains("te quiero") || lower.contains("love") || lower.contains("❤️") || lower.contains("💖") || lower.contains("😘")
+                                spawnHearts(count: isSpecial ? 30 : 6)
+                            }
+                        } label: {
+                            Image(systemName: "paperplane.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.white)
+                                .padding(12)
+                                .background(ThemeManager.shared.primaryPink)
+                                .clipShape(Circle())
+                        }
                     }
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(Color(.systemBackground).opacity(0.3))
                 }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(Color(.systemBackground).opacity(0.3))
+
+                // Floating hearts
+                ForEach(floatingHearts) { heart in
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: heart.size))
+                        .foregroundColor(ThemeManager.shared.primaryPink.opacity(heart.opacity))
+                        .offset(x: heart.x, y: heart.y)
+                        .animation(.easeOut(duration: 0.8), value: heart.y)
+                }
             }
-            .navigationTitle("Chat")
+            .navigationTitle("Chat con mi Amor ❤️")
             .navigationBarTitleDisplayMode(.inline)
             .photosPicker(isPresented: $showImagePicker, selection: $selectedPhotoItem, matching: .images)
             .onChange(of: selectedPhotoItem) { item in
@@ -97,101 +164,65 @@ public struct MessagesView: View {
         }
     }
 
-    private func spawnHearts(_ count: Int) {
+    private func replyBar(for msg: MessageModel) -> some View {
+        let isReplyingToMe = msg.senderId == authService.currentUser?.id
+        return VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Rectangle().fill(ThemeManager.shared.primaryPink).frame(width: 3, height: 32)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(isReplyingToMe ? "Respondiendo a ti mismo" : "Respondiendo")
+                        .font(.system(size: 11, weight: .semibold)).foregroundColor(ThemeManager.shared.primaryPink)
+                    Text(msg.text?.count ?? 0 > 60 ? "\(msg.text?.prefix(60) ?? "")..." : (msg.text ?? ""))
+                        .font(.system(size: 13)).foregroundColor(.primary.opacity(0.7)).lineLimit(1)
+                }
+                Spacer()
+                Button { chatService.clearReply() } label: {
+                    Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).foregroundColor(.primary.opacity(0.5))
+                }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 8)
+            .background(Color(.systemBackground))
+            .overlay(Divider(), alignment: .top)
+            .overlay(Divider().opacity(0.3), alignment: .bottom)
+        }
+    }
+
+    private func spawnHearts(count: Int) {
         for _ in 0..<count {
-            let h = HeartP(id: heartId, x: .random(in: -140...140), size: .random(in: 10...26), op: .random(in: 0.3...0.7))
-            heartId += 1
-            floatingHearts.append(h)
+            let heart = ChatHeartParticle(
+                id: heartCounter,
+                x: CGFloat.random(in: -140...140),
+                y: 0,
+                size: CGFloat.random(in: 10...26),
+                opacity: Double.random(in: 0.3...0.7)
+            )
+            heartCounter += 1
+            withAnimation(.easeOut(duration: 0.8)) {
+                floatingHearts.append(heart)
+            }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { floatingHearts.removeAll() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            floatingHearts.removeAll()
+        }
+    }
+
+    private func toggleRecording() {
+        if chatService.isRecording {
+            _ = chatService.stopRecording()
+        } else {
+            chatService.startRecording()
+        }
+    }
+
+    private func showAttachmentMenu() {
+        showImagePicker = true
     }
 }
 
-private struct HeartP: Identifiable {
-    let id: Int; let x: CGFloat; let size: CGFloat; let op: Double
-}
-
-private struct BubbleView: View {
-    let msg: MessageModel
-    let isMe: Bool
-    let chatService: ChatService
-    @State private var showMenu = false
-    @State private var loadedImage: UIImage?
-
-    var body: some View {
-        HStack {
-            if isMe { Spacer(minLength: 60) }
-            VStack(alignment: .leading, spacing: 2) {
-                if msg.type == .image || msg.type == .video {
-                    mediaContent
-                } else if msg.type == .voice {
-                    voiceContent
-                } else {
-                    Text(msg.text ?? "").font(.system(size: 15)).foregroundColor(.primary).lineSpacing(3)
-                }
-                HStack(spacing: 5) {
-                    Text(msg.timestamp, style: .time).font(.system(size: 10)).foregroundColor(.secondary)
-                    if isMe {
-                        Image(systemName: msg.readTimestamp != nil ? "heart.fill" : "heart")
-                            .font(.system(size: 10)).foregroundColor(msg.readTimestamp != nil ? .pink : .secondary)
-                    }
-                }
-            }
-            .padding(.horizontal, 14).padding(.vertical, 10)
-            .background(isMe ? ThemeManager.shared.primaryPink.opacity(0.15) : Color(.systemGray6))
-            .clipShape(RoundedRectangle(cornerRadius: 18))
-            .frame(maxWidth: UIScreen.main.bounds.width * 0.7, alignment: isMe ? .trailing : .leading)
-            if !isMe { Spacer(minLength: 60) }
-        }
-        .padding(.vertical, 2)
-        .onLongPressGesture { showMenu = true }
-        .sheet(isPresented: $showMenu) {
-            VStack(spacing: 12) {
-                Capsule().fill(Color.gray.opacity(0.3)).frame(width: 40, height: 4).padding(.top, 8)
-                Text("Reacciones").font(.system(size: 14, weight: .semibold))
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 5), spacing: 8) {
-                    ForEach(["❤️","😘","😂","😮","😢","🔥","💖","👍","👎"], id: \.self) { e in
-                        Button { chatService.addReaction(to: msg.id, emoji: e); showMenu = false } label: {
-                            Text(e).font(.system(size: 28)).padding(6).background(Color.pink.opacity(0.08)).cornerRadius(12)
-                        }
-                    }
-                }.padding(.horizontal, 20)
-                Divider()
-                Button { chatService.setReplyTo(message: msg); showMenu = false } label: {
-                    HStack { Image(systemName: "arrowshape.turn.up.left").foregroundColor(.pink)
-                        Text("Responder").foregroundColor(.primary); Spacer() }.padding(.horizontal, 20)
-                }
-                Spacer().frame(height: 20)
-            }.presentationDetents([.height(280)])
-        }
-        .task(id: msg.id) { await loadImage() }
-    }
-
-    private func loadImage() async {
-        guard let url = msg.mediaUrl, url.hasPrefix("firestore://"), msg.type == .image else { return }
-        let path = url.replacingOccurrences(of: "firestore://", with: "")
-        guard let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
-              let fields = doc["fields"] as? [String: Any],
-              let b64 = (fields["data"] as? [String: Any])?["stringValue"] as? String,
-              let data = Data(base64Encoded: b64) else { return }
-        await MainActor.run { loadedImage = UIImage(data: data) }
-    }
-
-    private var mediaContent: some View {
-        Group {
-            if let img = loadedImage {
-                Image(uiImage: img).resizable().scaledToFill().frame(width: 160, height: 160).cornerRadius(12).clipped()
-            } else {
-                ProgressView().frame(width: 160, height: 160)
-            }
-        }
-    }
-
-    private var voiceContent: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "play.fill").font(.system(size: 12)).foregroundColor(ThemeManager.shared.primaryPink)
-                .padding(6).background(ThemeManager.shared.primaryPink.opacity(0.1)).clipShape(Circle())
-            Text("Nota de voz").font(.system(size: 12)).foregroundColor(.primary)
-        }
-    }
+private struct ChatHeartParticle: Identifiable {
+    let id: Int
+    let x: CGFloat
+    var y: CGFloat
+    let size: CGFloat
+    let opacity: Double
 }
