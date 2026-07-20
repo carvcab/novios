@@ -36,6 +36,8 @@ jobs:
         run: |
           cd "iphone_flutter"
           flutter pub get
+          cd ios
+          pod install --repo-update
 
       - name: Build iOS App (No Signing)
         run: |
