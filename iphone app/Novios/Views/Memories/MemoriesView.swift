@@ -20,26 +20,7 @@ public struct MemoriesView: View {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(Array(photos.enumerated()), id: \.offset) { index, photo in
-                                GlassCard {
-                                    ZStack(alignment: .topTrailing) {
-                                        Image(uiImage: photo)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(height: 160)
-                                            .clipped()
-                                            .cornerRadius(14)
-
-                                        Button {
-                                            deletePhoto(at: index)
-                                        } label: {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .font(.system(size: 22))
-                                                .foregroundColor(.white)
-                                                .shadow(color: .black.opacity(0.3), radius: 3)
-                                        }
-                                        .padding(8)
-                                    }
-                                }
+                                photoCell(photo: photo, index: index)
                             }
                         }
                         .padding(20)
@@ -81,6 +62,19 @@ public struct MemoriesView: View {
             Text("Toca + para agregar fotos")
                 .font(.subheadline)
                 .foregroundColor(ThemeManager.shared.textSecondary)
+        }
+    }
+
+    private func photoCell(photo: UIImage, index: Int) -> some View {
+        GlassCard {
+            ZStack(alignment: .topTrailing) {
+                Image(uiImage: photo)
+                    .resizable().scaledToFill().frame(height: 160).clipped().cornerRadius(14)
+                Button { deletePhoto(at: index) } label: {
+                    Image(systemName: "xmark.circle.fill").font(.system(size: 22)).foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.3), radius: 3)
+                }.padding(8)
+            }
         }
     }
 
