@@ -69,9 +69,9 @@ public class ChatService: ObservableObject {
 
                 let msg = MessageModel(id: msgId, senderId: senderId, text: text,
                     timestamp: timestamp, type: MessageType(rawValue: typeRaw) ?? .text,
-                    readTimestamp: readDate, mediaUrl: mediaUrl,
                     isDisappearing: (fields["isDisappearing"] as? [String: Any])?["booleanValue"] as? Bool ?? false,
-                    disappearDurationSeconds: Int((fields["disappearDurationSeconds"] as? [String: Any])?["integerValue"] as? String ?? "0") ?? 0)
+                    disappearDurationSeconds: Int((fields["disappearDurationSeconds"] as? [String: Any])?["integerValue"] as? String ?? "0") ?? 0,
+                    readTimestamp: readDate, mediaUrl: mediaUrl)
                 newMessages.append(msg)
             }
 

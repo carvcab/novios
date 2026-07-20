@@ -191,11 +191,10 @@ public struct MessagesView: View {
     }
 
     private func toggleRecording() {
-        if audioService.isRecording {
-            _ = audioService.stopRecording()
-            chatService.sendVoiceNote(path: "voice_note")
+        if chatService.isRecording {
+            _ = chatService.stopRecording()
         } else {
-            audioService.startRecording()
+            chatService.startRecording()
         }
     }
 
