@@ -11,6 +11,7 @@ public struct GameHistoryView: View {
     private var wins: Int { gameHistory.filter { $0.result == .win }.count }
     private var losses: Int { gameHistory.filter { $0.result == .lose }.count }
     private var ties: Int { gameHistory.filter { $0.result == .tie }.count }
+    private var winRate: CGFloat { totalGames > 0 ? CGFloat(wins) / CGFloat(totalGames) : 0 }
 
     public var body: some View {
         NavigationStack {
