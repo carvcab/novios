@@ -31,13 +31,26 @@ public class StatusService: ObservableObject {
     }
 
     private func fetchPartnerStatus() {
-        Task { @MainActor in
+        Task {
             guard let myUid = FirebaseRESTService.shared.localId else { return }
             let partnerUid = UserDefaults.standard.string(forKey: "partner_uid") ?? ""
             guard !partnerUid.isEmpty else { return }
 
-            guard let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(partnerUid)"),
-                  let fields = doc["fields"] as? [String: Any] else { return }
+            // Try to fetch, refresh token if needed
+            var doc: [String: Any]?
+            do {
+                doc = try await FirebaseRESTService.shared.firestoreGet(path: "users/\(partnerUid)")
+            } catch FirebaseError.notAuthenticated {
+                // Token expired, try refresh
+                if let newToken = try? await FirebaseRESTService.shared.refreshIdToken() {
+                    _ = newToken
+                    doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(partnerUid)")
+                }
+            } catch {
+                // Silently fail for other errors
+            }
+
+            guard let fields = (doc?["fields"] as? [String: Any]) else { return }
 
             var status: [String: Any] = [:]
             for (key, val) in fields {
@@ -46,10 +59,24 @@ public class StatusService: ObservableObject {
                     else if let b = map["booleanValue"] as? Bool { status[key] = b }
                     else if let n = map["integerValue"] as? String { status[key] = Int(n) ?? 0 }
                     else if let d = map["doubleValue"] as? Double { status[key] = d }
+                    else if let ts = map["timestampValue"] as? String,
+                            let date = ISO8601DateFormatter().date(from: ts) {
+                        status[key] = date
+                    }
                 }
             }
-            self.partnerStatus = status
-            self.isOnline = status["isOnline"] as? Bool ?? false
+            await MainActor.run {
+                self.partnerStatus = status
+                self.isOnline = status["isOnline"] as? Bool ?? false
+                // Update partner location in UserService
+                if let lat = status["latitude"] as? Double, let lon = status["longitude"] as? Double {
+                    if var partner = UserService.shared.partnerUser {
+                        partner.latitude = lat
+                        partner.longitude = lon
+                        UserService.shared.partnerUser = partner
+                    }
+                }
+            }
         }
     }
 
