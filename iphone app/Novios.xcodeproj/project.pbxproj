@@ -8,11 +8,99 @@
 
 /* Begin PBXBuildFile section */
 		9A1000012C00000100000001 /* NoviosApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2000012C00000100000001 /* NoviosApp.swift */; };
+		9A000022C00000000000002 /* AppGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EA2C00000000000003EA /* AppGate.swift */; };
+		9A000032C00000000000003 /* CustomTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EB2C00000000000003EB /* CustomTextField.swift */; };
+		9A000042C00000000000004 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EC2C00000000000003EC /* GlassCard.swift */; };
+		9A000052C00000000000005 /* GradientButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003ED2C00000000000003ED /* GradientButton.swift */; };
+		9A000062C00000000000006 /* LiquidBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EE2C00000000000003EE /* LiquidBackgroundView.swift */; };
+		9A000072C00000000000007 /* PulsingHeartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EF2C00000000000003EF /* PulsingHeartView.swift */; };
+		9A000082C00000000000008 /* FirebaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F02C00000000000003F0 /* FirebaseService.swift */; };
+		9A000092C00000000000009 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F12C00000000000003F1 /* LocationService.swift */; };
+		9A0000A2C0000000000000A /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F22C00000000000003F2 /* ThemeManager.swift */; };
+		9A0000B2C0000000000000B /* MemoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F32C00000000000003F3 /* MemoryModel.swift */; };
+		9A0000C2C0000000000000C /* MessageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F42C00000000000003F4 /* MessageModel.swift */; };
+		9A0000D2C0000000000000D /* PlannerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F52C00000000000003F5 /* PlannerModel.swift */; };
+		9A0000E2C0000000000000E /* UserModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F62C00000000000003F6 /* UserModel.swift */; };
+		9A0000F2C0000000000000F /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F72C00000000000003F7 /* AIService.swift */; };
+		9A000102C00000000000010 /* AudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F82C00000000000003F8 /* AudioService.swift */; };
+		9A000112C00000000000011 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F92C00000000000003F9 /* AuthService.swift */; };
+		9A000122C00000000000012 /* ChatNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FA2C00000000000003FA /* ChatNotificationService.swift */; };
+		9A000132C00000000000013 /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FB2C00000000000003FB /* ChatService.swift */; };
+		9A000142C00000000000014 /* OnlineGameService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FC2C00000000000003FC /* OnlineGameService.swift */; };
+		9A000152C00000000000015 /* ScreenShareService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FD2C00000000000003FD /* ScreenShareService.swift */; };
+		9A000162C00000000000016 /* UserService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FE2C00000000000003FE /* UserService.swift */; };
+		9A000172C00000000000017 /* AICoupleAssistantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FF2C00000000000003FF /* AICoupleAssistantView.swift */; };
+		9A000182C00000000000018 /* AddPartnerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004002C0000000000000400 /* AddPartnerView.swift */; };
+		9A000192C00000000000019 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004012C0000000000000401 /* LoginView.swift */; };
+		9A0001A2C0000000000001A /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004022C0000000000000402 /* OnboardingView.swift */; };
+		9A0001B2C0000000000001B /* ProfileSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004032C0000000000000403 /* ProfileSetupView.swift */; };
+		9A0001C2C0000000000001C /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004042C0000000000000404 /* WelcomeView.swift */; };
+		9A0001D2C0000000000001D /* ChatBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004052C0000000000000405 /* ChatBubbleView.swift */; };
+		9A0001E2C0000000000001E /* MessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004062C0000000000000406 /* MessagesView.swift */; };
+		9A0001F2C0000000000001F /* CoupleGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004072C0000000000000407 /* CoupleGamesView.swift */; };
+		9A000202C00000000000020 /* TruthOrDareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004082C0000000000000408 /* TruthOrDareView.swift */; };
+		9A000212C00000000000021 /* DistanceWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004092C0000000000000409 /* DistanceWidgetView.swift */; };
+		9A000222C00000000000022 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040A2C000000000000040A /* HomeView.swift */; };
+		9A000232C00000000000023 /* LiveStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040B2C000000000000040B /* LiveStatusView.swift */; };
+		9A000242C00000000000024 /* LoveCounterWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040C2C000000000000040C /* LoveCounterWidgetView.swift */; };
+		9A000252C00000000000025 /* PartnerStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040D2C000000000000040D /* PartnerStatusCard.swift */; };
+		9A000262C00000000000026 /* LoveLettersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040E2C000000000000040E /* LoveLettersView.swift */; };
+		9A000272C00000000000027 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040F2C000000000000040F /* MainTabView.swift */; };
+		9A000282C00000000000028 /* CapsuleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004102C0000000000000410 /* CapsuleView.swift */; };
+		9A000292C00000000000029 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004112C0000000000000411 /* JournalView.swift */; };
+		9A0002A2C0000000000002A /* MemoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004122C0000000000000412 /* MemoriesView.swift */; };
+		9A0002B2C0000000000002B /* PlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004132C0000000000000413 /* PlannerView.swift */; };
+		9A0002C2C0000000000002C /* WishlistView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004142C0000000000000414 /* WishlistView.swift */; };
+		9A0002D2C0000000000002D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004152C0000000000000415 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		9A2000012C00000100000001 /* NoviosApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoviosApp.swift; sourceTree = "<group>"; };
 		9A2000002C00000000000000 /* Novios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Novios.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9A003EA2C00000000000003EA /* AppGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGate.swift; sourceTree = "<group>"; };
+		9A003EB2C00000000000003EB /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextField.swift; sourceTree = "<group>"; };
+		9A003EC2C00000000000003EC /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
+		9A003ED2C00000000000003ED /* GradientButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientButton.swift; sourceTree = "<group>"; };
+		9A003EE2C00000000000003EE /* LiquidBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidBackgroundView.swift; sourceTree = "<group>"; };
+		9A003EF2C00000000000003EF /* PulsingHeartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulsingHeartView.swift; sourceTree = "<group>"; };
+		9A003F02C00000000000003F0 /* FirebaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseService.swift; sourceTree = "<group>"; };
+		9A003F12C00000000000003F1 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		9A003F22C00000000000003F2 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		9A003F32C00000000000003F3 /* MemoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryModel.swift; sourceTree = "<group>"; };
+		9A003F42C00000000000003F4 /* MessageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageModel.swift; sourceTree = "<group>"; };
+		9A003F52C00000000000003F5 /* PlannerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerModel.swift; sourceTree = "<group>"; };
+		9A003F62C00000000000003F6 /* UserModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserModel.swift; sourceTree = "<group>"; };
+		9A003F72C00000000000003F7 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
+		9A003F82C00000000000003F8 /* AudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioService.swift; sourceTree = "<group>"; };
+		9A003F92C00000000000003F9 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		9A003FA2C00000000000003FA /* ChatNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatNotificationService.swift; sourceTree = "<group>"; };
+		9A003FB2C00000000000003FB /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatService.swift; sourceTree = "<group>"; };
+		9A003FC2C00000000000003FC /* OnlineGameService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnlineGameService.swift; sourceTree = "<group>"; };
+		9A003FD2C00000000000003FD /* ScreenShareService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenShareService.swift; sourceTree = "<group>"; };
+		9A003FE2C00000000000003FE /* UserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserService.swift; sourceTree = "<group>"; };
+		9A003FF2C00000000000003FF /* AICoupleAssistantView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoupleAssistantView.swift; sourceTree = "<group>"; };
+		9A004002C0000000000000400 /* AddPartnerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddPartnerView.swift; sourceTree = "<group>"; };
+		9A004012C0000000000000401 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		9A004022C0000000000000402 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		9A004032C0000000000000403 /* ProfileSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSetupView.swift; sourceTree = "<group>"; };
+		9A004042C0000000000000404 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+		9A004052C0000000000000405 /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbleView.swift; sourceTree = "<group>"; };
+		9A004062C0000000000000406 /* MessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesView.swift; sourceTree = "<group>"; };
+		9A004072C0000000000000407 /* CoupleGamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoupleGamesView.swift; sourceTree = "<group>"; };
+		9A004082C0000000000000408 /* TruthOrDareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TruthOrDareView.swift; sourceTree = "<group>"; };
+		9A004092C0000000000000409 /* DistanceWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceWidgetView.swift; sourceTree = "<group>"; };
+		9A0040A2C000000000000040A /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		9A0040B2C000000000000040B /* LiveStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveStatusView.swift; sourceTree = "<group>"; };
+		9A0040C2C000000000000040C /* LoveCounterWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoveCounterWidgetView.swift; sourceTree = "<group>"; };
+		9A0040D2C000000000000040D /* PartnerStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartnerStatusCard.swift; sourceTree = "<group>"; };
+		9A0040E2C000000000000040E /* LoveLettersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoveLettersView.swift; sourceTree = "<group>"; };
+		9A0040F2C000000000000040F /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		9A004102C0000000000000410 /* CapsuleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsuleView.swift; sourceTree = "<group>"; };
+		9A004112C0000000000000411 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
+		9A004122C0000000000000412 /* MemoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoriesView.swift; sourceTree = "<group>"; };
+		9A004132C0000000000000413 /* PlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerView.swift; sourceTree = "<group>"; };
+		9A004142C0000000000000414 /* WishlistView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WishlistView.swift; sourceTree = "<group>"; };
+		9A004152C0000000000000415 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,6 +188,50 @@
 			buildActionMask = 2147483647;
 			files = (
 				9A1000012C00000100000001 /* NoviosApp.swift in Sources */,
+				9A000022C00000000000002 /* AppGate.swift in Sources */,
+				9A000032C00000000000003 /* CustomTextField.swift in Sources */,
+				9A000042C00000000000004 /* GlassCard.swift in Sources */,
+				9A000052C00000000000005 /* GradientButton.swift in Sources */,
+				9A000062C00000000000006 /* LiquidBackgroundView.swift in Sources */,
+				9A000072C00000000000007 /* PulsingHeartView.swift in Sources */,
+				9A000082C00000000000008 /* FirebaseService.swift in Sources */,
+				9A000092C00000000000009 /* LocationService.swift in Sources */,
+				9A0000A2C0000000000000A /* ThemeManager.swift in Sources */,
+				9A0000B2C0000000000000B /* MemoryModel.swift in Sources */,
+				9A0000C2C0000000000000C /* MessageModel.swift in Sources */,
+				9A0000D2C0000000000000D /* PlannerModel.swift in Sources */,
+				9A0000E2C0000000000000E /* UserModel.swift in Sources */,
+				9A0000F2C0000000000000F /* AIService.swift in Sources */,
+				9A000102C00000000000010 /* AudioService.swift in Sources */,
+				9A000112C00000000000011 /* AuthService.swift in Sources */,
+				9A000122C00000000000012 /* ChatNotificationService.swift in Sources */,
+				9A000132C00000000000013 /* ChatService.swift in Sources */,
+				9A000142C00000000000014 /* OnlineGameService.swift in Sources */,
+				9A000152C00000000000015 /* ScreenShareService.swift in Sources */,
+				9A000162C00000000000016 /* UserService.swift in Sources */,
+				9A000172C00000000000017 /* AICoupleAssistantView.swift in Sources */,
+				9A000182C00000000000018 /* AddPartnerView.swift in Sources */,
+				9A000192C00000000000019 /* LoginView.swift in Sources */,
+				9A0001A2C0000000000001A /* OnboardingView.swift in Sources */,
+				9A0001B2C0000000000001B /* ProfileSetupView.swift in Sources */,
+				9A0001C2C0000000000001C /* WelcomeView.swift in Sources */,
+				9A0001D2C0000000000001D /* ChatBubbleView.swift in Sources */,
+				9A0001E2C0000000000001E /* MessagesView.swift in Sources */,
+				9A0001F2C0000000000001F /* CoupleGamesView.swift in Sources */,
+				9A000202C00000000000020 /* TruthOrDareView.swift in Sources */,
+				9A000212C00000000000021 /* DistanceWidgetView.swift in Sources */,
+				9A000222C00000000000022 /* HomeView.swift in Sources */,
+				9A000232C00000000000023 /* LiveStatusView.swift in Sources */,
+				9A000242C00000000000024 /* LoveCounterWidgetView.swift in Sources */,
+				9A000252C00000000000025 /* PartnerStatusCard.swift in Sources */,
+				9A000262C00000000000026 /* LoveLettersView.swift in Sources */,
+				9A000272C00000000000027 /* MainTabView.swift in Sources */,
+				9A000282C00000000000028 /* CapsuleView.swift in Sources */,
+				9A000292C00000000000029 /* JournalView.swift in Sources */,
+				9A0002A2C0000000000002A /* MemoriesView.swift in Sources */,
+				9A0002B2C0000000000002B /* PlannerView.swift in Sources */,
+				9A0002C2C0000000000002C /* WishlistView.swift in Sources */,
+				9A0002D2C0000000000002D /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -131,6 +263,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1";
+							SDKROOT = iphoneos;
 			};
 			name = Debug;
 		};
@@ -159,6 +292,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1";
+							SDKROOT = iphoneos;
 			};
 			name = Release;
 		};
