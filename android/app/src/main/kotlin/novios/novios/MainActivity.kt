@@ -109,14 +109,24 @@ class MainActivity : FlutterActivity() {
                     }
                 }
                 "startScreenShareService" -> {
-                    val code = call.argument<Int>("code") ?: -1
                     try {
                         val intent = Intent(this, ScreenShareService::class.java)
-                        intent.putExtra("code", code)
-                        startService(intent)
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                            startForegroundService(intent)
+                        } else {
+                            startService(intent)
+                        }
                         result.success(true)
                     } catch (e: Exception) {
                         result.error("SERVICE_ERROR", e.message, null)
+                    }
+                }
+                "stopScreenShareService" -> {
+                    try {
+                        stopService(Intent(this, ScreenShareService::class.java))
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
                     }
                 }
                 "restartScreenShare" -> {

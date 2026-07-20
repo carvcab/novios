@@ -57,6 +57,11 @@
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
 
+        <service
+            android:name="com.cloudwebrtc.webrtc.FlutterWebRtcService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
         <receiver android:name=".CountdownWidget" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
