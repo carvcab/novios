@@ -27,7 +27,7 @@ public struct MessagesView: View {
                             }
                             .padding(.vertical, 14)
                         }
-                        .onChange(of: chatService.messages.count) { _, _ in
+                        .onChange(of: chatService.messages.count) { _ in
                             if let last = chatService.messages.last {
                                 withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                                     proxy.scrollTo(last.id, anchor: .bottom)

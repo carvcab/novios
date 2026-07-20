@@ -91,7 +91,7 @@ public struct AddPartnerView: View {
                                 text: $searchCode,
                                 icon: "magnifyingglass"
                             )
-                            .onChange(of: searchCode) { _, newValue in
+                            .onChange(of: searchCode) { newValue in
                                 Task {
                                     if newValue.trimmingCharacters(in: .whitespaces).count >= 3 {
                                         foundUser = await userService.searchUser(query: newValue)
