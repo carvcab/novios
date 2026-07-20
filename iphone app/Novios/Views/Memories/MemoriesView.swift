@@ -40,7 +40,7 @@ public struct MemoriesView: View {
                 }
             }
             .photosPicker(isPresented: $showPicker, selection: $selectedItem, matching: .images)
-            .onChange(of: selectedItem) { _, newItem in
+            .onChange(of: selectedItem) { newItem in
                 Task {
                     await loadPhoto(from: newItem)
                 }
