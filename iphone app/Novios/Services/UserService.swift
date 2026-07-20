@@ -53,7 +53,7 @@ public class UserService: ObservableObject {
                let docs = allDocs["documents"] as? [[String: Any]] {
                 for doc in docs {
                     if let f = doc["fields"] as? [String: Any],
-                       let emailVal = (f["email"] as? [String: Any])?["stringValue"]?.lowercased(),
+                       let emailVal = ((f["email"] as? [String: Any])?["stringValue"] as? String)?.lowercased(),
                        emailVal == cleaned {
                         let uid = (f["uid"] as? [String: Any])?["stringValue"] as? String ?? ""
                         if !uid.isEmpty {
