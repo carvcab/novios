@@ -170,7 +170,7 @@ public class FirebaseRESTService {
 
     public func firestoreQuery(path: String, field: String, op: String, value: Any) async throws -> [[String: Any]] {
         let headers = try await getAuthHeader()
-        let url = URL(string: firestoreURL(path + ":runQuery"))!
+        let url = URL(string: firestoreURL(":runQuery"))!
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.allHTTPHeaderFields = headers
@@ -183,6 +183,7 @@ public class FirebaseRESTService {
         ]
         let structuredQuery: [String: Any] = [
             "structuredQuery": [
+                "from": [["collectionId": path]],
                 "where": filter,
                 "limit": 1
             ]
