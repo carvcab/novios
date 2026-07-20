@@ -48,11 +48,12 @@ public struct LoginView: View {
                             ) {
                                 Task {
                                     if isSignUp {
-                                        _ = await authService.signUp(email: email, pass: password, name: name)
+                                        try? await authService.signUpWithEmail(email: email, password: password, name: name)
                                     } else {
-                                        _ = await authService.signIn(email: email, pass: password)
+                                        try? await authService.signInWithEmail(email: email, password: password)
                                     }
                                 }
+                            }
                             }
                         }
                     }

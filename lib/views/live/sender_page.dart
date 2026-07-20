@@ -1,9 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/screen_share_service.dart';
-import '../../services/local_storage.dart';
 
 class SenderPage extends StatefulWidget {
   final String? customRoomId;
@@ -18,7 +15,9 @@ class _SenderPageState extends State<SenderPage> {
   bool _isSharing = false;
   bool _isLoading = false;
   String? _errorMessage;
-  ImageProvider? _previewImage;
+  Uint8List? _previewBytes;
+  DateTime _lastPreviewUpdate = DateTime(2000);
+  StreamSubscription? _frameSub;
 
   Future<void> _startSharing() async {
     setState(() { _isLoading = true; _errorMessage = null; });
@@ -26,20 +25,22 @@ class _SenderPageState extends State<SenderPage> {
     try {
       final result = await _screenShareService.requestScreenShare();
       if (result != 'granted') {
-        setState(() {
-          _errorMessage = result.contains('error') ? 'Error al iniciar captura: $result' : 'Permiso denegado';
+        if (mounted) setState(() {
+          _errorMessage = result.contains('error') ? 'Error: $result' : 'Permiso denegado';
           _isLoading = false;
         });
         return;
       }
 
-      setState(() => _isSharing = true);
-      _screenShareService.frameStream.listen((bytes) {
+      _frameSub = _screenShareService.frameStream.listen((bytes) {
         if (!mounted) return;
-        setState(() => _previewImage = MemoryImage(bytes));
+        final now = DateTime.now();
+        if (now.difference(_lastPreviewUpdate).inMilliseconds < 800) return;
+        _lastPreviewUpdate = now;
+        setState(() => _previewBytes = bytes);
       });
 
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() { _isSharing = true; _isLoading = false; });
     } catch (e) {
       if (mounted) setState(() {
         _errorMessage = 'Error: $e';
@@ -50,16 +51,18 @@ class _SenderPageState extends State<SenderPage> {
 
   Future<void> _stopSharing() async {
     setState(() => _isLoading = true);
+    await _frameSub?.cancel();
     await _screenShareService.stopScreenShare();
     if (mounted) setState(() {
       _isSharing = false;
       _isLoading = false;
-      _previewImage = null;
+      _previewBytes = null;
     });
   }
 
   @override
   void dispose() {
+    _frameSub?.cancel();
     _screenShareService.stopScreenShare();
     super.dispose();
   }
@@ -78,10 +81,10 @@ class _SenderPageState extends State<SenderPage> {
           child: Column(
             children: [
               Expanded(
-                child: _previewImage != null
+                child: _previewBytes != null
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: Image(image: _previewImage!, fit: BoxFit.contain),
+                        child: Image.memory(_previewBytes!, fit: BoxFit.contain),
                       )
                     : Container(
                         decoration: BoxDecoration(
@@ -95,7 +98,7 @@ class _SenderPageState extends State<SenderPage> {
                               Icon(Icons.screen_share_rounded, size: 64, color: Colors.white.withValues(alpha: 0.2)),
                               const SizedBox(height: 12),
                               Text('Presiona "Iniciar" para compartir tu pantalla',
-                                style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 14),
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 14), textAlign: TextAlign.center,
                               ),
                             ],
                           ),
