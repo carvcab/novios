@@ -55,7 +55,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		9A2000012C00000100000001 /* NoviosApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoviosApp.swift; sourceTree = "<group>"; };
+		9A2000012C00000100000001 /* NoviosApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/NoviosApp.swift; sourceTree = "<group>"; };
 		9A2000002C00000000000000 /* Novios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Novios.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9A003EA2C00000000000003EA /* AppGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AppGate.swift; sourceTree = "<group>"; };
 		9A003EB2C00000000000003EB /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/CustomTextField.swift; sourceTree = "<group>"; };
