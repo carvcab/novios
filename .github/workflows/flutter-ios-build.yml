@@ -28,28 +28,32 @@ jobs:
         with:
           channel: 'stable'
 
+      - name: Configure Flutter
+        run: |
+          flutter config --no-enable-swift-package-manager
+
       - name: Install dependencies
         run: |
-          cd "iphone flutter"
+          cd "iphone_flutter"
           flutter pub get
 
       - name: Build iOS App (No Signing)
         run: |
-          cd "iphone flutter"
+          cd "iphone_flutter"
           flutter build ios --no-codesign --debug
 
       - name: Package IPA
         run: |
-          cd "iphone flutter/build/ios/iphoneos" || cd "iphone flutter/build/ios/Debug-iphoneos" || cd "iphone flutter/build/ios/Release-iphoneos"
+          cd "iphone_flutter/build/ios/iphoneos" || cd "iphone_flutter/build/ios/Debug-iphoneos" || cd "iphone_flutter/build/ios/Release-iphoneos"
           mkdir -p Payload
           cp -r Runner.app Payload/
           zip -r "${{ inputs.build_id }}.ipa" Payload
-          mkdir -p "${GITHUB_WORKSPACE}/iphone flutter/ipa"
-          cp "${{ inputs.build_id }}.ipa" "${GITHUB_WORKSPACE}/iphone flutter/ipa/"
+          mkdir -p "${GITHUB_WORKSPACE}/iphone_flutter/ipa"
+          cp "${{ inputs.build_id }}.ipa" "${GITHUB_WORKSPACE}/iphone_flutter/ipa/"
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ipa-flutter
-          path: iphone flutter/ipa/*.ipa
+          path: iphone_flutter/ipa/*.ipa
           retention-days: 30
