@@ -94,6 +94,7 @@
 		9A0004D2C00000000000004D /* FirebaseRESTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004352C0000000000000435 /* FirebaseRESTService.swift */; };
 		9A0004E2C00000000000004E /* StatusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004362C0000000000000436 /* StatusService.swift */; };
 		9A0004F2C00000000000004F /* FirestoreSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004372C0000000000000437 /* FirestoreSyncService.swift */; };
+		9A000502C000000000000050 /* AppTrackerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0043A2C000000000000043A /* AppTrackerService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -187,6 +188,7 @@
 		9A004372C0000000000000437 /* FirestoreSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/FirestoreSyncService.swift; sourceTree = "<group>"; };
 		9A004382C0000000000000438 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		9A004392C0000000000000439 /* GoogleService-Info (1).plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info (1).plist"; sourceTree = "<group>"; };
+		9A0043A2C000000000000043A /* AppTrackerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AppTrackerService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -300,6 +302,7 @@
 				9A004372C0000000000000437 /* FirestoreSyncService.swift */,
 				9A004382C0000000000000438 /* GoogleService-Info.plist */,
 				9A004392C0000000000000439 /* GoogleService-Info (1).plist */,
+				9A0043A2C000000000000043A /* AppTrackerService.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -448,6 +451,7 @@
 				9A0004D2C00000000000004D /* FirebaseRESTService.swift in Sources */,
 				9A0004E2C00000000000004E /* StatusService.swift in Sources */,
 				9A0004F2C00000000000004F /* FirestoreSyncService.swift in Sources */,
+				9A000502C000000000000050 /* AppTrackerService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
