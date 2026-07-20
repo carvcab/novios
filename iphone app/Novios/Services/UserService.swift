@@ -13,28 +13,12 @@ public class UserService: ObservableObject {
     public static let shared = UserService()
     
     @Published public var partnerUser: UserModel?
-    @Published public var myPairCode: String = ""
     @Published public var isSearching: Bool = false
     
     private var partnerObserverCancellable: AnyCancellable?
     
     private init() {
         loadMockPartnerIfNeeded()
-    }
-    
-    public func getOrGeneratePairCode() async -> String {
-        if let current = AuthService.shared.currentUser, !current.pairCode.isEmpty {
-            self.myPairCode = current.pairCode
-            return current.pairCode
-        }
-        let code = String((0..<6).map { _ in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()! })
-        self.myPairCode = code
-        if var user = AuthService.shared.currentUser {
-            user.pairCode = code
-            AuthService.shared.saveUser(user)
-            AuthService.shared.currentUser = user
-        }
-        return code
     }
     
     public func searchUser(query: String) async -> [String: Any]? {

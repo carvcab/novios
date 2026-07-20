@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -9,6 +10,8 @@ class WebRTCScreenShareService {
   static final WebRTCScreenShareService _instance = WebRTCScreenShareService._internal();
   factory WebRTCScreenShareService() => _instance;
   WebRTCScreenShareService._internal();
+
+  static const _appChannel = MethodChannel('com.novios/app');
 
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
@@ -54,9 +57,9 @@ class WebRTCScreenShareService {
 
     // 1. Iniciar servicio Foreground para Android 14+ (MediaProjection requirement)
     try {
-      await Helper.startForegroundService();
+      await _appChannel.invokeMethod('startScreenShareService');
     } catch (e) {
-      debugPrint('Helper.startForegroundService error: $e');
+      debugPrint('startScreenShareService error: $e');
     }
 
     // 2. Obtener captura de pantalla con resolución y FPS optimizados para Android (720p 15fps)
@@ -312,7 +315,7 @@ class WebRTCScreenShareService {
     _peerConnection = null;
 
     try {
-      await Helper.stopForegroundService();
+      await _appChannel.invokeMethod('stopScreenShareService');
     } catch (_) {}
 
     _isSharing = false;

@@ -8,7 +8,6 @@ public struct AddPartnerView: View {
     @State private var isAdding = false
     @State private var foundUser: [String: Any]?
     @State private var errorMessage: String?
-    @State private var myPairCode = ""
 
     public var onComplete: (() -> Void)?
 
