@@ -57,50 +57,50 @@
 /* Begin PBXFileReference section */
 		9A2000012C00000100000001 /* NoviosApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoviosApp.swift; sourceTree = "<group>"; };
 		9A2000002C00000000000000 /* Novios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Novios.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		9A003EA2C00000000000003EA /* AppGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGate.swift; sourceTree = "<group>"; };
-		9A003EB2C00000000000003EB /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTextField.swift; sourceTree = "<group>"; };
-		9A003EC2C00000000000003EC /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
-		9A003ED2C00000000000003ED /* GradientButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientButton.swift; sourceTree = "<group>"; };
-		9A003EE2C00000000000003EE /* LiquidBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidBackgroundView.swift; sourceTree = "<group>"; };
-		9A003EF2C00000000000003EF /* PulsingHeartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulsingHeartView.swift; sourceTree = "<group>"; };
-		9A003F02C00000000000003F0 /* FirebaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseService.swift; sourceTree = "<group>"; };
-		9A003F12C00000000000003F1 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
-		9A003F22C00000000000003F2 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
-		9A003F32C00000000000003F3 /* MemoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryModel.swift; sourceTree = "<group>"; };
-		9A003F42C00000000000003F4 /* MessageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageModel.swift; sourceTree = "<group>"; };
-		9A003F52C00000000000003F5 /* PlannerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerModel.swift; sourceTree = "<group>"; };
-		9A003F62C00000000000003F6 /* UserModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserModel.swift; sourceTree = "<group>"; };
-		9A003F72C00000000000003F7 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
-		9A003F82C00000000000003F8 /* AudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioService.swift; sourceTree = "<group>"; };
-		9A003F92C00000000000003F9 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
-		9A003FA2C00000000000003FA /* ChatNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatNotificationService.swift; sourceTree = "<group>"; };
-		9A003FB2C00000000000003FB /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatService.swift; sourceTree = "<group>"; };
-		9A003FC2C00000000000003FC /* OnlineGameService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnlineGameService.swift; sourceTree = "<group>"; };
-		9A003FD2C00000000000003FD /* ScreenShareService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenShareService.swift; sourceTree = "<group>"; };
-		9A003FE2C00000000000003FE /* UserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserService.swift; sourceTree = "<group>"; };
-		9A003FF2C00000000000003FF /* AICoupleAssistantView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoupleAssistantView.swift; sourceTree = "<group>"; };
-		9A004002C0000000000000400 /* AddPartnerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddPartnerView.swift; sourceTree = "<group>"; };
-		9A004012C0000000000000401 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
-		9A004022C0000000000000402 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
-		9A004032C0000000000000403 /* ProfileSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSetupView.swift; sourceTree = "<group>"; };
-		9A004042C0000000000000404 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
-		9A004052C0000000000000405 /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbleView.swift; sourceTree = "<group>"; };
-		9A004062C0000000000000406 /* MessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesView.swift; sourceTree = "<group>"; };
-		9A004072C0000000000000407 /* CoupleGamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoupleGamesView.swift; sourceTree = "<group>"; };
-		9A004082C0000000000000408 /* TruthOrDareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TruthOrDareView.swift; sourceTree = "<group>"; };
-		9A004092C0000000000000409 /* DistanceWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceWidgetView.swift; sourceTree = "<group>"; };
-		9A0040A2C000000000000040A /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
-		9A0040B2C000000000000040B /* LiveStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveStatusView.swift; sourceTree = "<group>"; };
-		9A0040C2C000000000000040C /* LoveCounterWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoveCounterWidgetView.swift; sourceTree = "<group>"; };
-		9A0040D2C000000000000040D /* PartnerStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartnerStatusCard.swift; sourceTree = "<group>"; };
-		9A0040E2C000000000000040E /* LoveLettersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoveLettersView.swift; sourceTree = "<group>"; };
-		9A0040F2C000000000000040F /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
-		9A004102C0000000000000410 /* CapsuleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsuleView.swift; sourceTree = "<group>"; };
-		9A004112C0000000000000411 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
-		9A004122C0000000000000412 /* MemoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoriesView.swift; sourceTree = "<group>"; };
-		9A004132C0000000000000413 /* PlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannerView.swift; sourceTree = "<group>"; };
-		9A004142C0000000000000414 /* WishlistView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WishlistView.swift; sourceTree = "<group>"; };
-		9A004152C0000000000000415 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		9A003EA2C00000000000003EA /* AppGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AppGate.swift; sourceTree = "<group>"; };
+		9A003EB2C00000000000003EB /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/CustomTextField.swift; sourceTree = "<group>"; };
+		9A003EC2C00000000000003EC /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/GlassCard.swift; sourceTree = "<group>"; };
+		9A003ED2C00000000000003ED /* GradientButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/GradientButton.swift; sourceTree = "<group>"; };
+		9A003EE2C00000000000003EE /* LiquidBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/LiquidBackgroundView.swift; sourceTree = "<group>"; };
+		9A003EF2C00000000000003EF /* PulsingHeartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/PulsingHeartView.swift; sourceTree = "<group>"; };
+		9A003F02C00000000000003F0 /* FirebaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/FirebaseService.swift; sourceTree = "<group>"; };
+		9A003F12C00000000000003F1 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/LocationService.swift; sourceTree = "<group>"; };
+		9A003F22C00000000000003F2 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/ThemeManager.swift; sourceTree = "<group>"; };
+		9A003F32C00000000000003F3 /* MemoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/MemoryModel.swift; sourceTree = "<group>"; };
+		9A003F42C00000000000003F4 /* MessageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/MessageModel.swift; sourceTree = "<group>"; };
+		9A003F52C00000000000003F5 /* PlannerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/PlannerModel.swift; sourceTree = "<group>"; };
+		9A003F62C00000000000003F6 /* UserModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/UserModel.swift; sourceTree = "<group>"; };
+		9A003F72C00000000000003F7 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AIService.swift; sourceTree = "<group>"; };
+		9A003F82C00000000000003F8 /* AudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AudioService.swift; sourceTree = "<group>"; };
+		9A003F92C00000000000003F9 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AuthService.swift; sourceTree = "<group>"; };
+		9A003FA2C00000000000003FA /* ChatNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/ChatNotificationService.swift; sourceTree = "<group>"; };
+		9A003FB2C00000000000003FB /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/ChatService.swift; sourceTree = "<group>"; };
+		9A003FC2C00000000000003FC /* OnlineGameService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/OnlineGameService.swift; sourceTree = "<group>"; };
+		9A003FD2C00000000000003FD /* ScreenShareService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/ScreenShareService.swift; sourceTree = "<group>"; };
+		9A003FE2C00000000000003FE /* UserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/UserService.swift; sourceTree = "<group>"; };
+		9A003FF2C00000000000003FF /* AICoupleAssistantView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/AI/AICoupleAssistantView.swift; sourceTree = "<group>"; };
+		9A004002C0000000000000400 /* AddPartnerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Auth/AddPartnerView.swift; sourceTree = "<group>"; };
+		9A004012C0000000000000401 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Auth/LoginView.swift; sourceTree = "<group>"; };
+		9A004022C0000000000000402 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Auth/OnboardingView.swift; sourceTree = "<group>"; };
+		9A004032C0000000000000403 /* ProfileSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Auth/ProfileSetupView.swift; sourceTree = "<group>"; };
+		9A004042C0000000000000404 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Auth/WelcomeView.swift; sourceTree = "<group>"; };
+		9A004052C0000000000000405 /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Chat/ChatBubbleView.swift; sourceTree = "<group>"; };
+		9A004062C0000000000000406 /* MessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Chat/MessagesView.swift; sourceTree = "<group>"; };
+		9A004072C0000000000000407 /* CoupleGamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/CoupleGamesView.swift; sourceTree = "<group>"; };
+		9A004082C0000000000000408 /* TruthOrDareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/TruthOrDareView.swift; sourceTree = "<group>"; };
+		9A004092C0000000000000409 /* DistanceWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Home/DistanceWidgetView.swift; sourceTree = "<group>"; };
+		9A0040A2C000000000000040A /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Home/HomeView.swift; sourceTree = "<group>"; };
+		9A0040B2C000000000000040B /* LiveStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Home/LiveStatusView.swift; sourceTree = "<group>"; };
+		9A0040C2C000000000000040C /* LoveCounterWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Home/LoveCounterWidgetView.swift; sourceTree = "<group>"; };
+		9A0040D2C000000000000040D /* PartnerStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Home/PartnerStatusCard.swift; sourceTree = "<group>"; };
+		9A0040E2C000000000000040E /* LoveLettersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Letters/LoveLettersView.swift; sourceTree = "<group>"; };
+		9A0040F2C000000000000040F /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Main/MainTabView.swift; sourceTree = "<group>"; };
+		9A004102C0000000000000410 /* CapsuleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Memories/CapsuleView.swift; sourceTree = "<group>"; };
+		9A004112C0000000000000411 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Memories/JournalView.swift; sourceTree = "<group>"; };
+		9A004122C0000000000000412 /* MemoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Memories/MemoriesView.swift; sourceTree = "<group>"; };
+		9A004132C0000000000000413 /* PlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Planner/PlannerView.swift; sourceTree = "<group>"; };
+		9A004142C0000000000000414 /* WishlistView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Planner/WishlistView.swift; sourceTree = "<group>"; };
+		9A004152C0000000000000415 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -126,6 +126,50 @@
 			isa = PBXGroup;
 			children = (
 				9A2000012C00000100000001 /* NoviosApp.swift */,
+				9A003EA2C00000000000003EA /* AppGate.swift */,
+				9A003EB2C00000000000003EB /* CustomTextField.swift */,
+				9A003EC2C00000000000003EC /* GlassCard.swift */,
+				9A003ED2C00000000000003ED /* GradientButton.swift */,
+				9A003EE2C00000000000003EE /* LiquidBackgroundView.swift */,
+				9A003EF2C00000000000003EF /* PulsingHeartView.swift */,
+				9A003F02C00000000000003F0 /* FirebaseService.swift */,
+				9A003F12C00000000000003F1 /* LocationService.swift */,
+				9A003F22C00000000000003F2 /* ThemeManager.swift */,
+				9A003F32C00000000000003F3 /* MemoryModel.swift */,
+				9A003F42C00000000000003F4 /* MessageModel.swift */,
+				9A003F52C00000000000003F5 /* PlannerModel.swift */,
+				9A003F62C00000000000003F6 /* UserModel.swift */,
+				9A003F72C00000000000003F7 /* AIService.swift */,
+				9A003F82C00000000000003F8 /* AudioService.swift */,
+				9A003F92C00000000000003F9 /* AuthService.swift */,
+				9A003FA2C00000000000003FA /* ChatNotificationService.swift */,
+				9A003FB2C00000000000003FB /* ChatService.swift */,
+				9A003FC2C00000000000003FC /* OnlineGameService.swift */,
+				9A003FD2C00000000000003FD /* ScreenShareService.swift */,
+				9A003FE2C00000000000003FE /* UserService.swift */,
+				9A003FF2C00000000000003FF /* AICoupleAssistantView.swift */,
+				9A004002C0000000000000400 /* AddPartnerView.swift */,
+				9A004012C0000000000000401 /* LoginView.swift */,
+				9A004022C0000000000000402 /* OnboardingView.swift */,
+				9A004032C0000000000000403 /* ProfileSetupView.swift */,
+				9A004042C0000000000000404 /* WelcomeView.swift */,
+				9A004052C0000000000000405 /* ChatBubbleView.swift */,
+				9A004062C0000000000000406 /* MessagesView.swift */,
+				9A004072C0000000000000407 /* CoupleGamesView.swift */,
+				9A004082C0000000000000408 /* TruthOrDareView.swift */,
+				9A004092C0000000000000409 /* DistanceWidgetView.swift */,
+				9A0040A2C000000000000040A /* HomeView.swift */,
+				9A0040B2C000000000000040B /* LiveStatusView.swift */,
+				9A0040C2C000000000000040C /* LoveCounterWidgetView.swift */,
+				9A0040D2C000000000000040D /* PartnerStatusCard.swift */,
+				9A0040E2C000000000000040E /* LoveLettersView.swift */,
+				9A0040F2C000000000000040F /* MainTabView.swift */,
+				9A004102C0000000000000410 /* CapsuleView.swift */,
+				9A004112C0000000000000411 /* JournalView.swift */,
+				9A004122C0000000000000412 /* MemoriesView.swift */,
+				9A004132C0000000000000413 /* PlannerView.swift */,
+				9A004142C0000000000000414 /* WishlistView.swift */,
+				9A004152C0000000000000415 /* SettingsView.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -241,7 +285,8 @@
 		9A9000002C00000000000000 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
+								SDKROOT = iphoneos;
+ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
@@ -263,14 +308,14 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1";
-							SDKROOT = iphoneos;
 			};
 			name = Debug;
 		};
 		9A9000012C00000000000000 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
+								SDKROOT = iphoneos;
+ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
@@ -292,7 +337,6 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1";
-							SDKROOT = iphoneos;
 			};
 			name = Release;
 		};

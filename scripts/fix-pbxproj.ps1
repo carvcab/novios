@@ -1,60 +1,51 @@
 $projFile = "C:\Users\diego\Documents\Nueva carpeta\iphone app\Novios.xcodeproj\project.pbxproj"
 $content = Get-Content $projFile -Raw
 
-$swiftFiles = Get-ChildItem -Path "C:\Users\diego\Documents\Nueva carpeta\iphone app\Novios" -Recurse -Filter "*.swift" | Where-Object { $_.Name -ne "NoviosApp.swift" }
+$baseDir = "C:\Users\diego\Documents\Nueva carpeta\iphone app\Novios"
+$swiftFiles = Get-ChildItem -Path $baseDir -Recurse -Filter "*.swift" | Where-Object { $_.Name -ne "NoviosApp.swift" }
+
+$counter = 2
+$refAddr = 0x3EA
 
 $buildFileEntries = @()
 $fileRefEntries = @()
-$groupEntries = @{}
 $sourceFileEntries = @()
-
-$counter = 2
-$refCounter = 0x3EA
-
-function New-GroupId { "9A4000$('{0:X2}' -f (60 + $script:groupCounter))2C000000000000$('{0:X2}' -f (60 + $script:groupCounter))" }
-
-$groupIdMap = @{}
-$groupIdCounter = 0
+$groupChildEntries = @()
 
 foreach ($file in $swiftFiles) {
-    $relDir = $file.DirectoryName.Replace("C:\Users\diego\Documents\Nueva carpeta\iphone app\Novios\", "")
-    $relDir = $relDir -replace '\\', '/'
+    $relPath = $file.DirectoryName.Replace($baseDir, "").TrimStart('\').Replace('\', '/')
+    $fullPath = if ($relPath) { "$relPath/$($file.Name)" } else { $file.Name }
+    $fileName = $file.Name
     
-    $fileId = "9A$('{0:X5}' -f $counter)2C000000000000$('{0:X2}' -f $counter)"
-    $refId = "9A$('{0:X5}' -f $refCounter)2C000000000000$('{0:X4}' -f $refCounter)"
+    $fid = "9A$('{0:X5}' -f $counter)2C000000000000$('{0:X2}' -f $counter)"
+    $rid = "9A$('{0:X5}' -f $refAddr)2C000000000000$('{0:X4}' -f $refAddr)"
     
-    $buildFileEntries += "`t`t$fileId /* $($file.Name) in Sources */ = {isa = PBXBuildFile; fileRef = $refId /* $($file.Name) */; };"
-    $fileRefEntries += "`t`t$refId /* $($file.Name) */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = $($file.Name); sourceTree = `"<group>`"; };"
-    $sourceFileEntries += "`t`t`t`t$fileId /* $($file.Name) in Sources */,"
+    $buildFileEntries += "`t`t$fid /* $fileName in Sources */ = {isa = PBXBuildFile; fileRef = $rid /* $fileName */; };"
+    $fileRefEntries += "`t`t$rid /* $fileName */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = $fullPath; sourceTree = `"<group>`"; };"
+    $sourceFileEntries += "`t`t`t`t$fid /* $fileName in Sources */,"
+    $groupChildEntries += "`t`t`t`t$rid /* $fileName */,"
     
     $counter++
-    $refCounter++
+    $refAddr++
 }
 
-$buildFileBlock = "`n/* Begin PBXBuildFile section */`n$($buildFileEntries -join "`n")`n`n/* End PBXBuildFile section */`n"
-$fileRefBlock = "`n/* Begin PBXFileReference section */`n$($fileRefEntries -join "`n")`n`n/* End PBXFileReference section */`n"
+# 1. Insert SDKROOT in Debug config
+$content = $content -replace '(9A9000002C00000000000000 /\* Debug \*/\s*=\s*\{\s*isa = XCBuildConfiguration;\s*buildSettings = \{\s*)', "`$1`t`t`t`tSDKROOT = iphoneos;`n"
 
-# Add SDKROOT to the Debug config at project level
-$content = $content -replace '(9A9000002C00000000000000 \/\* Debug \*\/ = \{[^}]*?buildSettings = \{[^}]*?)(\};)', @"
-`$1				SDKROOT = iphoneos;
-			`$2
-"@
+# 2. Insert SDKROOT in Release config
+$content = $content -replace '(9A9000012C00000000000000 /\* Release \*/\s*=\s*\{\s*isa = XCBuildConfiguration;\s*buildSettings = \{\s*)', "`$1`t`t`t`tSDKROOT = iphoneos;`n"
 
-# Add SDKROOT to Release config at project level  
-$content = $content -replace '(9A9000012C00000000000000 \/\* Release \*\/ = \{[^}]*?buildSettings = \{[^}]*?)(\};)', @"
-`$1				SDKROOT = iphoneos;
-			`$2
-"@
+# 3. Insert build file entries AFTER the NoviosApp.swift build file entry (match the full entry including closing })
+$content = $content -replace '(9A1000012C00000100000001 /\* NoviosApp\.swift in Sources \*/ = \{[^}]+?; \};)', "`$1`n$($buildFileEntries -join "`n")"
 
-# Add the new build file entries AFTER existing ones
-$content = $content -replace '(9A1000012C00000100000001 /\* NoviosApp\.swift in Sources \*/ = \{[^}]+?\};)', "`$1`n$($buildFileEntries -join "`n")"
-
-# Add the new file reference entries AFTER existing ones
+# 4. Insert file ref entries AFTER the Novios.app ref
 $content = $content -replace '(9A2000002C00000000000000 /\* Novios\.app \*/ = \{[^}]+?\};)', "`$1`n$($fileRefEntries -join "`n")"
 
-# Add files to the Sources build phase AFTER existing entry
+# 5. Insert source entries after NoviosApp.swift in Sources build phase file list
 $content = $content -replace '(9A1000012C00000100000001 /\* NoviosApp\.swift in Sources \*/,)', "`$1`n$($sourceFileEntries -join "`n")"
 
-Set-Content -Path $projFile -Value $content -NoNewline
+# 6. Insert group children after NoviosApp.swift in the group (match with COMMA, which only appears in group)
+$content = $content -replace '(9A2000012C00000100000001 /\* NoviosApp\.swift \*/,)', "`$1`n$($groupChildEntries -join "`n")"
 
-Write-Host "Fixed project.pbxproj: added SDKROOT=iphoneos, $($swiftFiles.Count) source files"
+Set-Content -Path $projFile -Value $content -NoNewline
+Write-Host "Done - $($swiftFiles.Count) files added"
