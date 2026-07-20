@@ -119,7 +119,7 @@ public class UserService: ObservableObject {
             return .error("Usuario no autenticado")
         }
 
-        guard let targetData = await searchUser(query) else {
+        guard let targetData = await searchUser(query: query) else {
             return .notFound
         }
 
