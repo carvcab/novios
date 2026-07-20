@@ -3,7 +3,7 @@ import Combine
 import UIKit
 import AVFoundation
 
-public class ChatService: ObservableObject, AVAudioRecorderDelegate {
+public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     public static let shared = ChatService()
 
     @Published public var messages: [MessageModel] = []
