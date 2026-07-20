@@ -100,4 +100,22 @@ public struct AddPartnerView: View {
             .padding(.horizontal, 24)
         }
     }
+
+    private func performSearch() {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        isSearching = true
+        errorMessage = nil
+        foundUser = nil
+        Task {
+            let user = await userService.searchUser(query: trimmed)
+            await MainActor.run {
+                self.isSearching = false
+                self.foundUser = user
+                if user == nil {
+                    self.errorMessage = "No se encontró ningún usuario con ese nombre, correo o código."
+                }
+            }
+        }
+    }
 }
