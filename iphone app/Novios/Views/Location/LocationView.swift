@@ -160,7 +160,7 @@ public struct LocationView: View {
     private var mapSection: some View {
         GlassCard {
             ZStack {
-                RealMapView(region: $region, userLocation: $locationService.currentLocation.map { $0.coordinate }, showsUserLocation: true)
+                RealMapView(region: $region, userLocation: .constant(locationService.currentLocation?.coordinate), showsUserLocation: true)
                     .frame(height: 260)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                 VStack {
