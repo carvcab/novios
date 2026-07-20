@@ -34,11 +34,7 @@ public struct MemoriesView: View {
             .navigationTitle("Recuerdos")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 8) {
-                        NavigationLink(destination: MemoryDetailView()) {
-                            Image(systemName: "paintbrush.fill").font(.system(size: 16)).foregroundColor(ThemeManager.shared.primaryPink)
-                        }
-                        Button {
+                    Button {
                         showPicker = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
