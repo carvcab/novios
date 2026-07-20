@@ -22,6 +22,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     private var myUid: String { AuthService.shared.currentUser?.id ?? FirebaseRESTService.shared.localId ?? "me" }
     private var partnerUid: String { UserDefaults.standard.string(forKey: "partner_uid") ?? "" }
+    private var myName: String { AuthService.shared.currentUser?.displayName ?? UserDefaults.standard.string(forKey: "auth_user_name") ?? "Tu pareja" }
     private var coupleId: String { [myUid, partnerUid].sorted().joined(separator: "_") }
 
     override public init() {
@@ -45,10 +46,9 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         guard !puid.isEmpty, puid != "partner" else { return }
 
         Task { @MainActor in
-            guard let docs = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(coupleId)/messages?pageSize=100"),
+            guard let docs = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(coupleId)/messages"),
                   let documents = (docs["documents"] as? [[String: Any]]) else { return }
 
-            var newFound = false
             for doc in documents {
                 guard let name = doc["name"] as? String,
                       let fields = doc["fields"] as? [String: Any] else { continue }
@@ -57,19 +57,109 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
                 let senderId = (fields["senderId"] as? [String: Any])?["stringValue"] as? String ?? ""
                 let text = (fields["text"] as? [String: Any])?["stringValue"] as? String ?? ""
-                let typeRaw = (fields["type"] as? [String: Any])?["stringValue"] as? String ?? "text"
+                let typeRaw = (fields["type"] as? [String: Any])?["stringValue"] as? String ?? "chat"
                 let timestamp = ISO8601DateFormatter().date(from: doc["createTime"] as? String ?? "") ?? Date()
                 let mediaUrl = (fields["mediaUrl"] as? [String: Any])?["stringValue"] as? String
+                let isDisappearing = (fields["isDisappearing"] as? [String: Any])?["booleanValue"] as? Bool ?? false
+                let disappearDuration = (fields["disappearDurationSeconds"] as? [String: Any])?["integerValue"] as? String
+                let readTsStr = (fields["readTimestamp"] as? [String: Any])?["stringValue"] as? String
+                let readTs = readTsStr.flatMap { ISO8601DateFormatter().date(from: $0) }
+
+                var reactions: [String: String]?
+                if let r = fields["reactions"] as? [String: Any],
+                   let mapFields = r["mapValue"] as? [String: Any],
+                   let fields2 = mapFields["fields"] as? [String: Any] {
+                    reactions = [:]
+                    for (k, v) in fields2 {
+                        if let sv = (v as? [String: Any])?["stringValue"] as? String {
+                            reactions?[k] = sv
+                        }
+                    }
+                } else if let r = fields["reactions"] as? [String: Any] {
+                    reactions = [:]
+                    for (k, v) in r {
+                        if let sv = (v as? [String: Any])?["stringValue"] as? String {
+                            reactions?[k] = sv
+                        } else if let sv = v as? String {
+                            reactions?[k] = sv
+                        }
+                    }
+                }
+
+                let replyToId = (fields["replyToId"] as? [String: Any])?["stringValue"] as? String
+                let replyToText = (fields["replyToText"] as? [String: Any])?["stringValue"] as? String
+                let replyToSenderId = (fields["replyToSenderId"] as? [String: Any])?["stringValue"] as? String
+
+                let msgType: MessageType
+                switch typeRaw {
+                case "chat", "text": msgType = .text
+                case "voice": msgType = .voice
+                case "image", "photo": msgType = .image
+                case "video": msgType = .video
+                case "gift": msgType = .gift
+                case "letter": msgType = .letter
+                default: msgType = .text
+                }
 
                 let msg = MessageModel(id: msgId, senderId: senderId, text: text, timestamp: timestamp,
-                    type: MessageType(rawValue: typeRaw) ?? .text, mediaUrl: mediaUrl)
+                    type: msgType, isDisappearing: isDisappearing,
+                    disappearDurationSeconds: Int(disappearDuration ?? "0") ?? 0,
+                    readTimestamp: readTs, mediaUrl: mediaUrl,
+                    replyToId: replyToId, replyToText: replyToText,
+                    replyToSenderId: replyToSenderId, reactions: reactions)
                 messages.append(msg)
-                newFound = true
             }
-            if newFound {
-                messages.sort { $0.timestamp < $1.timestamp }
-                autoScrollToBottom.send()
-            }
+            messages.sort { $0.timestamp < $1.timestamp }
+            autoScrollToBottom.send()
+        }
+    }
+
+    private func sendToFirestore(msg: MessageModel) {
+        let puid = partnerUid
+        guard !puid.isEmpty, puid != "partner" else { return }
+
+        let path = "couples/\(coupleId)/messages/\(msg.id)"
+        let df = ISO8601DateFormatter()
+
+        var fields: [String: Any] = [
+            "id": msg.id,
+            "senderId": msg.senderId,
+            "text": msg.text ?? "",
+            "timestamp": df.string(from: msg.timestamp),
+            "type": msg.type == .text ? "chat" : msg.type.rawValue,
+            "isDisappearing": msg.isDisappearing,
+            "disappearDurationSeconds": msg.disappearDurationSeconds,
+        ]
+
+        if let rid = msg.replyToId { fields["replyToId"] = rid }
+        if let rt = msg.replyToText { fields["replyToText"] = rt }
+        if let rs = msg.replyToSenderId { fields["replyToSenderId"] = rs }
+        if let mu = msg.mediaUrl { fields["mediaUrl"] = mu }
+        if let rt = msg.readTimestamp { fields["readTimestamp"] = df.string(from: rt) }
+        if let r = msg.reactions { fields["reactions"] = r }
+        if let lt = msg.letterTitle { fields["letterTitle"] = lt }
+        if let vnp = msg.voiceNotePath { fields["voiceNotePath"] = vnp }
+
+        Task {
+            try? await FirebaseRESTService.shared.firestoreSet(path: path, fields: fields)
+            sendNotificationToPartner(msg: msg)
+        }
+    }
+
+    private func sendNotificationToPartner(msg: MessageModel) {
+        let puid = partnerUid
+        guard !puid.isEmpty, puid != "partner" else { return }
+
+        var preview = msg.text ?? ""
+        if msg.type == .voice { preview = "🎤 Nota de voz" }
+        else if msg.type == .image { preview = "🖼️ Foto" }
+        else if msg.type == .video { preview = "🎬 Video" }
+
+        Task {
+            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(puid)", fields: [
+                "lastNotification": ["app": "EverUs Chat", "title": myName, "text": String(preview.prefix(100))],
+                "lastNotificationTime": Date()
+            ])
         }
     }
 
@@ -77,63 +167,62 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         let msgId = UUID().uuidString
         sentIds.insert(msgId)
 
-        let localMsg = MessageModel(id: msgId, senderId: myUid, text: text, timestamp: Date(),
+        let msg = MessageModel(id: msgId, senderId: myUid, text: text, timestamp: Date(),
             type: isShowingDisappearing ? .disappearing : .text,
             isDisappearing: isShowingDisappearing, disappearDurationSeconds: isShowingDisappearing ? 15 : 0,
             replyToId: replyToMessage?.id, replyToText: replyToMessage?.text,
             replyToSenderId: replyToMessage?.senderId)
-        messages.append(localMsg)
+        messages.append(msg)
         clearReply()
         didSendMessage.send()
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
-        let puid = partnerUid
-        guard !puid.isEmpty, puid != "partner" else { return }
-        let path = "couples/\(coupleId)/messages/\(msgId)"
-        let fields: [String: Any] = ["senderId": myUid, "text": text,
-            "timestamp": ISO8601DateFormatter().string(from: Date()),
-            "type": isShowingDisappearing ? "disappearing" : "text"]
-
-        Task { try? await FirebaseRESTService.shared.firestoreSet(path: path, fields: fields) }
+        sendToFirestore(msg: msg)
     }
 
     public func sendImage(imageData: Data) {
-        let msgId = UUID().uuidString; sentIds.insert(msgId)
-        let couple = coupleId
+        let msgId = UUID().uuidString
+        sentIds.insert(msgId)
+
         Task {
-            try? await FirebaseRESTService.shared.firestoreSet(path: "pairs/\(couple)/photos/\(msgId)",
+            try? await FirebaseRESTService.shared.firestoreSet(path: "pairs/\(coupleId)/photos/\(msgId)",
                 fields: ["data": imageData.base64EncodedString(), "timestamp": ISO8601DateFormatter().string(from: Date())])
-            try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(couple)/messages/\(msgId)", fields: [
-                "senderId": myUid, "text": "📷 Foto", "type": "image",
-                "timestamp": ISO8601DateFormatter().string(from: Date()),
-                "mediaUrl": "firestore://pairs/\(couple)/photos/\(msgId)"])
         }
-        messages.append(MessageModel(id: msgId, senderId: myUid, text: "📷 Foto", timestamp: Date(), type: .image))
+
+        let msg = MessageModel(id: msgId, senderId: myUid, text: "Foto", timestamp: Date(),
+            type: .image, mediaUrl: "firestore://pairs/\(coupleId)/photos/\(msgId)")
+        messages.append(msg)
         didSendMessage.send()
+
+        sendToFirestore(msg: msg)
     }
 
     public func sendVoiceNote(audioData: Data) {
-        let msgId = UUID().uuidString; sentIds.insert(msgId)
-        let couple = coupleId
+        let msgId = UUID().uuidString
+        sentIds.insert(msgId)
+
         Task {
-            try? await FirebaseRESTService.shared.firestoreSet(path: "pairs/\(couple)/audio/\(msgId)",
+            try? await FirebaseRESTService.shared.firestoreSet(path: "pairs/\(coupleId)/audio/\(msgId)",
                 fields: ["data": audioData.base64EncodedString(), "timestamp": ISO8601DateFormatter().string(from: Date())])
-            try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(couple)/messages/\(msgId)", fields: [
-                "senderId": myUid, "text": "🎤 Nota de voz", "type": "voice",
-                "timestamp": ISO8601DateFormatter().string(from: Date()),
-                "mediaUrl": "firestore://pairs/\(couple)/audio/\(msgId)"])
         }
-        messages.append(MessageModel(id: msgId, senderId: myUid, text: "🎤 Nota de voz", timestamp: Date(), type: .voice))
+
+        let msg = MessageModel(id: msgId, senderId: myUid, text: "Nota de voz", timestamp: Date(),
+            type: .voice, mediaUrl: "firestore://pairs/\(coupleId)/audio/\(msgId)")
+        messages.append(msg)
         didSendMessage.send()
+
+        sendToFirestore(msg: msg)
     }
 
     public func markAsRead(messageId: String) {
-        if let idx = messages.firstIndex(where: { $0.id == messageId }) {
-            messages[idx].readTimestamp = Date()
+        guard let idx = messages.firstIndex(where: { $0.id == messageId }) else { return }
+        messages[idx].readTimestamp = Date()
+        let df = ISO8601DateFormatter()
+        Task {
+            try? await FirebaseRESTService.shared.firestoreSet(
+                path: "couples/\(coupleId)/messages/\(messageId)",
+                fields: ["readTimestamp": df.string(from: Date())])
         }
-        Task { try? await FirebaseRESTService.shared.firestoreSet(
-            path: "couples/\(coupleId)/messages/\(messageId)",
-            fields: ["readTimestamp": ISO8601DateFormatter().string(from: Date())]) }
     }
 
     public func addReaction(to messageId: String, emoji: String) {
@@ -142,6 +231,12 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         if reactions[myUid] == emoji { reactions.removeValue(forKey: myUid) }
         else { reactions[myUid] = emoji }
         messages[idx].reactions = reactions.isEmpty ? nil : reactions
+
+        Task {
+            try? await FirebaseRESTService.shared.firestoreSet(
+                path: "couples/\(coupleId)/messages/\(messageId)",
+                fields: ["reactions": reactions])
+        }
     }
 
     public func setReplyTo(message: MessageModel) { replyToMessage = message }
