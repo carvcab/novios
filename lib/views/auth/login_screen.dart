@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/local_storage.dart';
 import '../../services/auth_service.dart';
 import 'profile_setup_screen.dart';
+import 'add_partner_screen.dart';
+import '../home_navigation.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -65,11 +67,32 @@ class _LoginScreenState extends State<LoginScreen>
         final email = FirebaseAuth.instance.currentUser?.email ?? '';
         await LocalStorage().setString('user_id', uid);
         await LocalStorage().setString('user_email', email);
+        await LocalStorage().setBool('setup_complete_$email', true);
+        final hasDob = LocalStorage().getString('dob') != null &&
+            LocalStorage().getString('dob')!.isNotEmpty;
+        final hasUsername = LocalStorage().getString('username') != null &&
+            LocalStorage().getString('username')!.isNotEmpty;
+        final hasPartner = LocalStorage().getString('partner_uid') != null &&
+            LocalStorage().getString('partner_uid')!.isNotEmpty;
+        final partnerSkipped = LocalStorage().getBool('partner_skipped') == true;
         if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
-          );
+          if (!hasDob || !hasUsername) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
+            );
+          } else if (!hasPartner && !partnerSkipped) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const AddPartnerScreen()),
+            );
+          } else {
+            await LocalStorage().setBool('permissions_granted', true);
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeNavigation()),
+            );
+          }
         }
       }
     } catch (e) {

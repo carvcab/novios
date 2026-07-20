@@ -239,9 +239,10 @@ class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
 
     final email = firebaseUser.email!;
     final setupDone = LocalStorage().getBool('setup_complete_$email') == true;
-    final hasProfile = LocalStorage().getString('user_name') != null &&
-        LocalStorage().getString('user_name')!.isNotEmpty &&
-        LocalStorage().getString('dob') != null;
+    final hasProfile = LocalStorage().getString('username') != null &&
+        LocalStorage().getString('username')!.isNotEmpty &&
+        LocalStorage().getString('dob') != null &&
+        LocalStorage().getString('dob')!.isNotEmpty;
     final hasPartner = LocalStorage().getString('partner_uid') != null &&
         LocalStorage().getString('partner_uid')!.isNotEmpty;
     final partnerSkipped = LocalStorage().getBool('partner_skipped') == true;
