@@ -123,38 +123,6 @@ public class UserService: ObservableObject {
                 }
             }
         }
-        }
-
-        // 5. Direct read from users/{uid}
-        if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(query)"),
-           let uf = userDoc["fields"] as? [String: Any] {
-            let displayName = (uf["displayName"] as? [String: Any])?["stringValue"] as? String ?? "Usuario"
-            let uname = (uf["username"] as? [String: Any])?["stringValue"] as? String ?? ""
-            let email = (uf["email"] as? [String: Any])?["stringValue"] as? String ?? ""
-            let partnerUid = (uf["partnerUid"] as? [String: Any])?["stringValue"] as? String ?? ""
-            return ["uid": query, "displayName": displayName, "username": uname, "email": email, "hasPartner": !partnerUid.isEmpty]
-        }
-
-        // 6. Complete collection scan fallback (guarantees finding partner document even if query fails)
-        if let allUsers = try? await FirebaseRESTService.shared.firestoreList(path: "users") {
-            for doc in allUsers {
-                guard let uf = doc["fields"] as? [String: Any] else { continue }
-                let uid = (doc["name"] as? String)?.split(separator: "/").last.map(String.init) ?? ""
-                let uEmail = ((uf["email"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-                let uUsername = ((uf["username"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-                let uDisplayName = ((uf["displayName"] as? [String: Any])?["stringValue"] as? String ?? 
-                                    (uf["name"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-                
-                if uEmail == cleaned || uUsername == cleanUsername || 
-                   (uEmail.contains("@") && uEmail.components(separatedBy: "@").first == cleanUsername) || 
-                   (!cleanUsername.isEmpty && uDisplayName.contains(cleanUsername)) {
-                    let partnerUid = (uf["partnerUid"] as? [String: Any])?["stringValue"] as? String ?? ""
-                    let dispName = (uf["displayName"] as? [String: Any])?["stringValue"] as? String ?? 
-                                   (uf["name"] as? [String: Any])?["stringValue"] as? String ?? uUsername
-                    return ["uid": uid, "displayName": dispName, "username": uUsername, "email": uEmail, "hasPartner": !partnerUid.isEmpty]
-                }
-            }
-        }
 
         return nil
     }
