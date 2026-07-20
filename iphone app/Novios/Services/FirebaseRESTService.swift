@@ -3,8 +3,10 @@ import Foundation
 public class FirebaseRESTService {
     public static let shared = FirebaseRESTService()
 
-    private let primaryAPIKey = "AIzaSyCktJIn5LJtLCCSGQxe9sZt1CnCRly7EMw"
+    private let primaryAPIKey = "AIzaSyCSgxk_uEtVFmJHTqCMmlaKmnc8Fvf_rnQ"
     private let primaryProjectID = "novios-8beb7"
+    private let backupAPIKey = "AIzaSyCG9W2qU4SH2RkjNRJHI96fJzt3hHqLzys"
+    private let backupProjectID = "novios-49289"
 
     public private(set) var currentAPIKey: String
     public private(set) var currentProjectID: String
@@ -16,14 +18,22 @@ public class FirebaseRESTService {
     private let session = URLSession.shared
 
     private init() {
-        currentAPIKey = primaryAPIKey
-        currentProjectID = primaryProjectID
-        UserDefaults.standard.removeObject(forKey: "firebase_use_backup")
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: "firebase_use_backup") {
+            currentAPIKey = backupAPIKey
+            currentProjectID = backupProjectID
+            isUsingBackup = true
+        } else {
+            currentAPIKey = primaryAPIKey
+            currentProjectID = primaryProjectID
+        }
     }
 
     public func switchToBackup() {
-        // Disabled to ensure iOS stays on novios-8beb7 project with Android
-        switchToPrimary()
+        currentAPIKey = backupAPIKey
+        currentProjectID = backupProjectID
+        isUsingBackup = true
+        UserDefaults.standard.set(true, forKey: "firebase_use_backup")
     }
 
     public func switchToPrimary() {
