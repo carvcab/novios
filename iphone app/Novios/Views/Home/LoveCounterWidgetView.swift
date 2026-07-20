@@ -59,7 +59,7 @@ public struct TimeUnitView: View {
         VStack(spacing: 4) {
             Text("\(value)")
                 .font(.system(size: 26, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             
             Text(unit)
                 .font(.system(size: 9, weight: .bold))

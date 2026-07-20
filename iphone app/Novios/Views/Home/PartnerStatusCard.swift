@@ -19,7 +19,7 @@ public struct PartnerStatusCard: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(partner?.displayName ?? "Mi Pareja ❤️")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                         
                         Text(partner?.moodMessage ?? "Conectado contigo")
                             .font(.system(size: 13))
@@ -35,7 +35,7 @@ public struct PartnerStatusCard: View {
                         
                         Text("\(Int((partner?.batteryLevel ?? 0.85) * 100))%")
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
@@ -73,7 +73,7 @@ public struct QuickLoveActionButton: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 38)
                 .background(color.opacity(0.2))

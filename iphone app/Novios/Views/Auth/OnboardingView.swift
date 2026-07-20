@@ -28,7 +28,7 @@ public struct OnboardingView: View {
                             
                             Text(pages[index].0)
                                 .font(.system(size: 28, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                             
                             Text(pages[index].2)
                                 .font(.system(size: 15))

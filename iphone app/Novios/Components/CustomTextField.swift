@@ -21,15 +21,15 @@ public struct CustomTextField: View {
     public var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(Color.white.opacity(0.4))
+                .foregroundColor(.primary.opacity(0.4))
                 .font(.system(size: 18))
             
             if isSecure {
-                SecureField("", text: $text, prompt: Text(placeholder).foregroundColor(Color.white.opacity(0.4)))
-                    .foregroundColor(.white)
+                SecureField("", text: $text, prompt: Text(placeholder).foregroundColor(.primary.opacity(0.4)))
+                    .foregroundColor(.primary)
             } else {
-                TextField("", text: $text, prompt: Text(placeholder).foregroundColor(Color.white.opacity(0.4)))
-                    .foregroundColor(.white)
+                TextField("", text: $text, prompt: Text(placeholder).foregroundColor(.primary.opacity(0.4)))
+                    .foregroundColor(.primary)
             }
         }
         .padding()

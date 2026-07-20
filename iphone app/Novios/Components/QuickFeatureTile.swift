@@ -25,7 +25,7 @@ public struct QuickFeatureTile: View {
 
             Text(title)
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
                 .lineLimit(1)
         }
         .frame(width: 80)

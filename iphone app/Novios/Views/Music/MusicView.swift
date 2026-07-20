@@ -10,10 +10,10 @@ public struct MusicView: View {
                     .foregroundColor(ThemeManager.shared.primaryPink.opacity(0.4))
                 Text("Nuestra Música")
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 Text("Tu música compartida aparecerá aquí")
                     .font(.system(size: 14))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(.primary.opacity(0.6))
             }
         }
         .navigationTitle("Música")

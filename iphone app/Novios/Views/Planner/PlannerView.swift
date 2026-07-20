@@ -34,7 +34,7 @@ public struct PlannerView: View {
                                     
                                     Text(first.title)
                                         .font(.system(size: 20, weight: .bold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                     
                                     if let loc = first.location {
                                         HStack(spacing: 6) {
@@ -48,7 +48,7 @@ public struct PlannerView: View {
                                     
                                     Text("Fecha: \(first.eventDate.formatted(date: .long, time: .shortened))")
                                         .font(.system(size: 12))
-                                        .foregroundColor(Color.white.opacity(0.5))
+                                        .foregroundColor(.primary.opacity(0.5))
                                 }
                             }
                             .padding(.horizontal, 20)
@@ -57,7 +57,7 @@ public struct PlannerView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Todas las Citas y Eventos")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                                 .padding(.horizontal, 20)
                             
                             ForEach(events) { ev in
@@ -74,7 +74,7 @@ public struct PlannerView: View {
                                         VStack(alignment: .leading, spacing: 4) {
                                             Text(ev.title)
                                                 .font(.system(size: 15, weight: .bold))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.primary)
                                             
                                             Text(ev.eventDate.formatted(date: .abbreviated, time: .shortened))
                                                 .font(.system(size: 12))

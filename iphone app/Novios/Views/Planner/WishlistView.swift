@@ -18,7 +18,7 @@ public struct WishlistView: View {
                     GlassCard {
                         HStack {
                             TextField("Agregar nueva meta de pareja...", text: $newGoalText)
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                             
                             Button {
                                 if !newGoalText.trimmingCharacters(in: .whitespaces).isEmpty {

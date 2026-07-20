@@ -25,7 +25,7 @@ public struct ProfileView: View {
                                     .foregroundColor(.orange)
                                 Text("Racha: \(Int.random(in: 1...30)) días seguidos 🔥")
                                     .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                                 Spacer()
                             }
                             .padding(.vertical, 16)
@@ -40,17 +40,17 @@ public struct ProfileView: View {
                                     .foregroundColor(ThemeManager.shared.primaryPink)
                                 Text("Fechas Importantes")
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                                 Spacer()
                             }
                             GlassCard {
                                 VStack(spacing: 12) {
                                     Image(systemName: "calendar.badge.plus")
                                         .font(.system(size: 36))
-                                        .foregroundColor(.white.opacity(0.15))
+                                        .foregroundColor(.primary.opacity(0.15))
                                     Text("No hay fechas importantes aún")
                                         .font(.system(size: 13))
-                                        .foregroundColor(.white.opacity(0.4))
+                                        .foregroundColor(.primary.opacity(0.4))
                                     Button("Agregar fecha") {
                                         // TODO: Add date dialog
                                     }
@@ -70,7 +70,7 @@ public struct ProfileView: View {
                                     .foregroundColor(ThemeManager.shared.primaryPink)
                                 Text("Accesos rápidos")
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                                 Spacer()
                             }
                             VStack(spacing: 8) {
@@ -137,7 +137,7 @@ public struct ProfileHeaderView: View {
 
             Text(name)
                 .font(.system(size: 22, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
 
             if !partnerName.isEmpty {
                 HStack(spacing: 4) {
@@ -146,7 +146,7 @@ public struct ProfileHeaderView: View {
                         .foregroundColor(ThemeManager.shared.primaryPink)
                     Text(partnerName)
                         .font(.system(size: 14))
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(.primary.opacity(0.7))
                 }
             }
         }
@@ -170,11 +170,11 @@ public struct QuickAccessRowView<Destination: View>: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     Text(title)
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.4))
+                        .foregroundColor(.primary.opacity(0.4))
                 }
                 .padding(12)
             }

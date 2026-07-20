@@ -12,7 +12,7 @@ struct NoviosApp: App {
                 .environmentObject(firebaseService)
                 .environmentObject(authService)
                 .environmentObject(themeManager)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(.light)
         }
     }
 }

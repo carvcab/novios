@@ -13,7 +13,7 @@ public struct JournalView: View {
             GlassCard {
                 HStack {
                     TextField("Escribe una entrada en el diario compartido...", text: $newEntryText)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     
                     Button {
                         if !newEntryText.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -51,7 +51,7 @@ public struct JournalView: View {
                                 
                                 Text(entry.content)
                                     .font(.system(size: 14))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                             }
                         }
                     }

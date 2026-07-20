@@ -26,7 +26,7 @@ public struct AddPartnerView: View {
                     VStack(spacing: 6) {
                         Text("Vincular Pareja")
                             .font(.system(size: 30, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                         
                         Text("Conéctate con tu pareja usando su Código, Usuario o Correo")
                             .font(.system(size: 13))
@@ -50,7 +50,7 @@ public struct AddPartnerView: View {
                             HStack(spacing: 14) {
                                 Text(myCode.isEmpty ? "CARGANDO..." : myCode)
                                     .font(.system(size: 26, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                                     .tracking(3)
                                 
                                 Button {
@@ -77,7 +77,7 @@ public struct AddPartnerView: View {
                             } else {
                                 Text("Pásale este código a tu pareja para que te agregue")
                                     .font(.system(size: 11))
-                                    .foregroundColor(Color.white.opacity(0.5))
+                                    .foregroundColor(.primary.opacity(0.5))
                             }
                         }
                     }
@@ -115,7 +115,7 @@ public struct AddPartnerView: View {
                                     
                                     Text(found["displayName"] as? String ?? "Usuario Encontrado")
                                         .font(.system(size: 20, weight: .bold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                     
                                     if let uname = found["username"] as? String {
                                         Text("@\(uname)")
@@ -158,7 +158,7 @@ public struct AddPartnerView: View {
                     } label: {
                         Text("Vincular más tarde")
                             .font(.system(size: 14))
-                            .foregroundColor(Color.white.opacity(0.5))
+                            .foregroundColor(.primary.opacity(0.5))
                     }
                     .padding(.bottom, 28)
                 }

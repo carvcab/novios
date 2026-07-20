@@ -20,7 +20,7 @@ public struct ProfileSetupView: View {
                 VStack(spacing: 6) {
                     Text("Configura tu Perfil")
                         .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     
                     Text("Tu pareja te identificará con estos datos en la app")
                         .font(.system(size: 14))
@@ -32,7 +32,7 @@ public struct ProfileSetupView: View {
                         CustomTextField(placeholder: "Nombre de Usuario (ej: diego123)", text: $username, icon: "at")
                         
                         DatePicker("Fecha de Cumpleaños", selection: $birthday, displayedComponents: .date)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .padding(.horizontal, 4)
                         
                         GradientButton(title: "Guardar y Continuar", icon: "checkmark.circle.fill") {

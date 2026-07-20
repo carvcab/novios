@@ -58,7 +58,7 @@ public struct PhotoGalleryView: View {
                             
                             Text(item.0)
                                 .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                             
                             Text(item.2)
                                 .font(.system(size: 12))

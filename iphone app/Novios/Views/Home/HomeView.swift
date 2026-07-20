@@ -66,7 +66,7 @@ public struct HomeView: View {
                         // Couple name
                         Text("\(authService.currentUser?.displayName ?? "Tu")  &  \(userService.partnerUser?.displayName ?? "Pareja")")
                             .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
 
                         Text(timeTogether)
                             .font(.system(size: 26, weight: .light))
@@ -85,10 +85,10 @@ public struct HomeView: View {
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                         Text("Noti")
                                             .font(.system(size: 14, weight: .semibold))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.primary)
                                         Text("Actividad")
                                             .font(.system(size: 10))
-                                            .foregroundColor(.white.opacity(0.5))
+                                            .foregroundColor(.primary.opacity(0.5))
                                     }
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
@@ -107,7 +107,7 @@ public struct HomeView: View {
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                         Text("En Vivo")
                                             .font(.system(size: 14, weight: .semibold))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.primary)
                                         Text(partnerOnline ? (partnerScreen.isEmpty ? "En línea" : partnerScreen) : "Offline")
                                             .font(.system(size: 10))
                                             .foregroundColor(partnerOnline ? .green : .white.opacity(0.4))
@@ -128,7 +128,7 @@ public struct HomeView: View {
                                     .foregroundColor(ThemeManager.shared.primaryPink.opacity(0.3))
                                 Text("\"\(dailyQuote)\"")
                                     .font(.system(size: 14, weight: .regular))
-                                    .foregroundColor(.white.opacity(0.9))
+                                    .foregroundColor(.primary.opacity(0.9))
                                     .italic()
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -145,7 +145,7 @@ public struct HomeView: View {
                                     .foregroundColor(ThemeManager.shared.primaryPink.opacity(0.4))
                                 Text("Toca para poner tu foto aquí")
                                     .font(.system(size: 14))
-                                    .foregroundColor(.white.opacity(0.45))
+                                    .foregroundColor(.primary.opacity(0.45))
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 180)
@@ -170,10 +170,10 @@ public struct HomeView: View {
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text("Sin datos")
                                                 .font(.system(size: 15, weight: .bold))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.primary)
                                             Text("Distancia")
                                                 .font(.system(size: 10))
-                                                .foregroundColor(.white.opacity(0.5))
+                                                .foregroundColor(.primary.opacity(0.5))
                                         }
                                         Spacer()
                                     }
@@ -194,10 +194,10 @@ public struct HomeView: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Configura")
                                             .font(.system(size: 15, weight: .bold))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.primary)
                                         Text("Tu fecha")
                                             .font(.system(size: 10))
-                                            .foregroundColor(.white.opacity(0.5))
+                                            .foregroundColor(.primary.opacity(0.5))
                                     }
                                     Spacer()
                                 }
@@ -233,10 +233,10 @@ public struct HomeView: View {
                                         .foregroundColor(ThemeManager.shared.primaryPink)
                                     Text("Feliz")
                                         .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                     Text("Hoy")
                                         .font(.system(size: 11))
-                                        .foregroundColor(.white.opacity(0.6))
+                                        .foregroundColor(.primary.opacity(0.6))
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
@@ -249,10 +249,10 @@ public struct HomeView: View {
                                         .foregroundColor(ThemeManager.shared.primaryPink)
                                     Text("Soleado")
                                         .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                     Text("Relación")
                                         .font(.system(size: 11))
-                                        .foregroundColor(.white.opacity(0.6))
+                                        .foregroundColor(.primary.opacity(0.6))
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
@@ -340,7 +340,7 @@ public struct FeatureGridItem<Destination: View>: View {
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                     Text(label)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
                 .padding(.vertical, 18)
                 .padding(.horizontal, 8)

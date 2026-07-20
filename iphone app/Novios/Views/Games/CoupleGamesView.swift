@@ -49,7 +49,7 @@ public struct GameCategoryCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     
                     Text(description)
                         .font(.system(size: 12))
@@ -59,7 +59,7 @@ public struct GameCategoryCard: View {
                 Spacer()
                 
                 Image(systemName: "chevron.right")
-                    .foregroundColor(Color.white.opacity(0.3))
+                    .foregroundColor(.primary.opacity(0.3))
             }
         }
     }
@@ -78,7 +78,7 @@ public struct DateWheelView: View {
             VStack(spacing: 30) {
                 Text(selectedOption)
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
                 
@@ -124,7 +124,7 @@ public struct HowWellDoYouKnowMeView: View {
                         
                         Text("¿Cuál es la comida favorita de tu pareja?")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .multilineTextAlignment(.center)
                     }
                 }

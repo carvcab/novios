@@ -22,19 +22,19 @@ public struct LoveView: View {
                                                 .shadow(color: ThemeManager.shared.primaryPink.opacity(0.3), radius: 16)
                                             Image(systemName: "heart.fill")
                                                 .font(.system(size: 26))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.primary)
                                         }
                                         VStack(alignment: .leading, spacing: 4) {
                                             Text("\(authService.currentUser?.displayName ?? "Tu")  💕  \(userService.partnerUser?.displayName ?? "Pareja")")
                                                 .font(.system(size: 16, weight: .bold))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.primary)
                                             Text("Juntos desde el \(formattedFirstDate())")
                                                 .font(.system(size: 12))
-                                                .foregroundColor(.white.opacity(0.5))
+                                                .foregroundColor(.primary.opacity(0.5))
                                         }
                                         Spacer()
                                         Image(systemName: "chevron.right")
-                                            .foregroundColor(.white.opacity(0.3))
+                                            .foregroundColor(.primary.opacity(0.3))
                                     }
                                     if let ann = authService.currentUser?.anniversaryDate {
                                         let days = Calendar.current.dateComponents([.day], from: ann, to: Date()).day ?? 0
@@ -47,7 +47,7 @@ public struct LoveView: View {
                                                 .foregroundColor(ThemeManager.shared.primaryPink)
                                             Text(nextAnniversaryText(ann))
                                                 .font(.system(size: 12))
-                                                .foregroundColor(.white.opacity(0.5))
+                                                .foregroundColor(.primary.opacity(0.5))
                                         }
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 12)
@@ -80,7 +80,7 @@ public struct LoveView: View {
                                 .foregroundColor(ThemeManager.shared.primaryPink)
                             Text("Nuestra Historia")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                             Spacer()
                         }
                         .padding(.horizontal, 16)
@@ -89,10 +89,10 @@ public struct LoveView: View {
                             VStack(spacing: 16) {
                                 Image(systemName: "timeline.selection")
                                     .font(.system(size: 36))
-                                    .foregroundColor(.white.opacity(0.2))
+                                    .foregroundColor(.primary.opacity(0.2))
                                 Text("Aún no hay momentos en su historia")
                                     .font(.system(size: 13))
-                                    .foregroundColor(.white.opacity(0.5))
+                                    .foregroundColor(.primary.opacity(0.5))
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 24)
@@ -107,7 +107,7 @@ public struct LoveView: View {
                                     .foregroundColor(ThemeManager.shared.primaryPink)
                                 Text("\(Int.random(in: 100...999)) puntos de amor")
                                     .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                                 Spacer()
                             }
                             .padding(.vertical, 20)
@@ -160,10 +160,10 @@ public struct StatMiniView: View {
                     .font(.system(size: 18))
                 Text(value)
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 Text(label)
                     .font(.system(size: 11))
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(.primary.opacity(0.5))
             }
             .padding(.vertical, 14)
             .padding(.horizontal, 8)

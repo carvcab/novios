@@ -24,7 +24,7 @@ public struct CapsuleView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(capsule.title)
                                     .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                                 
                                 if capsule.isUnlocked {
                                     Text(capsule.message)

@@ -31,7 +31,7 @@ public struct LoveLettersView: View {
                                     
                                     Text(item.0)
                                         .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                         .multilineTextAlignment(.center)
                                 }
                                 .frame(height: 120)
@@ -56,7 +56,7 @@ public struct LoveLettersView: View {
                     
                     Text(item.value)
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     
                     Text(openLetterContent ?? "")
                         .font(.system(size: 16))

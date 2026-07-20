@@ -25,7 +25,7 @@ public struct LiveStatusView: View {
                                     
                                     Text("TRANSMISIÓN DE PANTALLA EN VIVO")
                                         .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                         .tracking(1.0)
                                     
                                     Spacer()
@@ -51,13 +51,13 @@ public struct LiveStatusView: View {
                                                 .foregroundColor(ThemeManager.shared.primaryPink)
                                             Text("Compartiendo pantalla con tu pareja...")
                                                 .font(.system(size: 14, weight: .semibold))
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.primary)
                                         }
                                     } else {
                                         VStack(spacing: 10) {
                                             Image(systemName: "rectangle.inset.filled.and.cursorarrow")
                                                 .font(.system(size: 40))
-                                                .foregroundColor(Color.white.opacity(0.4))
+                                                .foregroundColor(.primary.opacity(0.4))
                                             Text("Comienza a transmitir tu pantalla en tiempo real")
                                                 .font(.system(size: 13))
                                                 .foregroundColor(ThemeManager.shared.textSecondary)
@@ -99,7 +99,7 @@ public struct LiveStatusView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("\(screenService.currentBpm) BPM")
                                             .font(.system(size: 28, weight: .bold))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.primary)
                                         
                                         Text(screenService.isHeartbeatSynced ? "Latidos sincronizados con tu pareja ❤️" : "Presiona para sintonizar ritmos")
                                             .font(.system(size: 12))
@@ -113,7 +113,7 @@ public struct LiveStatusView: View {
                                 } label: {
                                     Text(screenService.isHeartbeatSynced ? "Desconectar Sincronización" : "Sincronizar Latidos en Vivo")
                                         .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                         .frame(maxWidth: .infinity)
                                         .frame(height: 44)
                                         .background(Color.white.opacity(0.1))

@@ -31,7 +31,7 @@ public struct TruthOrDareView: View {
                     
                     Text(gameService.isMyTurn ? "¡ES TU TURNO DE JUGAR!" : "TURNO DE TU PAREJA ⏳")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                         .tracking(1.0)
                 }
                 .padding(.horizontal, 14)
@@ -47,7 +47,7 @@ public struct TruthOrDareView: View {
                         
                         Text(gameService.activeSession?.currentQuestion ?? "Presiona 'Verdad' o 'Reto' para enviar tu jugada")
                             .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .multilineTextAlignment(.center)
                             .padding(.vertical, 20)
                     }
@@ -62,7 +62,7 @@ public struct TruthOrDareView: View {
                     } label: {
                         Text("Verdad 💭")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
                             .background(Color.blue.opacity(0.4))
@@ -76,7 +76,7 @@ public struct TruthOrDareView: View {
                     } label: {
                         Text("Reto 🔥")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
                             .background(ThemeManager.shared.primaryPink.opacity(0.8))

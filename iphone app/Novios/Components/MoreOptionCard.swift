@@ -28,7 +28,7 @@ public struct MoreOptionCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
 
                 Text(subtitle)
                     .font(.system(size: 12))
@@ -40,7 +40,7 @@ public struct MoreOptionCard: View {
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.white.opacity(0.4))
+                .foregroundColor(.primary.opacity(0.4))
         }
         .padding(16)
         .background(

@@ -49,7 +49,7 @@ public struct DistanceWidgetView: View {
                     
                     Text(locationService.formattedDistance(to: partnerCoordinate ?? CLLocationCoordinate2D(latitude: 4.6097, longitude: -74.0817)))
                         .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                 }
                 
                 Spacer()

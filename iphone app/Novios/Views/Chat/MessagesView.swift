@@ -50,7 +50,7 @@ public struct MessagesView: View {
                         }
                         
                         TextField("Escribe un mensaje de amor...", text: $textInput)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)
                             .background(Color.white.opacity(0.08))

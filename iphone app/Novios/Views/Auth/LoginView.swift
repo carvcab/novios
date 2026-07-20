@@ -23,7 +23,7 @@ public struct LoginView: View {
                     VStack(spacing: 8) {
                         Text(isSignUp ? "Crear Cuenta" : "Iniciar Sesión")
                             .font(.system(size: 30, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                         
                         Text(isSignUp ? "Únete con tu correo para vincularte" : "Bienvenido de nuevo a tu espacio romántico")
                             .font(.system(size: 14))

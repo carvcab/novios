@@ -20,7 +20,7 @@ public struct AICoupleAssistantView: View {
                                     VStack(alignment: msg.isUser ? .trailing : .leading, spacing: 4) {
                                         Text(msg.text)
                                             .font(.system(size: 14))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.primary)
                                             .padding(14)
                                             .background(
                                                 msg.isUser
@@ -55,7 +55,7 @@ public struct AICoupleAssistantView: View {
                 // Input Bar
                 HStack(spacing: 10) {
                     TextField("Pregúntale algo a la IA...", text: $inputPrompt)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .background(ThemeManager.shared.cardBackground)

@@ -22,7 +22,7 @@ public struct WelcomeView: View {
                         VStack(spacing: 12) {
                             Text("Novios")
                                 .font(.system(size: 46, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                                 .shadow(color: ThemeManager.shared.primaryPink.opacity(0.6), radius: 15)
                             
                             Text("El espacio privado e íntimo para ti y tu pareja. Conéctense en tiempo real sin importar la distancia.")

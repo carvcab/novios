@@ -19,7 +19,7 @@ public struct LocationView: View {
                         .foregroundColor(ThemeManager.shared.primaryPink)
                     Text(distanceKm > 0 ? "\(distanceKm, specifier: "%.1f") km" : "Ubicación")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     Spacer()
                     if partnerBattery > 0 {
                         BatteryChipView(label: partnerName, level: partnerBattery, color: ThemeManager.shared.primaryPink)
@@ -42,10 +42,10 @@ public struct LocationView: View {
                             .foregroundColor(ThemeManager.shared.primaryPink.opacity(0.4))
                         Text("Mapa de ubicación")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                         Text("Tu pareja está a \(distanceKm > 0 ? "\(distanceKm, specifier: "%.1f") km" : "—")")
                             .font(.system(size: 13))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.primary.opacity(0.6))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 60)
@@ -62,19 +62,19 @@ public struct LocationView: View {
                             Circle()
                                 .fill(ThemeManager.shared.neonGlowGradient)
                                 .frame(width: 50, height: 50)
-                                .overlay(Image(systemName: "person.fill").foregroundColor(.white))
+                                .overlay(Image(systemName: "person.fill").foregroundColor(.primary))
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack(spacing: 6) {
                                     Text("💞 \(partnerName)")
                                         .font(.system(size: 17, weight: .bold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                     Circle()
                                         .fill(partnerOnline ? Color.green : Color.gray)
                                         .frame(width: 8, height: 8)
                                 }
                                 Text(partnerOnline ? (partnerScreen.isEmpty ? "🟢 En línea" : "📱 \(partnerScreen)") : "⚫ Sin conexión")
                                     .font(.system(size: 11))
-                                    .foregroundColor(.white.opacity(0.6))
+                                    .foregroundColor(.primary.opacity(0.6))
                             }
                             Spacer()
                             Text(distanceKm > 0 ? "\(distanceKm, specifier: "%.1f") km" : "--")
@@ -120,7 +120,7 @@ public struct BatteryChipView: View {
                 .foregroundColor(level < 20 ? .red : color)
             Text("\(label): \(level)%")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
@@ -143,7 +143,7 @@ public struct QuickActionButtonView: View {
                     .foregroundColor(color)
                 Text(label)
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)

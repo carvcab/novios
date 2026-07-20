@@ -10,10 +10,10 @@ public struct NotificationsView: View {
                     .foregroundColor(ThemeManager.shared.primaryPink.opacity(0.4))
                 Text("Notificaciones")
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 Text("No hay notificaciones nuevas")
                     .font(.system(size: 14))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(.primary.opacity(0.6))
             }
         }
         .navigationTitle("Notificaciones")

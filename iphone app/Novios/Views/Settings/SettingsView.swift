@@ -30,7 +30,7 @@ public struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(authService.currentUser?.displayName ?? "Mi Nombre")
                                     .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                                 
                                 Text("@\(authService.currentUser?.username ?? "usuario")")
                                     .font(.system(size: 13))
@@ -49,7 +49,7 @@ public struct SettingsView: View {
                                     .foregroundColor(ThemeManager.shared.primaryPink)
                                 Text("NOTIFICACIONES DE TU PAREJA")
                                     .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                             }
                             
                             VStack(spacing: 10) {
@@ -89,7 +89,7 @@ public struct SettingsView: View {
                                     .foregroundColor(.orange)
                                 Text("ESTADO DE FIREBASE DUAL")
                                     .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                             }
                             
                             HStack {
@@ -107,7 +107,7 @@ public struct SettingsView: View {
                             } label: {
                                 Text("Cambiar a Servidor Respaldo (novios-49289)")
                                     .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                                     .padding(.vertical, 8)
                                     .frame(maxWidth: .infinity)
                                     .background(Color.white.opacity(0.1))
@@ -122,13 +122,13 @@ public struct SettingsView: View {
                         VStack(spacing: 16) {
                             Toggle(isOn: $themeManager.pinLockEnabled) {
                                 Label("Bloqueo de App con PIN / Face ID", systemImage: "lock.shield.fill")
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                             }
                             .tint(ThemeManager.shared.primaryPink)
                             
                             Toggle(isOn: $themeManager.enableHaptics) {
                                 Label("Vibración Háptica en Besos/Toques", systemImage: "waveform")
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                             }
                             .tint(ThemeManager.shared.primaryPink)
                         }
@@ -169,7 +169,7 @@ public struct TestNotificationRow: View {
         HStack {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             Spacer()
             Image(systemName: "paperplane.fill")
                 .font(.system(size: 12))

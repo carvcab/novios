@@ -14,11 +14,11 @@ public struct ChatBubbleView: View {
                     if message.type == .kiss || message.type == .hug || message.type == .touch {
                         Text(message.text ?? "")
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                     } else {
                         Text(message.text ?? "")
                             .font(.system(size: 15))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                     }
                 }
                 .padding(.horizontal, 16)
