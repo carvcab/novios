@@ -68,7 +68,8 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 let timestamp = ISO8601DateFormatter().date(from: createTime) ?? Date()
                 let mediaUrl = (fields["mediaUrl"] as? [String: Any])?["stringValue"] as? String
                 let readTS = (fields["readTimestamp"] as? [String: Any])?["stringValue"] as? String
-                let readDate = readTS.flatMap { ISO8601DateFormatter().date(from: $0) }
+                let readTSValue = (fields["readTimestamp"] as? [String: Any])?["timestampValue"] as? String
+                let readDate = readTS.flatMap { ISO8601DateFormatter().date(from: $0) } ?? readTSValue.flatMap { ISO8601DateFormatter().date(from: $0) }
 
                 let msg = MessageModel(id: msgId, senderId: senderId, text: text,
                     timestamp: timestamp, type: MessageType(rawValue: typeRaw) ?? .text,
@@ -92,13 +93,13 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             let partnerUid = partnerId
             let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
             let msgId = "\(myUid)_\(Date().timeIntervalSince1970)"
-            let path = "couples/\(coupleId)/messages"
+            let path = "couples/\(coupleId)/messages/\(msgId)"
 
             sentLocalIds.insert(msgId)
             let fields: [String: Any] = ["senderId": myUid, "text": text, "timestamp": Date(),
                 "type": isShowingDisappearing ? "disappearing" : "text",
                 "isDisappearing": isShowingDisappearing, "disappearDurationSeconds": isShowingDisappearing ? 15 : 0]
-            try? await FirebaseRESTService.shared.firestoreCreate(path: path, fields: fields)
+            try? await FirebaseRESTService.shared.firestoreSet(path: path, fields: fields)
 
             let msg = MessageModel(id: msgId, senderId: myUid, text: text, timestamp: Date(),
                 type: isShowingDisappearing ? .disappearing : .text,
@@ -131,8 +132,8 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             let mediaUrl = "firestore://pairs/\(coupleId)/photos/\(msgId)"
             let fields: [String: Any] = ["senderId": myUid, "text": "📷 Foto", "timestamp": Date(),
                 "type": "image", "mediaUrl": mediaUrl]
-            try? await FirebaseRESTService.shared.firestoreCreate(
-                path: "couples/\(coupleId)/messages", fields: fields)
+            try? await FirebaseRESTService.shared.firestoreSet(
+                path: "couples/\(coupleId)/messages/\(msgId)", fields: fields)
 
             let msg = MessageModel(id: msgId, senderId: myUid, text: "📷 Foto", timestamp: Date(),
                 type: .image, mediaUrl: mediaUrl)
@@ -159,8 +160,8 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             let fields: [String: Any] = ["senderId": myUid, "text": "🎤 Nota de voz",
                 "timestamp": Date(), "type": "voice", "mediaUrl": mediaUrl,
                 "voiceNotePath": mediaUrl]
-            try? await FirebaseRESTService.shared.firestoreCreate(
-                path: "couples/\(coupleId)/messages", fields: fields)
+            try? await FirebaseRESTService.shared.firestoreSet(
+                path: "couples/\(coupleId)/messages/\(msgId)", fields: fields)
 
             let msg = MessageModel(id: msgId, senderId: myUid, text: "🎤 Nota de voz",
                 timestamp: Date(), type: .voice, mediaUrl: mediaUrl)
