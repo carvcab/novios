@@ -207,20 +207,20 @@ public struct HomeView: View {
                         }
                         .padding(.horizontal, 20)
 
-                        // Feature Grid 4x3
+                        // Feature Grid
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
-                            FeatureGridItem(icon: "rectangle.on.rectangle", label: "Pantalla", color: Color(red: 0, green: 0.75, blue: 0.65), destination: ScreenViewView())
-                            FeatureGridItem(icon: "envelope.open", label: "Cartas", color: Color(red: 1.0, green: 0.5, blue: 0.5), destination: LoveLettersView())
-                            FeatureGridItem(icon: "note.text", label: "Notas", color: Color(red: 0.91, green: 0.27, blue: 0.49), destination: NotesView())
-                            FeatureGridItem(icon: "brain.head.profile", label: "Amor IA", color: Color(red: 0.31, green: 0.76, blue: 0.97), destination: AICoupleAssistantView())
-                            FeatureGridItem(icon: "photo.on.rectangle.angled", label: "Recuerdos", color: Color(red: 0.49, green: 0.51, blue: 1.0), destination: MemoriesView())
-                            FeatureGridItem(icon: "gamecontroller", label: "Juegos", color: Color(red: 1.0, green: 0.72, blue: 0.3), destination: CoupleGamesView())
-                            FeatureGridItem(icon: "wand.and.stars", label: "Deseos", color: Color(red: 0.67, green: 0.28, blue: 0.74), destination: WishlistView())
-                            FeatureGridItem(icon: "moon.stars", label: "Sueños", color: Color(red: 0.36, green: 0.42, blue: 0.75), destination: DreamsView())
-                            FeatureGridItem(icon: "list.clipboard", label: "Planner", color: Color(red: 0.4, green: 0.73, blue: 0.42), destination: PlannerView())
-                            FeatureGridItem(icon: "music.note", label: "Música", color: Color(red: 0.15, green: 0.65, blue: 0.6), destination: MusicView())
-                            FeatureGridItem(icon: "calendar", label: "Fechas", color: Color(red: 0.94, green: 0.33, blue: 0.31), destination: SettingsView())
-                            FeatureGridItem(icon: "square.grid.2x2", label: "Más", color: Color(red: 0.47, green: 0.56, blue: 0.61), destination: MoreListView())
+                            FeatureGridItem(icon: "rectangle.on.rectangle", label: "Pantalla", color: Color(red: 0, green: 0.75, blue: 0.65), destination: AnyView(ScreenViewView()))
+                            FeatureGridItem(icon: "envelope.open", label: "Cartas", color: Color(red: 1.0, green: 0.5, blue: 0.5), destination: AnyView(LoveLettersView()))
+                            FeatureGridItem(icon: "note.text", label: "Notas", color: Color(red: 0.91, green: 0.27, blue: 0.49), destination: AnyView(NotesView()))
+                            FeatureGridItem(icon: "brain.head.profile", label: "Amor IA", color: Color(red: 0.31, green: 0.76, blue: 0.97), destination: AnyView(AICoupleAssistantView()))
+                            FeatureGridItem(icon: "photo.on.rectangle.angled", label: "Recuerdos", color: Color(red: 0.49, green: 0.51, blue: 1.0), destination: AnyView(MemoriesView()))
+                            FeatureGridItem(icon: "gamecontroller", label: "Juegos", color: Color(red: 1.0, green: 0.72, blue: 0.3), destination: AnyView(CoupleGamesView()))
+                            FeatureGridItem(icon: "wand.and.stars", label: "Deseos", color: Color(red: 0.67, green: 0.28, blue: 0.74), destination: AnyView(WishlistView()))
+                            FeatureGridItem(icon: "moon.stars", label: "Sueños", color: Color(red: 0.36, green: 0.42, blue: 0.75), destination: AnyView(DreamsView()))
+                            FeatureGridItem(icon: "list.clipboard", label: "Planner", color: Color(red: 0.4, green: 0.73, blue: 0.42), destination: AnyView(PlannerView()))
+                            FeatureGridItem(icon: "music.note", label: "Música", color: Color(red: 0.15, green: 0.65, blue: 0.6), destination: AnyView(MusicView()))
+                            FeatureGridItem(icon: "calendar", label: "Fechas", color: Color(red: 0.94, green: 0.33, blue: 0.31), destination: AnyView(AnniversaryView()))
+                            FeatureGridItem(icon: "square.grid.2x2", label: "Más", color: Color(red: 0.47, green: 0.56, blue: 0.61), destination: AnyView(MoreListView()))
                         }
                         .padding(.horizontal, 20)
 
@@ -322,11 +322,11 @@ struct HeartParticle: Identifiable {
     let opacity: Double
 }
 
-public struct FeatureGridItem<Destination: View>: View {
+public struct FeatureGridItem: View {
     public let icon: String
     public let label: String
     public let color: Color
-    public let destination: Destination
+    public let destination: AnyView
 
     public var body: some View {
         NavigationLink(destination: destination) {

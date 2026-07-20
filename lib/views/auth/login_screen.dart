@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/local_storage.dart';
 import '../../services/auth_service.dart';
-import '../home_navigation.dart';
-import 'onboarding_screen.dart';
+import 'profile_setup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -62,14 +61,16 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (!mounted) return;
       if (auth.isLoggedIn) {
-        final coupleId = LocalStorage().getString('couple_id');
-        final uname = LocalStorage().getUserName();
-        final hasProfile = coupleId != null &&
-            coupleId.isNotEmpty &&
-            coupleId != 'default_couple_id' &&
-            uname != null &&
-            uname.isNotEmpty;
-        _navigateAfterAuth(hasProfile);
+        final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+        final email = FirebaseAuth.instance.currentUser?.email ?? '';
+        await LocalStorage().setString('user_id', uid);
+        await LocalStorage().setString('user_email', email);
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -77,14 +78,6 @@ class _LoginScreenState extends State<LoginScreen>
       }
     }
     if (mounted) setState(() => _loading = false);
-  }
-
-  void _navigateAfterAuth(bool hasProfile) {
-    if (hasProfile) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeNavigation()));
-    } else {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const OnboardingFlow()));
-    }
   }
 
   @override

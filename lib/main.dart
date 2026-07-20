@@ -228,26 +228,33 @@ class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
       );
     }
 
-    final auth = GoogleAuthService();
-    final user = UserService();
-
-    if (!auth.isSignedIn) {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null || firebaseUser.isAnonymous) {
       return const LoginScreen();
     }
 
-    if (!auth.setupComplete) {
-      return const GoogleSetupScreen();
+    if (firebaseUser.email == null || firebaseUser.email!.isEmpty) {
+      return const LoginScreen();
     }
 
-    if (!user.hasProfile) {
+    final email = firebaseUser.email!;
+    final setupDone = LocalStorage().getBool('setup_complete_$email') == true;
+    final hasProfile = LocalStorage().getString('user_name') != null &&
+        LocalStorage().getString('user_name')!.isNotEmpty &&
+        LocalStorage().getString('dob') != null;
+    final hasPartner = LocalStorage().getString('partner_uid') != null &&
+        LocalStorage().getString('partner_uid')!.isNotEmpty;
+    final partnerSkipped = LocalStorage().getBool('partner_skipped') == true;
+
+    if (!setupDone || !hasProfile) {
       return const ProfileSetupScreen();
     }
 
-    if (!user.hasPartner && !user.partnerSkipped) {
+    if (!hasPartner && !partnerSkipped) {
       return const AddPartnerScreen();
     }
 
-    final permissionsDone = LocalStorage().getBool('permissions_granted');
+    final permissionsDone = LocalStorage().getBool('permissions_granted') == true;
     if (permissionsDone != true) {
       return const PermissionsScreen();
     }

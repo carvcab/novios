@@ -56,14 +56,25 @@
 		9A000252C00000000000025 /* PartnerStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040D2C000000000000040D /* PartnerStatusCard.swift */; };
 		9A000262C00000000000026 /* LoveLettersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040E2C000000000000040E /* LoveLettersView.swift */; };
 		9A000272C00000000000027 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040F2C000000000000040F /* MainTabView.swift */; };
-		9A000282C00000000000028 /* CapsuleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004102C0000000000000410 /* CapsuleView.swift */; };
-		9A000292C00000000000029 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004112C0000000000000411 /* JournalView.swift */; };
+
 		9A0002A2C0000000000002A /* MemoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004122C0000000000000412 /* MemoriesView.swift */; };
 		9A0002B2C0000000000002B /* PlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004132C0000000000000413 /* PlannerView.swift */; };
 		9A0002C2C0000000000002C /* WishlistView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004142C0000000000000414 /* WishlistView.swift */; };
 		9A0002D2C0000000000002D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004152C0000000000000415 /* SettingsView.swift */; };
-		9A0002E2C00000000000002E /* QuickFeatureTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004162C0000000000000416 /* QuickFeatureTile.swift */; };
 		9A0002F2C00000000000002F /* MoreOptionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004172C0000000000000417 /* MoreOptionCard.swift */; };
+		9A000302C000000000000030 /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004182C0000000000000418 /* PermissionsView.swift */; };
+		9A000312C000000000000031 /* GiftsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004192C0000000000000419 /* GiftsView.swift */; };
+		9A000322C000000000000032 /* CompatibilityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0041A2C000000000000041A /* CompatibilityView.swift */; };
+		9A000332C000000000000033 /* ConstellationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0041B2C000000000000041B /* ConstellationView.swift */; };
+		9A000342C000000000000034 /* OnThisDayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0041C2C000000000000041C /* OnThisDayView.swift */; };
+		9A000352C000000000000035 /* VoiceMailboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0041D2C000000000000041D /* VoiceMailboxView.swift */; };
+		9A000362C000000000000036 /* RelationshipBookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0041E2C000000000000041E /* RelationshipBookView.swift */; };
+		9A000372C000000000000037 /* FavoriteGifsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0041F2C000000000000041F /* FavoriteGifsView.swift */; };
+		9A000382C000000000000038 /* EncryptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004202C0000000000000420 /* EncryptionView.swift */; };
+		9A000392C000000000000039 /* GameHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004212C0000000000000421 /* GameHistoryView.swift */; };
+		9A0003A2C00000000000003A /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004222C0000000000000422 /* LockScreenView.swift */; };
+		9A0003B2C00000000000003B /* WhoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004232C0000000000000423 /* WhoView.swift */; };
+		9A0003C2C00000000000003C /* GoogleSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004242C0000000000000424 /* GoogleSetupView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -117,14 +128,25 @@
 		9A0040D2C000000000000040D /* PartnerStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Home/PartnerStatusCard.swift; sourceTree = "<group>"; };
 		9A0040E2C000000000000040E /* LoveLettersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Letters/LoveLettersView.swift; sourceTree = "<group>"; };
 		9A0040F2C000000000000040F /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Main/MainTabView.swift; sourceTree = "<group>"; };
-		9A004102C0000000000000410 /* CapsuleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Memories/CapsuleView.swift; sourceTree = "<group>"; };
-		9A004112C0000000000000411 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Memories/JournalView.swift; sourceTree = "<group>"; };
+
 		9A004122C0000000000000412 /* MemoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Memories/MemoriesView.swift; sourceTree = "<group>"; };
 		9A004132C0000000000000413 /* PlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Planner/PlannerView.swift; sourceTree = "<group>"; };
 		9A004142C0000000000000414 /* WishlistView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Planner/WishlistView.swift; sourceTree = "<group>"; };
 		9A004152C0000000000000415 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/SettingsView.swift; sourceTree = "<group>"; };
-		9A004162C0000000000000416 /* QuickFeatureTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/QuickFeatureTile.swift; sourceTree = "<group>"; };
 		9A004172C0000000000000417 /* MoreOptionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/MoreOptionCard.swift; sourceTree = "<group>"; };
+		9A004182C0000000000000418 /* PermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Permissions/PermissionsView.swift; sourceTree = "<group>"; };
+		9A004192C0000000000000419 /* GiftsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Gifts/GiftsView.swift; sourceTree = "<group>"; };
+		9A0041A2C000000000000041A /* CompatibilityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Compatibility/CompatibilityView.swift; sourceTree = "<group>"; };
+		9A0041B2C000000000000041B /* ConstellationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Constellation/ConstellationView.swift; sourceTree = "<group>"; };
+		9A0041C2C000000000000041C /* OnThisDayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/OnThisDay/OnThisDayView.swift; sourceTree = "<group>"; };
+		9A0041D2C000000000000041D /* VoiceMailboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/VoiceMailbox/VoiceMailboxView.swift; sourceTree = "<group>"; };
+		9A0041E2C000000000000041E /* RelationshipBookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/RelationshipBook/RelationshipBookView.swift; sourceTree = "<group>"; };
+		9A0041F2C000000000000041F /* FavoriteGifsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/FavoriteGifs/FavoriteGifsView.swift; sourceTree = "<group>"; };
+		9A004202C0000000000000420 /* EncryptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Encryption/EncryptionView.swift; sourceTree = "<group>"; };
+		9A004212C0000000000000421 /* GameHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/GameHistory/GameHistoryView.swift; sourceTree = "<group>"; };
+		9A004222C0000000000000422 /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/LockScreen/LockScreenView.swift; sourceTree = "<group>"; };
+		9A004232C0000000000000423 /* WhoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Who/WhoView.swift; sourceTree = "<group>"; };
+		9A004242C0000000000000424 /* GoogleSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/GoogleSetup/GoogleSetupView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -198,14 +220,25 @@
 				9A0040D2C000000000000040D /* PartnerStatusCard.swift */,
 				9A0040E2C000000000000040E /* LoveLettersView.swift */,
 				9A0040F2C000000000000040F /* MainTabView.swift */,
-				9A004102C0000000000000410 /* CapsuleView.swift */,
-				9A004112C0000000000000411 /* JournalView.swift */,
+
 				9A004122C0000000000000412 /* MemoriesView.swift */,
 				9A004132C0000000000000413 /* PlannerView.swift */,
 				9A004142C0000000000000414 /* WishlistView.swift */,
 				9A004152C0000000000000415 /* SettingsView.swift */,
-				9A004162C0000000000000416 /* QuickFeatureTile.swift */,
 				9A004172C0000000000000417 /* MoreOptionCard.swift */,
+				9A004182C0000000000000418 /* PermissionsView.swift */,
+				9A004192C0000000000000419 /* GiftsView.swift */,
+				9A0041A2C000000000000041A /* CompatibilityView.swift */,
+				9A0041B2C000000000000041B /* ConstellationView.swift */,
+				9A0041C2C000000000000041C /* OnThisDayView.swift */,
+				9A0041D2C000000000000041D /* VoiceMailboxView.swift */,
+				9A0041E2C000000000000041E /* RelationshipBookView.swift */,
+				9A0041F2C000000000000041F /* FavoriteGifsView.swift */,
+				9A004202C0000000000000420 /* EncryptionView.swift */,
+				9A004212C0000000000000421 /* GameHistoryView.swift */,
+				9A004222C0000000000000422 /* LockScreenView.swift */,
+				9A004232C0000000000000423 /* WhoView.swift */,
+				9A004242C0000000000000424 /* GoogleSetupView.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -316,14 +349,25 @@
 				9A000252C00000000000025 /* PartnerStatusCard.swift in Sources */,
 				9A000262C00000000000026 /* LoveLettersView.swift in Sources */,
 				9A000272C00000000000027 /* MainTabView.swift in Sources */,
-				9A000282C00000000000028 /* CapsuleView.swift in Sources */,
-				9A000292C00000000000029 /* JournalView.swift in Sources */,
+
 				9A0002A2C0000000000002A /* MemoriesView.swift in Sources */,
 				9A0002B2C0000000000002B /* PlannerView.swift in Sources */,
 				9A0002C2C0000000000002C /* WishlistView.swift in Sources */,
 				9A0002D2C0000000000002D /* SettingsView.swift in Sources */,
-				9A0002E2C00000000000002E /* QuickFeatureTile.swift in Sources */,
 				9A0002F2C00000000000002F /* MoreOptionCard.swift in Sources */,
+				9A000302C000000000000030 /* PermissionsView.swift in Sources */,
+				9A000312C000000000000031 /* GiftsView.swift in Sources */,
+				9A000322C000000000000032 /* CompatibilityView.swift in Sources */,
+				9A000332C000000000000033 /* ConstellationView.swift in Sources */,
+				9A000342C000000000000034 /* OnThisDayView.swift in Sources */,
+				9A000352C000000000000035 /* VoiceMailboxView.swift in Sources */,
+				9A000362C000000000000036 /* RelationshipBookView.swift in Sources */,
+				9A000372C000000000000037 /* FavoriteGifsView.swift in Sources */,
+				9A000382C000000000000038 /* EncryptionView.swift in Sources */,
+				9A000392C000000000000039 /* GameHistoryView.swift in Sources */,
+				9A0003A2C00000000000003A /* LockScreenView.swift in Sources */,
+				9A0003B2C00000000000003B /* WhoView.swift in Sources */,
+				9A0003C2C00000000000003C /* GoogleSetupView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

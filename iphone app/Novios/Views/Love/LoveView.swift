@@ -1,8 +1,40 @@
 import SwiftUI
 
 public struct LoveView: View {
-    @EnvironmentObject var authService: AuthService
-    @StateObject private var userService = UserService.shared
+    @State private var timelineEvents: [(date: String, emoji: String, title: String, description: String)] = [
+        ("10 Dic 2024", "💑", "Nos conocimos", "Fue amor a primera vista"),
+        ("14 Feb 2025", "💍", "Primera cita", "Cena romántica"),
+        ("01 Jun 2025", "✈️", "Primer viaje", "Viaje a la playa")
+    ]
+    @State private var lovePoints: Int = 450
+    @State private var totalLovePoints: Int = 1000
+    @State private var currentLevel: Int = 5
+    @State private var compatibilityScore: Int = 87
+    @State private var showCompatibilityTest = false
+    @State private var messagesSent: Int = 1234
+    @State private var photosShared: Int = 567
+    @State private var goalsCompleted: Int = 23
+
+    private let anniversaryDate: Date = {
+        var components = DateComponents()
+        components.year = 2024
+        components.month = 12
+        components.day = 10
+        return Calendar.current.date(from: components) ?? Date()
+    }()
+
+    private var yearsTogether: Int { totalDays / 365 }
+    private var monthsTogether: Int { (totalDays % 365) / 30 }
+    private var remDays: Int { totalDays % 30 }
+    private var totalDays: Int { Calendar.current.dateComponents([.day], from: anniversaryDate, to: Date()).day ?? 0 }
+
+    private var nextAnniversaryDays: Int {
+        let calendar = Calendar.current
+        var next = calendar.date(bySetting: .month, value: calendar.component(.month, from: anniversaryDate), of: Date())!
+        next = calendar.date(bySetting: .day, value: calendar.component(.day, from: anniversaryDate), of: next)!
+        if next < Date() { next = calendar.date(byAdding: .year, value: 1, to: next)! }
+        return calendar.dateComponents([.day], from: Date(), to: next).day ?? 0
+    }
 
     public var body: some View {
         NavigationStack {
@@ -10,163 +42,245 @@ public struct LoveView: View {
                 LiquidBackgroundView()
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
-                        // Anniversary Hero
-                        GlassCard {
-                            NavigationLink(destination: AnniversaryView()) {
-                                VStack(spacing: 16) {
-                                    HStack(spacing: 16) {
-                                        ZStack {
-                                            Circle()
-                                                .fill(ThemeManager.shared.neonGlowGradient)
-                                                .frame(width: 56, height: 56)
-                                                .shadow(color: ThemeManager.shared.primaryPink.opacity(0.3), radius: 16)
-                                            Image(systemName: "heart.fill")
-                                                .font(.system(size: 26))
-                                                .foregroundColor(.primary)
-                                        }
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("\(authService.currentUser?.displayName ?? "Tu")  💕  \(userService.partnerUser?.displayName ?? "Pareja")")
-                                                .font(.system(size: 16, weight: .bold))
-                                                .foregroundColor(.primary)
-                                            Text("Juntos desde el \(formattedFirstDate())")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(.primary.opacity(0.5))
-                                        }
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .foregroundColor(.primary.opacity(0.3))
-                                    }
-                                    if let ann = authService.currentUser?.anniversaryDate {
-                                        let days = Calendar.current.dateComponents([.day], from: ann, to: Date()).day ?? 0
-                                        let years = days / 365
-                                        let months = (days % 365) / 30
-                                        let remDays = days % 30
-                                        VStack(spacing: 4) {
-                                            Text("\(years) años  \(months) meses  \(remDays) días")
-                                                .font(.system(size: 20, weight: .bold))
-                                                .foregroundColor(ThemeManager.shared.primaryPink)
-                                            Text(nextAnniversaryText(ann))
-                                                .font(.system(size: 12))
-                                                .foregroundColor(.primary.opacity(0.5))
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 12)
-                                        .background(ThemeManager.shared.primaryPink.opacity(0.08))
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    }
-                                }
-                                .padding(20)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.horizontal, 16)
-
-                        // Quick Stats
-                        if let ann = authService.currentUser?.anniversaryDate {
-                            let days = Calendar.current.dateComponents([.day], from: ann, to: Date()).day ?? 0
-                            let hours = Calendar.current.dateComponents([.hour], from: ann, to: Date()).hour ?? 0
-                            let minutes = Calendar.current.dateComponents([.minute], from: ann, to: Date()).minute ?? 0
-                            HStack(spacing: 8) {
-                                StatMiniView(icon: "calendar", value: "\(days)", label: "días", color: ThemeManager.shared.primaryPink)
-                                StatMiniView(icon: "clock", value: "\(hours)", label: "horas", color: Color(red: 0.49, green: 0.51, blue: 1.0))
-                                StatMiniView(icon: "timer", value: "\(minutes)", label: "minutos", color: Color(red: 1.0, green: 0.72, blue: 0.3))
-                            }
-                            .padding(.horizontal, 16)
-                        }
-
-                        // Timeline
-                        HStack(spacing: 8) {
-                            Image(systemName: "timeline.selection")
-                                .foregroundColor(ThemeManager.shared.primaryPink)
-                            Text("Nuestra Historia")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.primary)
-                            Spacer()
-                        }
-                        .padding(.horizontal, 16)
-
-                        GlassCard {
-                            VStack(spacing: 16) {
-                                Image(systemName: "timeline.selection")
-                                    .font(.system(size: 36))
-                                    .foregroundColor(.primary.opacity(0.2))
-                                Text("Aún no hay momentos en su historia")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.primary.opacity(0.5))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 24)
-                        }
-                        .padding(.horizontal, 16)
-
-                        // Love Points
-                        GlassCard {
-                            HStack {
-                                Spacer()
-                                Image(systemName: "heart.fill")
-                                    .foregroundColor(ThemeManager.shared.primaryPink)
-                                Text("\(Int.random(in: 100...999)) puntos de amor")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.primary)
-                                Spacer()
-                            }
-                            .padding(.vertical, 20)
-                            .padding(.horizontal, 20)
-                        }
-                        .padding(.horizontal, 16)
-
+                        anniversaryHeroSection
+                        statsSection
+                        timelineSection
+                        lovePointsSection
+                        compatibilitySection
                         Color.clear.frame(height: 24)
                     }
                     .padding(.top, 8)
                 }
             }
-            .navigationBarHidden(true)
+            .navigationTitle("Amor \u{2764}\u{FE0F}")
         }
     }
 
-    private func formattedFirstDate() -> String {
-        guard let ann = authService.currentUser?.anniversaryDate else { return "—" }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d/M/yyyy"
-        return formatter.string(from: ann)
+    private var anniversaryHeroSection: some View {
+        GlassCard {
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(ThemeManager.shared.neonGlowGradient)
+                        .frame(width: 72, height: 72)
+                        .shadow(color: ThemeManager.shared.primaryPink.opacity(0.4), radius: 20)
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 34))
+                        .foregroundColor(.primary)
+                }
+
+                Text("Nuestro Aniversario")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.primary)
+
+                Text("\(yearsTogether) a\u{00F1}os  \(monthsTogether) meses  \(remDays) d\u{00ED}as")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.primary)
+
+                Text(nextAnniversaryDays == 0
+                     ? "\u{1F389} \u{00A1}Hoy es nuestro aniversario!"
+                     : "Pr\u{00F3}ximo aniversario: \(nextAnniversaryDays) d\u{00ED}as")
+                    .font(.system(size: 13))
+                    .foregroundColor(.primary.opacity(0.6))
+            }
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 16)
     }
 
-    private func nextAnniversaryText(_ ann: Date) -> String {
-        let now = Date()
-        let calendar = Calendar.current
-        var next = calendar.date(bySetting: .month, value: calendar.component(.month, from: ann), of: now)!
-        next = calendar.date(bySetting: .day, value: calendar.component(.day, from: ann), of: next)!
-        if next < now {
-            next = calendar.date(byAdding: .year, value: 1, to: next)!
+    private var statsSection: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+            StatCardView(value: "\(totalDays)", label: "D\u{00ED}as juntos", icon: "calendar", color: ThemeManager.shared.primaryPink)
+            StatCardView(value: "\(messagesSent)", label: "Mensajes enviados", icon: "message.fill", color: Color(red: 0.49, green: 0.51, blue: 1.0))
+            StatCardView(value: "\(photosShared)", label: "Fotos compartidas", icon: "photo.fill", color: Color(red: 1.0, green: 0.72, blue: 0.3))
+            StatCardView(value: "\(goalsCompleted)", label: "Metas cumplidas", icon: "checkmark.seal.fill", color: Color.green)
         }
-        let diff = calendar.dateComponents([.day], from: now, to: next).day ?? 0
-        if diff == 0 { return "🎉 ¡Hoy es su aniversario!" }
-        if diff == 1 { return "Mañana es su aniversario 💕" }
-        return "Próximo aniversario: \(diff) días"
+        .padding(.horizontal, 16)
+    }
+
+    private var timelineSection: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "timeline.selection")
+                    .foregroundColor(ThemeManager.shared.primaryPink)
+                Text("Nuestra Historia")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.primary)
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+
+            GlassCard {
+                VStack(spacing: 0) {
+                    ForEach(Array(timelineEvents.enumerated()), id: \.offset) { index, event in
+                        HStack(alignment: .top, spacing: 14) {
+                            VStack(spacing: 0) {
+                                Text(event.emoji)
+                                    .font(.system(size: 20))
+                                    .frame(width: 36, height: 36)
+                                    .background(ThemeManager.shared.primaryPink.opacity(0.1))
+                                    .clipShape(Circle())
+                                if index < timelineEvents.count - 1 {
+                                    Rectangle()
+                                        .fill(ThemeManager.shared.primaryPink.opacity(0.2))
+                                        .frame(width: 2)
+                                        .frame(height: 40)
+                                }
+                            }
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(event.date)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.primary.opacity(0.5))
+                                Text(event.title)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                Text(event.description)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.primary.opacity(0.65))
+                            }
+
+                            Spacer()
+                        }
+                        .padding(.bottom, index < timelineEvents.count - 1 ? 4 : 0)
+                    }
+
+                    Button {
+                        withAnimation {
+                            timelineEvents.append(("Nueva fecha", "\u{2795}", "Nuevo evento", "Descripci\u{00F3}n"))
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 16))
+                            Text("Agregar evento")
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                        .foregroundColor(ThemeManager.shared.primaryPink)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity)
+                        .background(ThemeManager.shared.primaryPink.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    .padding(.top, 8)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private var lovePointsSection: some View {
+        GlassCard {
+            VStack(spacing: 14) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Puntos de Amor")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.primary)
+                        Text("\(lovePoints) / \(totalLovePoints)")
+                            .font(.system(size: 13))
+                            .foregroundColor(.primary.opacity(0.6))
+                    }
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Text("Nivel \(currentLevel)")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.primary)
+                        Text("\u{1F495}")
+                            .font(.system(size: 16))
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(ThemeManager.shared.primaryPink.opacity(0.12))
+                    .clipShape(Capsule())
+                }
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.gray.opacity(0.15))
+                            .frame(height: 14)
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(ThemeManager.shared.neonGlowGradient)
+                            .frame(width: geo.size.width * CGFloat(lovePoints) / CGFloat(totalLovePoints), height: 14)
+                            .animation(.easeInOut(duration: 0.5), value: lovePoints)
+                    }
+                }
+                .frame(height: 14)
+
+                Text("Sube de nivel")
+                    .font(.system(size: 12))
+                    .foregroundColor(.primary.opacity(0.5))
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+
+    private var compatibilitySection: some View {
+        GlassCard {
+            VStack(spacing: 16) {
+                Text("Compatibilidad")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.primary)
+
+                ZStack {
+                    Circle()
+                        .stroke(ThemeManager.shared.primaryPink.opacity(0.15), lineWidth: 10)
+                        .frame(width: 120, height: 120)
+
+                    Circle()
+                        .trim(from: 0, to: CGFloat(compatibilityScore) / 100)
+                        .stroke(ThemeManager.shared.neonGlowGradient, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                        .frame(width: 120, height: 120)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeOut(duration: 1), value: compatibilityScore)
+
+                    Text("\(compatibilityScore)%")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.primary)
+                }
+
+                NavigationLink(destination: CompatibilityView()) {
+                    HStack(spacing: 6) {
+                        Text("Test de compatibilidad")
+                            .font(.system(size: 14, weight: .medium))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12))
+                    }
+                    .foregroundColor(ThemeManager.shared.primaryPink)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .background(ThemeManager.shared.primaryPink.opacity(0.1))
+                    .clipShape(Capsule())
+                }
+            }
+        }
+        .padding(.horizontal, 16)
     }
 }
 
-public struct StatMiniView: View {
-    public let icon: String
+public struct StatCardView: View {
     public let value: String
     public let label: String
+    public let icon: String
     public let color: Color
 
     public var body: some View {
         GlassCard {
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 Image(systemName: icon)
+                    .font(.system(size: 20))
                     .foregroundColor(color)
-                    .font(.system(size: 18))
                 Text(value)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.primary)
                 Text(label)
                     .font(.system(size: 11))
                     .foregroundColor(.primary.opacity(0.5))
+                    .multilineTextAlignment(.center)
             }
-            .padding(.vertical, 14)
-            .padding(.horizontal, 8)
+            .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
         }
     }

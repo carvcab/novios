@@ -68,7 +68,7 @@ class _AddPartnerScreenState extends State<AddPartnerScreen> with SingleTickerPr
       if (result != null) {
         _foundUser = result;
       } else if (query.length >= 3) {
-        _error = 'No se encontro ningun usuario con ese codigo, usuario o correo.';
+        _error = 'No se encontró ningún usuario con ese nombre o correo.';
       }
     });
   }
@@ -135,57 +135,13 @@ class _AddPartnerScreenState extends State<AddPartnerScreen> with SingleTickerPr
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Conectate con tu pareja usando su Codigo, Usuario o Correo',
+                    'Busca a tu pareja por su nombre de usuario o correo',
                     style: TextStyle(fontSize: 13, color: Colors.white60),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
 
-                  if (_myPairCode.isNotEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.only(bottom: 24),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            const Color(0xFFFF5C8A).withValues(alpha: 0.15),
-                            const Color(0xFFFF5C8A).withValues(alpha: 0.05),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFFF5C8A).withValues(alpha: 0.3)),
-                      ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'TU CODIGO DE VINCULACION',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFFF5C8A), letterSpacing: 1.2),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _myPairCode,
-                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2),
-                              ),
-                              const SizedBox(width: 12),
-                              IconButton(
-                                icon: const Icon(Icons.copy_rounded, color: Color(0xFFFF5C8A), size: 20),
-                                onPressed: _copyCode,
-                                tooltip: 'Copiar Codigo',
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Pasale este codigo a tu pareja para que te agregue',
-                            style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.5)),
-                          ),
-                        ],
-                      ),
-                    ),
+
 
                   if (_error != null)
                     Container(
@@ -217,7 +173,7 @@ class _AddPartnerScreenState extends State<AddPartnerScreen> with SingleTickerPr
                       textCapitalization: TextCapitalization.none,
                       autofocus: false,
                       decoration: InputDecoration(
-                        labelText: 'Codigo, Usuario o Correo de tu pareja',
+                        labelText: 'Nombre de usuario o correo de tu pareja',
                         labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 14),
                         border: InputBorder.none,
                         prefixIcon: Icon(Icons.search_rounded, color: Colors.white.withValues(alpha: 0.4), size: 22),

@@ -1,68 +1,105 @@
 import SwiftUI
 
+private struct Wish: Identifiable {
+    let id = UUID()
+    let emoji: String
+    let name: String
+    var isPurchased: Bool
+}
+
 public struct WishlistView: View {
-    @State private var goals: [GoalModel] = [
-        GoalModel(title: "Ver la aurora boreal juntos 🌌", isCompleted: false, createdBy: "user_me"),
-        GoalModel(title: "Aprender a bailar salsa 💃🕺", isCompleted: true, createdBy: "partner_123"),
-        GoalModel(title: "Tener nuestra primera casa 🏡", isCompleted: false, createdBy: "user_me")
+    @State private var wishes: [Wish] = [
+        Wish(emoji: "🎸", name: "Guitarra", isPurchased: false),
+        Wish(emoji: "📸", name: "Cámara", isPurchased: false),
+        Wish(emoji: "💻", name: "Laptop", isPurchased: false),
+        Wish(emoji: "🌺", name: "Flores", isPurchased: false),
+        Wish(emoji: "💍", name: "Anillo", isPurchased: false),
+        Wish(emoji: "🧸", name: "Peluche", isPurchased: false)
     ]
-    @State private var newGoalText = ""
-    
+
+    @State private var showAddAlert = false
+    @State private var newWishText = ""
+
+    private var sortedWishes: [Wish] {
+        wishes.sorted { !$0.isPurchased && $1.isPurchased }
+    }
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 14),
+        GridItem(.flexible(), spacing: 14)
+    ]
+
     public var body: some View {
         NavigationStack {
             ZStack {
-                ThemeManager.shared.backgroundGradient
-                    .ignoresSafeArea()
-                
-                VStack(spacing: 16) {
-                    GlassCard {
-                        HStack {
-                            TextField("Agregar nueva meta de pareja...", text: $newGoalText)
-                                .foregroundColor(.primary)
-                            
-                            Button {
-                                if !newGoalText.trimmingCharacters(in: .whitespaces).isEmpty {
-                                    goals.append(GoalModel(title: newGoalText, createdBy: "user_me"))
-                                    newGoalText = ""
-                                }
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 26))
-                                    .foregroundColor(ThemeManager.shared.primaryPink)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
-                    
-                    ScrollView {
-                        LazyVStack(spacing: 12) {
-                            ForEach(goals.indices, id: \.self) { idx in
+                ThemeManager.shared.backgroundGradient.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 16) {
+                        LazyVGrid(columns: columns, spacing: 14) {
+                            ForEach(sortedWishes) { wish in
                                 GlassCard {
-                                    HStack(spacing: 14) {
+                                    VStack(spacing: 10) {
+                                        Text(wish.emoji)
+                                            .font(.system(size: 40))
+
+                                        Text(wish.name)
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.primary)
+                                            .strikethrough(wish.isPurchased)
+
                                         Button {
-                                            goals[idx].isCompleted.toggle()
+                                            if let idx = wishes.firstIndex(where: { $0.id == wish.id }) {
+                                                wishes[idx].isPurchased.toggle()
+                                            }
                                         } label: {
-                                            Image(systemName: goals[idx].isCompleted ? "checkmark.circle.fill" : "circle")
-                                                .font(.system(size: 24))
-                                                .foregroundColor(goals[idx].isCompleted ? .green : .gray)
+                                            Text(wish.isPurchased ? "✅ Comprado" : "⬜ Pendiente")
+                                                .font(.system(size: 11, weight: .bold))
+                                                .foregroundColor(wish.isPurchased ? .green : ThemeManager.shared.primaryPink)
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 5)
+                                                .background(
+                                                    (wish.isPurchased ? Color.green : ThemeManager.shared.primaryPink).opacity(0.15)
+                                                )
+                                                .cornerRadius(10)
                                         }
-                                        
-                                        Text(goals[idx].title)
-                                            .font(.system(size: 15, weight: .semibold))
-                                            .foregroundColor(goals[idx].isCompleted ? Color.white.opacity(0.5) : .white)
-                                            .strikethrough(goals[idx].isCompleted)
-                                        
-                                        Spacer()
                                     }
                                 }
                             }
                         }
                         .padding(.horizontal, 20)
+
+                        GlassCard {
+                            Button {
+                                showAddAlert = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(ThemeManager.shared.primaryPink)
+                                    Text("Agregar deseo")
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.primary)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    .padding(.vertical, 16)
+                }
+            }
+            .navigationTitle("Lista de Deseos")
+            .alert("Nuevo deseo", isPresented: $showAddAlert) {
+                TextField("Producto...", text: $newWishText)
+                Button("Cancelar", role: .cancel) { newWishText = "" }
+                Button("Agregar") {
+                    let trimmed = newWishText.trimmingCharacters(in: .whitespaces)
+                    if !trimmed.isEmpty {
+                        wishes.append(Wish(emoji: "🎁", name: trimmed, isPurchased: false))
+                        newWishText = ""
                     }
                 }
             }
-            .navigationTitle("Lista de Deseos & Metas")
         }
     }
 }
