@@ -80,13 +80,11 @@ public struct SettingsView: View {
                     }
                     .padding(.horizontal, 20)
                     
-                    // Firebase Status
                     GlassCard {
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
                                 Image(systemName: "flame.fill")
                                     .foregroundColor(.orange)
-                                Text("ESTADO DE FIREBASE DUAL")
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundColor(.primary)
                             }
@@ -96,13 +94,11 @@ public struct SettingsView: View {
                                     .font(.system(size: 13))
                                     .foregroundColor(ThemeManager.shared.textSecondary)
                                 Spacer()
-                                Text(firebaseService.activeProjectID)
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(ThemeManager.shared.primaryPink)
                             }
                             
                             Button {
-                                firebaseService.switchToBackupIfNeeded()
                             } label: {
                                 Text("Cambiar a Servidor Respaldo (novios-49289)")
                                     .font(.system(size: 12, weight: .semibold))
