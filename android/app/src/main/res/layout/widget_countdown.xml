@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="16dp"
+    android:background="@drawable/widget_bg_rounded">
+
+    <TextView
+        android:id="@+id/tv_countdown_emoji"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="💕"
+        android:textSize="26sp" />
+
+    <TextView
+        android:id="@+id/tv_countdown_days"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0"
+        android:textSize="52sp"
+        android:textColor="#FFFF6B9D"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-black"
+        android:includeFontPadding="false"
+        android:layout_marginTop="2dp" />
+
+    <TextView
+        android:id="@+id/tv_countdown_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="días juntos"
+        android:textSize="13sp"
+        android:textColor="#BBFFFFFF"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.05" />
+
+    <TextView
+        android:id="@+id/tv_countdown_names"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="EverUs 💕"
+        android:textSize="12sp"
+        android:textColor="#88FFFFFF"
+        android:fontFamily="sans-serif"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/tv_countdown_until"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="10sp"
+        android:textColor="#66B388FF"
+        android:fontFamily="sans-serif"
+        android:layout_marginTop="4dp" />
+
+</LinearLayout>

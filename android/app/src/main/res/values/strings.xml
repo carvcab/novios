@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EverUs</string>
+    <string name="widget_countdown_desc">Cuenta regresiva de amor</string>
+    <string name="widget_distance_desc">Distancia con tu pareja</string>
+    <string name="widget_quote_desc">Cita de amor diaria</string>
+    <string name="widget_notes_desc">Notas recientes de la pareja</string>
+    <string name="widget_photo_desc">Foto de recuerdo</string>
+    <string name="widget_quick_actions_desc">Acciones rápidas de la pareja</string>
+</resources>

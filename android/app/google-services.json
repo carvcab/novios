@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "348158632875",
+    "project_id": "novios-8beb7",
+    "storage_bucket": "novios-8beb7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:348158632875:android:884a90881d85729464a8ee",
+        "android_client_info": {
+          "package_name": "novios.novios"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "348158632875-159mg7kftfdkbiub7rakul5duk2k2utr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "novios.novios",
+            "certificate_hash": "8766c2b6fbf2aceb3dc1a5028779587acebdaf3c"
+          }
+        },
+        {
+          "client_id": "348158632875-74jmrm2kth2r3hu78mtg9klsgf6os99a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCktJIn5LJtLCCSGQxe9sZt1CnCRly7EMw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "348158632875-74jmrm2kth2r3hu78mtg9klsgf6os99a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

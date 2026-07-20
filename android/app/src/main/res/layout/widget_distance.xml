@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="16dp"
+    android:background="@drawable/widget_bg_rounded">
+
+    <TextView
+        android:id="@+id/tv_distance_emoji"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="📍"
+        android:textSize="28sp" />
+
+    <TextView
+        android:id="@+id/tv_distance_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="— km"
+        android:textSize="38sp"
+        android:textColor="#FFB388FF"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-black"
+        android:includeFontPadding="false"
+        android:layout_marginTop="4dp" />
+
+    <TextView
+        android:id="@+id/tv_distance_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="de distancia"
+        android:textSize="13sp"
+        android:textColor="#BBFFFFFF"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.05" />
+
+    <TextView
+        android:id="@+id/tv_distance_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🔴 Sin datos"
+        android:textSize="12sp"
+        android:textColor="#88FFFFFF"
+        android:fontFamily="sans-serif"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout>

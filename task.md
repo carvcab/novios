@@ -1,0 +1,35 @@
+- [x] Integrate shared notes Firebase sync in `FirebaseService`
+- [x] Overwrite `notes_screen.dart` to support shared streams
+- [x] Add partner status coordinates piping in `StatusService`
+- [x] Create mobile widgets dashboard on `HomeTab` (Distance, Photo, Notes, Countdown)
+- [x] Add online games lobby and session database APIs in `FirebaseService`
+- [x] Support remote invitations, real-time sessions, and accept/reject flows in `GamesTab`
+- [x] Sync game board/state reactively for Tic-Tac-Toe, RPS, Hangman, Quiz, and Truth or Dare
+- [x] Clean up obsolete coordinates warnings and verify compilation via `flutter analyze`
+- [x] Add url_launcher to dependencies and run flutter pub get
+- [x] Create unified MusicScreen with Spotify launch support, shared playlist streams, and Firestore synchronization
+- [x] Route HomeTab, ProfileTab, and MoreTab music actions to MusicScreen
+- [x] Remove legacy offline player code and verify clean compilation via `flutter analyze`
+- [x] Implement live-ticking Firestore-synced AnniversaryScreen with PageView carousel and countdowns (including Mesiversarios)
+- [x] Create ChatNotificationService for local background message listener and fast responses taps
+- [x] Render unread messages counts badge on BottomNavigationBar Chat tab
+- [x] Mark incoming messages as read on view load in MessagesTab
+- [x] Render heart-based seen/unseen receipts, disappearing timer mode toggler, and quick emojis bar in Chat
+- [x] Default to 'local' mode for AIService
+- [x] Create AIAssistantScreen exposing local generators (letters, poems, songs, date suggestions, gift ideas, stories, and QA)
+- [x] Add Asistente Amor IA option in MoreTab grid and implement navigation
+- [x] Extend Truth or Dare Online with category selection (Divertido, Romántico, Atrevido)
+- [x] Integrate generateTruthOrDare in AIService & LocalAIService (DeepSeek R1 / local LLM prompts)
+- [x] Add live photo proof upload verification with partner approval flows and real-time Firestore synchronization
+- [x] Create custom transition route RomanticPageRoute (Smooth Slide & Fade)
+- [x] Transform abstract circles into rising heart particles in PremiumBackground
+- [x] Apply PremiumBackground to both dark and light modes across all navigation screens
+- [x] Trigger massive heart particle bursts (30 hearts) when sending love-themed text/emojis in Chat
+- [x] Apply custom PageRoute transition to all grid items in MoreTab
+- [x] Implement dynamic diagonal metallic shine sweep reflection loop on GlassCards
+- [x] Implement pulsing giant lock heart scale/fade unlock welcome screen overlay in HomeNavigation
+- [x] Fix unused import, unnecessary null check, and StatefulBuilder state reset bug in spicy_games_screen.dart
+- [x] Remove unused screen variable in live_status_screen.dart
+- [x] Remove unnecessary toList() from spreads in profile_tab.dart and home_tab.dart
+- [x] Remove unnecessary null check on date in profile_tab.dart _nextOccurrence
+- [x] Remove redundant typed_data import in screen_share_service.dart
