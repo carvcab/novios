@@ -78,7 +78,13 @@ public struct ChatBubbleView: View {
                     }
                 }
                 .padding(.horizontal, 16).padding(.vertical, 12)
-                .background(isFromMe ? ThemeManager.shared.neonGlowGradient : Color(.systemGray5))
+                .background {
+                    if isFromMe {
+                        ThemeManager.shared.neonGlowGradient
+                    } else {
+                        Color(.systemGray5)
+                    }
+                }
                 .clipShape(CustomBubbleShape(isFromMe: isFromMe))
                 .frame(maxWidth: UIScreen.main.bounds.width * 0.72, alignment: isFromMe ? .trailing : .leading)
 
