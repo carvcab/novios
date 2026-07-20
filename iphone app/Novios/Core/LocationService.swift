@@ -2,60 +2,56 @@ import Foundation
 import CoreLocation
 import Combine
 
-public class LocationService: NSObject, ObservableObject, CLLocationManagerDelegate {
+public class LocationService: NSObject, ObservableObject {
     public static let shared = LocationService()
-    
-    private let locationManager = CLLocationManager()
-    @Published public var userLocation: CLLocation?
+
+    private let manager = CLLocationManager()
+
     @Published public var authorizationStatus: CLAuthorizationStatus = .notDetermined
-    
-    public override init() {
+    @Published public var currentLocation: CLLocation?
+    @Published public var error: Error?
+
+    override private init() {
         super.init()
-        locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.distanceFilter = 10
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        manager.distanceFilter = 10
     }
-    
-    public func requestPermission() {
-        locationManager.requestWhenInUseAuthorization()
+
+    public func requestAuthorization() {
+        manager.requestWhenInUseAuthorization()
     }
-    
-    public func startUpdating() {
-        locationManager.startUpdatingLocation()
+
+    public func requestAlwaysAuthorization() {
+        manager.requestAlwaysAuthorization()
     }
-    
-    public func stopUpdating() {
-        locationManager.stopUpdatingLocation()
+
+    public func startUpdatingLocation() {
+        manager.startUpdatingLocation()
     }
-    
-    public func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
-        self.authorizationStatus = status
-        if status == .authorizedWhenInUse || status == .authorizedAlways {
-            startUpdating()
+
+    public func stopUpdatingLocation() {
+        manager.stopUpdatingLocation()
+    }
+
+    public func requestLocation() {
+        manager.requestLocation()
+    }
+}
+
+extension LocationService: CLLocationManagerDelegate {
+    public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        authorizationStatus = manager.authorizationStatus
+        if manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways {
+            manager.startUpdatingLocation()
         }
     }
-    
+
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let loc = locations.last else { return }
-        self.userLocation = loc
+        currentLocation = locations.last
     }
-    
-    public func calculateDistanceInKm(to coordinate: CLLocationCoordinate2D?) -> Double? {
-        guard let myLoc = userLocation, let targetCoord = coordinate else { return nil }
-        let targetLoc = CLLocation(latitude: targetCoord.latitude, longitude: targetCoord.longitude)
-        let distanceMeters = myLoc.distance(from: targetLoc)
-        return distanceMeters / 1000.0
-    }
-    
-    public func formattedDistance(to coordinate: CLLocationCoordinate2D?) -> String {
-        guard let km = calculateDistanceInKm(to: coordinate) else {
-            return "Ubicación desconocida"
-        }
-        if km < 1.0 {
-            let meters = Int(km * 1000)
-            return "A solo \(meters) metros de ti"
-        } else {
-            return String(format: "A %.1f km de ti", km)
-        }
+
+    public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        self.error = error
     }
 }

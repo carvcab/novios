@@ -23,7 +23,7 @@ public class OnlineGameService: ObservableObject {
     
     public func startNewGame(gameType: String) {
         let myId = AuthService.shared.currentUser?.id ?? "user_me"
-        self.activeSession = GameSession(
+        self.activeSession = OnlineSession(
             gameType: gameType,
             currentTurnUserId: myId,
             currentQuestion: "¡Comenzó la partida en vivo!",
@@ -48,7 +48,7 @@ public class OnlineGameService: ObservableObject {
     
     private func startSampleSession() {
         let myId = AuthService.shared.currentUser?.id ?? "user_me"
-        self.activeSession = GameSession(
+        self.activeSession = OnlineSession(
             gameType: "truth_or_dare",
             currentTurnUserId: myId,
             currentQuestion: "¿Cuál es tu lugar favorito para tener una cita?",
