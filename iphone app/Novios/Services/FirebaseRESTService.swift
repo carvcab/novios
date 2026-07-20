@@ -235,10 +235,7 @@ public class FirebaseRESTService {
     }
 
     private func handleQuotaExceeded() {
-        consecutiveErrors += 1
-        if consecutiveErrors >= maxErrorsBeforeBackup && !isUsingBackup {
-            switchToBackup()
-        }
+        print("Firebase REST quota warning")
     }
 
     private func saveTokens() {
