@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import UIKit
+import SwiftUI
 
 public class ChatService: ObservableObject {
     public static let shared = ChatService()
@@ -11,6 +12,7 @@ public class ChatService: ObservableObject {
     @Published public var replyToMessage: MessageModel?
 
     public let didSendMessage = PassthroughSubject<Void, Never>()
+    public let autoScrollToBottom = PassthroughSubject<Void, Never>()
 
     private var currentUserId: String { AuthService.shared.currentUser?.id ?? "me" }
     private var partnerId: String { UserService.shared.partnerUser?.id ?? "partner" }
@@ -33,9 +35,7 @@ public class ChatService: ObservableObject {
             replyToText: replyToMessage?.text,
             replyToSenderId: replyToMessage?.senderId
         )
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-            messages.append(msg)
-        }
+        messages.append(msg)
         clearReply()
         didSendMessage.send()
         let impact = UIImpactFeedbackGenerator(style: .light)
@@ -44,7 +44,7 @@ public class ChatService: ObservableObject {
 
     public func sendKissAction() {
         let msg = MessageModel(id: UUID().uuidString, senderId: currentUserId, text: "💋", timestamp: Date(), type: .kiss)
-        withAnimation { messages.append(msg) }
+        messages.append(msg)
         didSendMessage.send()
         let impact = UIImpactFeedbackGenerator(style: .medium)
         impact.impactOccurred()
@@ -52,31 +52,31 @@ public class ChatService: ObservableObject {
 
     public func sendHugAction() {
         let msg = MessageModel(id: UUID().uuidString, senderId: currentUserId, text: "🤗", timestamp: Date(), type: .hug)
-        withAnimation { messages.append(msg) }
+        messages.append(msg)
         didSendMessage.send()
     }
 
     public func sendTouchAction() {
         let msg = MessageModel(id: UUID().uuidString, senderId: currentUserId, text: "✨", timestamp: Date(), type: .touch)
-        withAnimation { messages.append(msg) }
+        messages.append(msg)
         didSendMessage.send()
     }
 
     public func sendGift(giftId: String) {
         let msg = MessageModel(id: UUID().uuidString, senderId: currentUserId, text: "🎁 Te envié un regalo", timestamp: Date(), type: .gift, giftId: giftId)
-        withAnimation { messages.append(msg) }
+        messages.append(msg)
         didSendMessage.send()
     }
 
     public func sendVoiceNote(path: String) {
         let msg = MessageModel(id: UUID().uuidString, senderId: currentUserId, text: nil, timestamp: Date(), type: .voice, voiceNotePath: path)
-        withAnimation { messages.append(msg) }
+        messages.append(msg)
         didSendMessage.send()
     }
 
     public func sendMedia(url: String) {
         let msg = MessageModel(id: UUID().uuidString, senderId: currentUserId, text: nil, timestamp: Date(), type: .image, mediaUrl: url)
-        withAnimation { messages.append(msg) }
+        messages.append(msg)
         didSendMessage.send()
     }
 

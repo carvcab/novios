@@ -14,7 +14,7 @@ public struct OnlineSession: Identifiable, Codable {
 public class OnlineGameService: ObservableObject {
     public static let shared = OnlineGameService()
     
-    @Published public var activeSession: GameSession?
+    @Published public var activeSession: OnlineSession?
     @Published public var isMyTurn: Bool = true
     
     private init() {

@@ -49,19 +49,17 @@ public struct AICoupleAssistantView: View {
                                     result = ""
                                 } label: {
                                     Text(mode)
-                                        .font(.system(size: 13, weight: selectedMode == mode ? .bold : .regular))
-                                        .foregroundColor(selectedMode == mode ? .white : .primary)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(
-                                            selectedMode == mode
-                                            ? ThemeManager.shared.neonGlowGradient
-                                            : GlassCard(cornerRadius: 20, opacity: 0.1, borderColor: Color.white.opacity(0.1)) {
-                                                Color.clear
-                                            }
-                                        )
-                                        .cornerRadius(20)
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.primary)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 10)
                                 }
+                                .background(
+                                    selectedMode == mode
+                                    ? ThemeManager.shared.neonGlowGradient
+                                    : Color.white.opacity(0.08)
+                                )
+                                .cornerRadius(20)
                             }
                         }
                         .padding(.horizontal)

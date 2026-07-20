@@ -61,12 +61,11 @@ public struct MessagesView: View {
         }
         .overlay(floatingHeartsOverlay)
         .onChange(of: chatService.messages.count) { _ in
-            chatService.autoScrollToBottom.send()
+            ChatService.shared.autoScrollToBottom.send()
         }
     }
 
     // MARK: - Message List
-
     private var messageList: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -113,7 +112,7 @@ public struct MessagesView: View {
                 }
                 .padding(.vertical, 8)
             }
-            .onReceive(chatService.autoScrollToBottom) { _ in
+            .onReceive(ChatService.shared.autoScrollToBottom) { _ in
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                     proxy.scrollTo("bottom_scroll", anchor: .bottom)
                 }
@@ -319,7 +318,7 @@ public struct MessagesView: View {
                     letterTitle: "Para ti 💌"
                 )
                 chatService.messages.append(msg)
-                chatService.autoScrollToBottom.send()
+                ChatService.shared.autoScrollToBottom.send()
             }
             Button("Cancelar", role: .cancel) {}
         }
