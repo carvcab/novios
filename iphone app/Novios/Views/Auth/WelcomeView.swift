@@ -46,24 +46,40 @@ public struct WelcomeView: View {
                     }
 
                     Button {
+                        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                        if trimmedEmail.isEmpty || trimmedPassword.isEmpty || (isSignUp && trimmedName.isEmpty) {
+                            errorMessage = "Por favor completa todos los campos"
+                            return
+                        }
+
                         Task {
                             errorMessage = nil
                             do {
                                 if isSignUp {
-                                    try await authService.signUpWithEmail(email: email, password: password, name: name)
+                                    try await authService.signUpWithEmail(email: trimmedEmail, password: trimmedPassword, name: trimmedName)
                                 } else {
-                                    try await authService.signInWithEmail(email: email, password: password)
+                                    try await authService.signInWithEmail(email: trimmedEmail, password: trimmedPassword)
                                 }
                             } catch {
                                 errorMessage = error.localizedDescription
                             }
                         }
                     } label: {
-                        Text(isSignUp ? "Registrarse" : "Ingresar")
-                            .font(.system(size: 16, weight: .semibold)).foregroundColor(.white)
-                            .frame(maxWidth: .infinity).padding(.vertical, 16)
-                            .background(Color(red: 1.0, green: 0.36, blue: 0.54)).cornerRadius(14)
+                        if authService.isLoading {
+                            ProgressView().tint(.white)
+                                .frame(maxWidth: .infinity).padding(.vertical, 16)
+                                .background(Color(red: 1.0, green: 0.36, blue: 0.54)).cornerRadius(14)
+                        } else {
+                            Text(isSignUp ? "Registrarse" : "Ingresar")
+                                .font(.system(size: 16, weight: .semibold)).foregroundColor(.white)
+                                .frame(maxWidth: .infinity).padding(.vertical, 16)
+                                .background(Color(red: 1.0, green: 0.36, blue: 0.54)).cornerRadius(14)
+                        }
                     }
+                    .disabled(authService.isLoading)
 
                     Button {
                         withAnimation { isSignUp.toggle(); errorMessage = nil }

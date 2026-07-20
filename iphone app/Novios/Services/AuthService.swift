@@ -140,10 +140,19 @@ public class AuthService: ObservableObject {
         // Sync to Firestore
         Task {
             guard let uid = localUserId else { return }
+            let email = currentUser?.email ?? ""
+            let displayName = currentUser?.displayName ?? username
             try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [
                 "username": username,
                 "dob": dobStr,
-                "displayName": currentUser?.displayName ?? username
+                "birthdayDate": dobStr,
+                "displayName": displayName,
+                "name": displayName,
+                "email": email
+            ])
+            try? await FirebaseRESTService.shared.firestoreSet(path: "usernames/\(username)", fields: [
+                "uid": uid,
+                "email": email
             ])
         }
     }

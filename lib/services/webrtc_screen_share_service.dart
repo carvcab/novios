@@ -57,6 +57,16 @@ class WebRTCScreenShareService {
 
     // 1. Iniciar servicio Foreground para Android 14+ (MediaProjection requirement)
     try {
+      const webrtcChannel = MethodChannel('FlutterWebRTC.Method');
+      await webrtcChannel.invokeMethod('startForegroundService', <String, dynamic>{
+        'notificationTitle': 'Compartiendo Pantalla',
+        'notificationText': 'EverUs está transmitiendo la pantalla en vivo',
+      });
+    } catch (e) {
+      debugPrint('WebRTC startForegroundService error: $e');
+    }
+
+    try {
       await _appChannel.invokeMethod('startScreenShareService');
       await Future.delayed(const Duration(milliseconds: 500));
     } catch (e) {
@@ -74,11 +84,10 @@ class WebRTCScreenShareService {
         'audio': false,
       });
     } catch (e) {
-      debugPrint('Fallback getDisplayMedia: $e');
-      _localStream = await navigator.mediaDevices.getDisplayMedia({
-        'video': true,
-        'audio': false,
-      });
+      debugPrint('getDisplayMedia error: $e');
+      try {
+        await _appChannel.invokeMethod('requestScreenShare');
+      } catch (_) {}
     }
 
     if (_localStream == null) {
@@ -314,6 +323,11 @@ class WebRTCScreenShareService {
 
     await _peerConnection?.close();
     _peerConnection = null;
+
+    try {
+      const webrtcChannel = MethodChannel('FlutterWebRTC.Method');
+      await webrtcChannel.invokeMethod('stopForegroundService');
+    } catch (_) {}
 
     try {
       await _appChannel.invokeMethod('stopScreenShareService');
