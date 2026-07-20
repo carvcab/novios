@@ -1,263 +1,177 @@
 import SwiftUI
 
-private struct PartnerNotification: Identifiable {
-    let id = UUID()
-    let app: String
-    let content: String
-    let timestamp: Date
-    let isNew: Bool
-}
-
 public struct NotificationsView: View {
-    private let partnerName = "Carlos"
-
-    @State private var notifications: [PartnerNotification] = [
-        PartnerNotification(app: "WhatsApp", content: "¡Buenos días! ¿Vamos a almorzar?", timestamp: Date().addingTimeInterval(-300), isNew: true),
-        PartnerNotification(app: "Instagram", content: "A @usuario le gustó tu foto", timestamp: Date().addingTimeInterval(-900), isNew: true),
-        PartnerNotification(app: "TikTok", content: "Nuevo video viral 🔥", timestamp: Date().addingTimeInterval(-3600), isNew: true),
-        PartnerNotification(app: "Telegram", content: "Mensaje en grupo Familia", timestamp: Date().addingTimeInterval(-7200), isNew: false),
-        PartnerNotification(app: "Gmail", content: "Recordatorio: Cita médica mañana", timestamp: Date().addingTimeInterval(-10800), isNew: false),
-        PartnerNotification(app: "Facebook", content: "Tienes una solicitud de amistad", timestamp: Date().addingTimeInterval(-18000), isNew: false),
-        PartnerNotification(app: "Twitter", content: "Nueva mención de @usuario", timestamp: Date().addingTimeInterval(-25200), isNew: false),
-        PartnerNotification(app: "Snapchat", content: "¡Snap streak en riesgo! 🔥", timestamp: Date().addingTimeInterval(-32400), isNew: false),
-        PartnerNotification(app: "YouTube", content: "Nuevo video de tu suscripción", timestamp: Date().addingTimeInterval(-43200), isNew: false),
-        PartnerNotification(app: "Chrome", content: "Artículo recomendado para ti", timestamp: Date().addingTimeInterval(-86400), isNew: false),
-        PartnerNotification(app: "WhatsApp", content: "Llamada perdida de Juan", timestamp: Date().addingTimeInterval(-120), isNew: true),
-        PartnerNotification(app: "Instagram", content: "Nuevo story de @amigo", timestamp: Date().addingTimeInterval(-600), isNew: true),
-    ]
-
+    @State private var notifications: [[String: Any]] = []
     @State private var selectedFilter = "Todas"
-    @State private var showPartnerNotifications = true
-    @State private var soundEnabled = true
-    @State private var vibrationEnabled = true
+    @State private var isLoading = true
+    @State private var partnerName = ""
 
     private let filters = ["Todas", "WhatsApp", "Instagram", "Otras"]
+    private let colors: [String: Color] = [
+        "whatsapp": Color(red: 0.15, green: 0.83, blue: 0.4),
+        "instagram": Color(red: 0.89, green: 0.25, blue: 0.37),
+        "tiktok": .black,
+        "facebook": Color(red: 0.09, green: 0.47, blue: 0.95),
+        "messenger": Color(red: 0.09, green: 0.47, blue: 0.95),
+        "twitter": Color(red: 0.11, green: 0.69, blue: 0.96),
+        "telegram": Color(red: 0, green: 0.53, blue: 0.8),
+        "snapchat": .yellow,
+        "gmail": Color(red: 0.92, green: 0.26, blue: 0.21),
+        "youtube": .red,
+        "chrome": Color(red: 0.26, green: 0.52, blue: 0.96),
+    ]
 
-    private var filteredNotifications: [PartnerNotification] {
-        switch selectedFilter {
-        case "WhatsApp":
-            return notifications.filter { $0.app == "WhatsApp" }
-        case "Instagram":
-            return notifications.filter { $0.app == "Instagram" }
-        case "Otras":
-            return notifications.filter { $0.app != "WhatsApp" && $0.app != "Instagram" }
-        default:
-            return notifications
-        }
-    }
-
-    private func relativeTime(from date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.locale = Locale(identifier: "es_ES")
-        formatter.unitsStyle = .full
-        return formatter.localizedString(for: date, relativeTo: Date())
-    }
-
-    @ViewBuilder
-    private func appIcon(for app: String) -> some View {
-        Group {
-            switch app {
-            case "WhatsApp":
-                ZStack {
-                    Circle().fill(Color.green)
-                    Text("W").font(.system(size: 16, weight: .bold)).foregroundColor(.white)
-                }
-            case "Instagram":
-                ZStack {
-                    Circle().fill(
-                        LinearGradient(colors: [Color.purple, Color.pink, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
-                    Text("I").font(.system(size: 16, weight: .bold)).foregroundColor(.white)
-                }
-            case "TikTok":
-                ZStack {
-                    Circle().fill(Color.black)
-                    Text("T").font(.system(size: 16, weight: .bold)).foregroundColor(.white)
-                }
-            case "Facebook":
-                ZStack {
-                    Circle().fill(Color.blue)
-                    Text("F").font(.system(size: 16, weight: .bold)).foregroundColor(.white)
-                }
-            case "Twitter":
-                ZStack {
-                    Circle().fill(Color.black)
-                    Text("X").font(.system(size: 16, weight: .bold)).foregroundColor(.white)
-                }
-            case "Telegram":
-                ZStack {
-                    Circle().fill(Color.blue)
-                    Text("T").font(.system(size: 16, weight: .bold)).foregroundColor(.white)
-                }
-            case "Snapchat":
-                ZStack {
-                    Circle().fill(Color.yellow)
-                    Text("S").font(.system(size: 16, weight: .bold)).foregroundColor(.black)
-                }
-            case "Gmail":
-                ZStack {
-                    Circle().fill(Color.red)
-                    Text("G").font(.system(size: 16, weight: .bold)).foregroundColor(.white)
-                }
-            case "YouTube":
-                ZStack {
-                    Circle().fill(Color.red)
-                    Text("Y").font(.system(size: 16, weight: .bold)).foregroundColor(.white)
-                }
-            case "Chrome":
-                ZStack {
-                    Circle().fill(
-                        LinearGradient(colors: [Color.green, Color.yellow], startPoint: .top, endPoint: .bottom)
-                    )
-                    Text("C").font(.system(size: 16, weight: .bold)).foregroundColor(.white)
-                }
-            default:
-                ZStack {
-                    Circle().fill(Color.gray)
-                    Image(systemName: "app.badge.fill").font(.system(size: 14)).foregroundColor(.white)
-                }
-            }
-        }
-        .frame(width: 40, height: 40)
-    }
+    private var pollingTimer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
 
     public var body: some View {
         NavigationStack {
             ZStack {
-                ThemeManager.shared.backgroundGradient
-                    .ignoresSafeArea()
+                ThemeManager.shared.backgroundGradient.ignoresSafeArea()
 
-                ScrollView {
-                    VStack(spacing: 20) {
-                        GlassCard(cornerRadius: 28) {
-                            VStack(spacing: 8) {
-                                Image(systemName: "bell.badge.fill")
-                                    .font(.system(size: 42))
-                                    .foregroundColor(ThemeManager.shared.primaryPink)
-
-                                Text("Notificaciones de \(partnerName)")
-                                    .font(.system(size: 22, weight: .bold))
-                                    .foregroundColor(.primary)
-                                    .multilineTextAlignment(.center)
-
-                                Text("Actividad reciente de tu pareja")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(ThemeManager.shared.textSecondary)
-                            }
-                        }
-
-                        HStack(spacing: 8) {
-                            ForEach(filters, id: \.self) { filter in
-                                Button(action: { selectedFilter = filter }) {
-                                    Text(filter)
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(selectedFilter == filter ? .white : ThemeManager.shared.textSecondary)
-                                        .padding(.horizontal, 18)
-                                        .padding(.vertical, 8)
-                                        .background(selectedFilter == filter ? ThemeManager.shared.primaryPink : Color.white.opacity(0.12))
-                                        .clipShape(Capsule())
-                                }
-                            }
-                        }
-
-                        if filteredNotifications.isEmpty {
-                            VStack(spacing: 12) {
-                                Spacer().frame(height: 30)
-                                Image(systemName: "bell.slash.fill")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(ThemeManager.shared.textSecondary)
-
-                                Text("Aún no hay notificaciones de tu pareja")
-                                    .font(.system(size: 15))
-                                    .foregroundColor(ThemeManager.shared.textSecondary)
-                                    .multilineTextAlignment(.center)
-                                Spacer().frame(height: 30)
-                            }
-                            .frame(maxWidth: .infinity)
-                        } else {
-                            LazyVStack(spacing: 12) {
-                                ForEach(filteredNotifications) { notif in
-                                    GlassCard(cornerRadius: 18) {
-                                        HStack(spacing: 14) {
-                                            appIcon(for: notif.app)
-
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                HStack {
-                                                    Text(notif.app)
-                                                        .font(.system(size: 15, weight: .bold))
-                                                        .foregroundColor(.primary)
-
-                                                    Spacer()
-
-                                                    Circle()
-                                                        .fill(notif.isNew ? ThemeManager.shared.primaryPink : Color.gray.opacity(0.4))
-                                                        .frame(width: 8, height: 8)
-                                                }
-
-                                                Text(notif.content)
-                                                    .font(.system(size: 13))
-                                                    .foregroundColor(ThemeManager.shared.textSecondary)
-                                                    .lineLimit(2)
-
-                                                Text(relativeTime(from: notif.timestamp))
-                                                    .font(.system(size: 11))
-                                                    .foregroundColor(ThemeManager.shared.textSecondary.opacity(0.7))
-                                            }
-                                        }
+                if isLoading {
+                    ProgressView().tint(ThemeManager.shared.primaryPink)
+                } else {
+                    VStack(spacing: 0) {
+                        // Filter chips
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(filters, id: \.self) { filter in
+                                    Button {
+                                        selectedFilter = filter
+                                    } label: {
+                                        Text(filter)
+                                            .font(.system(size: 13, weight: selectedFilter == filter ? .bold : .regular))
+                                            .foregroundColor(selectedFilter == filter ? .white : .primary)
+                                            .padding(.horizontal, 16).padding(.vertical, 6)
+                                            .background(selectedFilter == filter ? ThemeManager.shared.primaryPink : Color.primary.opacity(0.08))
+                                            .cornerRadius(16)
                                     }
                                 }
                             }
+                            .padding(.horizontal, 16).padding(.vertical, 10)
                         }
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Notificaciones de la app")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.primary)
-                                .padding(.top, 8)
-
-                            GlassCard(cornerRadius: 18) {
-                                VStack(spacing: 0) {
-                                    ToggleItem(icon: "bell.badge.fill", title: "Mostrar notificaciones de la pareja", isOn: $showPartnerNotifications)
-                                    Divider().background(ThemeManager.shared.textSecondary.opacity(0.2))
-                                    ToggleItem(icon: "speaker.wave.2.fill", title: "Sonido al recibir notificación", isOn: $soundEnabled)
-                                    Divider().background(ThemeManager.shared.textSecondary.opacity(0.2))
-                                    ToggleItem(icon: "iphone.radiowaves.left.and.right", title: "Vibración", isOn: $vibrationEnabled)
+                        if filteredNotifications.isEmpty {
+                            emptyState
+                        } else {
+                            ScrollView {
+                                LazyVStack(spacing: 8) {
+                                    ForEach(filteredNotifications.indices, id: \.self) { i in
+                                        notificationCard(filteredNotifications[i])
+                                    }
                                 }
+                                .padding(16)
                             }
                         }
                     }
-                    .padding(20)
                 }
             }
-            .navigationTitle("Notificaciones")
+            .navigationTitle("Notificaciones de \(partnerName)")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .onReceive(pollingTimer) { _ in
+            Task { await fetchNotifications() }
+        }
+        .task {
+            partnerName = UserDefaults.standard.string(forKey: "partner_name") ?? "tu pareja"
+            await fetchNotifications()
+            isLoading = false
         }
     }
-}
 
-private struct ToggleItem: View {
-    public let icon: String
-    public let title: String
-    @Binding public var isOn: Bool
-
-    public var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(ThemeManager.shared.primaryPink)
-                .frame(width: 30, height: 30)
-                .background(ThemeManager.shared.primaryPink.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.primary)
-
+    private var emptyState: some View {
+        VStack(spacing: 16) {
             Spacer()
-
-            Toggle("", isOn: $isOn)
-                .tint(ThemeManager.shared.primaryPink)
-                .labelsHidden()
+            Image(systemName: "bell.slash").font(.system(size: 48)).foregroundColor(.primary.opacity(0.2))
+            Text("Aún no hay notificaciones de \(partnerName)")
+                .font(.system(size: 16, weight: .medium)).foregroundColor(.primary.opacity(0.5))
+            Text("Las notificaciones aparecerán aquí en tiempo real")
+                .font(.system(size: 13)).foregroundColor(.primary.opacity(0.3))
+            Spacer()
         }
-        .padding(.vertical, 6)
+    }
+
+    private func notificationCard(_ notif: [String: Any]) -> some View {
+        let app = (notif["app"] as? String) ?? ""
+        let title = (notif["title"] as? String) ?? ""
+        let text = (notif["text"] as? String) ?? ""
+        let time = notif["timestamp"] as? Date ?? Date()
+        let appLower = app.lowercased()
+        let color = colors.first { appLower.contains($0.key) }?.value ?? .gray
+
+        return GlassCard {
+            HStack(spacing: 12) {
+                Circle().fill(color.opacity(0.2)).frame(width: 40, height: 40)
+                    .overlay(Text(app.prefix(2).uppercased()).font(.system(size: 14, weight: .bold)).foregroundColor(color))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(app).font(.system(size: 13, weight: .semibold)).foregroundColor(.primary)
+                    if !title.isEmpty {
+                        Text(title).font(.system(size: 13)).foregroundColor(.primary).lineLimit(1)
+                    }
+                    if !text.isEmpty {
+                        Text(text).font(.system(size: 12)).foregroundColor(.primary.opacity(0.6)).lineLimit(2)
+                    }
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    Circle().fill(ThemeManager.shared.primaryPink).frame(width: 8, height: 8)
+                    Text(timeAgo(time)).font(.system(size: 10)).foregroundColor(.primary.opacity(0.4))
+                }
+            }
+        }
+    }
+
+    private var filteredNotifications: [[String: Any]] {
+        let result = notifications.sorted { (a, b) -> Bool in
+            let t1 = a["timestamp"] as? Date ?? Date(timeIntervalSince1970: 0)
+            let t2 = b["timestamp"] as? Date ?? Date(timeIntervalSince1970: 0)
+            return t1 > t2
+        }
+        if selectedFilter == "Todas" { return result }
+        let filterLower = selectedFilter.lowercased()
+        return result.filter {
+            let app = ($0["app"] as? String ?? "").lowercased()
+            return app.contains(filterLower)
+        }
+    }
+
+    private func fetchNotifications() async {
+        guard let partnerUid = UserDefaults.standard.string(forKey: "partner_uid"),
+              !partnerUid.isEmpty else { return }
+        let docs = try? await FirebaseRESTService.shared.firestoreGet(
+            path: "users/\(partnerUid)/activities?orderBy=timestamp&pageSize=50")
+        guard let documents = (docs?["documents"] as? [[String: Any]]) else { return }
+
+        var items: [[String: Any]] = []
+        for doc in documents {
+            guard let fields = doc["fields"] as? [String: Any] else { continue }
+            var item: [String: Any] = [:]
+            for (key, val) in fields {
+                if let map = val as? [String: Any] {
+                    if let s = map["stringValue"] as? String { item[key] = s }
+                    else if let ts = map["timestampValue"] as? String {
+                        item[key] = ISO8601DateFormatter().date(from: ts) ?? Date()
+                    }
+                }
+            }
+            if let name = doc["name"] as? String {
+                item["id"] = name.split(separator: "/").last.map(String.init)
+            }
+            items.append(item)
+        }
+        await MainActor.run { self.notifications = items }
+    }
+
+    private var timeAgo: (Date) -> String {
+        { date in
+            let s = Int(-date.timeIntervalSinceNow)
+            if s < 60 { return "\(s)s" }
+            if s < 3600 { return "\(s/60)m" }
+            if s < 86400 { return "\(s/3600)h" }
+            return "\(s/86400)d"
+        }
     }
 }
