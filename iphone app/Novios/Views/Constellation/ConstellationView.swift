@@ -97,7 +97,7 @@ public struct ConstellationView: View {
                         generateConstellation(in: geo.size)
                         withAnimation { animate = true }
                     }
-                    .onChange(of: geo.size) { _, newSize in
+                    .onChange(of: geo.size) { newSize in
                         generateConstellation(in: newSize)
                     }
                 }

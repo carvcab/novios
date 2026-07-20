@@ -35,8 +35,7 @@ public struct GoogleSetupView: View {
                 }
             }
             .navigationTitle("Google")
-            .navigationBarTitleTextColor(.white)
-            .ignoresSafeArea(edges: .bottom)
+
         }
     }
 

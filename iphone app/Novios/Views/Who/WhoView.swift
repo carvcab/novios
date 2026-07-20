@@ -49,8 +49,7 @@ public struct WhoView: View {
                 .padding()
             }
             .navigationTitle("¿Quién es quién?")
-            .navigationBarTitleTextColor(.white)
-            .ignoresSafeArea(edges: .bottom)
+
             .onAppear {
                 questions = sampleQuestions.shuffled().map { Question(text: $0.text, answer: $0.answer) }
             }
