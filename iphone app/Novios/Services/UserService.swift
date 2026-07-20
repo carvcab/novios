@@ -29,30 +29,38 @@ public class UserService: ObservableObject {
         let cleanUsername = cleaned.hasPrefix("@") ? String(cleaned.dropFirst()) : cleaned
         if cleanUsername.isEmpty { return nil }
 
-        // 1. Search in usernames/{username} collection
-        if let usernameDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(cleanUsername)"),
-           let fields = usernameDoc["fields"] as? [String: Any],
+        // 1. Direct read from usernames/{username} (most reliable, no index needed)
+        if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(cleanUsername)"),
+           let fields = doc["fields"] as? [String: Any],
            let uid = (fields["uid"] as? [String: Any])?["stringValue"] as? String {
-            if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
-               let uf = userDoc["fields"] as? [String: Any] {
-                let displayName = (uf["displayName"] as? [String: Any])?["stringValue"] as? String ?? (uf["name"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
+            // Found in usernames collection, get full user details
+            if let uDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
+               let uf = uDoc["fields"] as? [String: Any] {
+                let displayName = (uf["displayName"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
                 let uname = (uf["username"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
                 let email = (uf["email"] as? [String: Any])?["stringValue"] as? String ?? ""
                 return ["uid": uid, "displayName": displayName, "username": uname, "email": email]
             }
+            return ["uid": uid, "displayName": cleanUsername, "username": cleanUsername, "email": ""]
         }
 
-        // 2. Search by username or email field in users collection
-        let searchFields = ["username": cleanUsername, "email": cleaned]
-        for (field, value) in searchFields {
-            if let docs = try? await FirebaseRESTService.shared.firestoreQuery(path: "users", field: field, op: "EQUAL", value: value),
+        // 2. Try Firestore query on users collection by username
+        if let docs = try? await FirebaseRESTService.shared.firestoreQuery(path: "users", field: "username", op: "EQUAL", value: cleanUsername),
+           let first = docs.first,
+           let f = first["fields"] as? [String: Any] {
+            let uid = (first["name"] as? String)?.split(separator: "/").last.map(String.init) ?? ""
+            let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
+            return ["uid": uid, "displayName": displayName, "username": cleanUsername, "email": ""]
+        }
+
+        // 3. Try by email
+        if cleaned.contains("@") {
+            if let docs = try? await FirebaseRESTService.shared.firestoreQuery(path: "users", field: "email", op: "EQUAL", value: cleaned),
                let first = docs.first,
                let f = first["fields"] as? [String: Any] {
                 let uid = (first["name"] as? String)?.split(separator: "/").last.map(String.init) ?? ""
-                let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String ?? (f["name"] as? [String: Any])?["stringValue"] as? String ?? value
-                let uname = (f["username"] as? [String: Any])?["stringValue"] as? String ?? value
-                let email = (f["email"] as? [String: Any])?["stringValue"] as? String ?? ""
-                return ["uid": uid, "displayName": displayName, "username": uname, "email": email]
+                let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String ?? cleaned
+                return ["uid": uid, "displayName": displayName, "username": cleanUsername, "email": cleaned]
             }
         }
 
@@ -65,13 +73,14 @@ public class UserService: ObservableObject {
         if user.isPaired { return .alreadyHasPartner }
 
         let partnerId = partnerData["uid"] as? String ?? ""
+        guard !partnerId.isEmpty else { return .notFound }
+        
         let displayName = partnerData["displayName"] as? String ?? "Mi Pareja ❤️"
         let username = partnerData["username"] as? String ?? "pareja"
         let email = partnerData["email"] as? String ?? ""
         let myUid = FirebaseRESTService.shared.localId ?? user.id
         let coupleId = [myUid, partnerId].sorted().joined(separator: "_")
 
-        // Write to Firestore
         do {
             try await FirebaseRESTService.shared.firestoreSet(path: "users/\(myUid)", fields: [
                 "partnerUid": partnerId, "partnerName": displayName, "coupleId": coupleId,
@@ -82,7 +91,7 @@ public class UserService: ObservableObject {
                 "displayName": displayName, "email": email, "username": username
             ])
         } catch {
-            return .error("Error al vincular en Firestore")
+            return .error("Error al vincular en Firestore: \(error.localizedDescription)")
         }
 
         user.partnerUid = partnerId
@@ -96,10 +105,6 @@ public class UserService: ObservableObject {
             mood: "🥰", moodMessage: "Pensando en ti", batteryLevel: 0.88, isCharging: true)
         self.partnerUser = partner
 
-        ChatNotificationService.shared.sendLocalNotification(
-            title: "¡Pareja Vinculada! 🎉",
-            body: "❤️ Te has vinculado exitosamente con \(partner.displayName). ¡Disfruten su espacio juntos!"
-        )
         return .success
     }
     
@@ -126,51 +131,29 @@ public class UserService: ObservableObject {
         AuthService.shared.currentUser = user
     }
     
-    // Método para simular actualización en tiempo real de la pareja y disparar notificaciones
     public func simulatePartnerEvent(event: PartnerEventType) {
         guard var partner = partnerUser else { return }
         let name = partner.displayName
-        
         switch event {
         case .lowBattery(let level):
             partner.batteryLevel = Double(level) / 100.0
-            partner.isCharging = false
-            self.partnerUser = partner
-            ChatNotificationService.shared.notifyPartnerLowBattery(partnerName: name, level: level)
-            
+            partner.isCharging = false; self.partnerUser = partner
         case .startedCharging:
-            partner.isCharging = true
-            self.partnerUser = partner
-            ChatNotificationService.shared.notifyPartnerCharging(partnerName: name)
-            
+            partner.isCharging = true; self.partnerUser = partner
         case .moodChanged(let emoji, let text):
-            partner.mood = emoji
-            partner.moodMessage = text
-            self.partnerUser = partner
-            ChatNotificationService.shared.notifyPartnerMoodChange(partnerName: name, moodEmoji: emoji, message: text)
-            
+            partner.mood = emoji; partner.moodMessage = text; self.partnerUser = partner
         case .proximityAlert(let distText):
-            ChatNotificationService.shared.notifyPartnerProximity(partnerName: name, distanceText: distText)
+            break
         }
     }
     
     private func loadMockPartnerIfNeeded() {
         if let user = AuthService.shared.currentUser, user.isPaired {
             self.partnerUser = UserModel(
-                id: user.partnerUid ?? "partner_sample_123",
-                email: "amor@love.com",
-                displayName: "Mi Pareja ❤️",
-                username: "mi_pareja",
-                pairCode: "LOVE88",
-                partnerUid: user.id,
+                id: user.partnerUid ?? "", email: "", displayName: user.partnerUid ?? "Pareja",
+                username: "", pairCode: "", partnerUid: user.id,
                 anniversaryDate: user.anniversaryDate ?? Date().addingTimeInterval(-86400 * 200),
-                mood: "🥰",
-                moodMessage: "¡Te amo mucho!",
-                batteryLevel: 0.85,
-                isCharging: true,
-                latitude: 4.6097,
-                longitude: -74.0817
-            )
+                mood: "🥰", batteryLevel: 0.85, isCharging: true)
         }
     }
 }
