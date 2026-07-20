@@ -1,53 +1,51 @@
 import Foundation
-import Combine
 
-public struct AIMessage: Identifiable, Codable {
-    public var id: String = UUID().uuidString
-    public var text: String
-    public var isUser: Bool
-    public var timestamp: Date = Date()
-}
-
-public class AIService: ObservableObject {
+public class AIService {
     public static let shared = AIService()
     
-    @Published public var aiConversation: [AIMessage] = []
-    @Published public var isGenerating: Bool = false
+    public var useLocalModel = false
+    public var localModelDownloaded = false
+    public var downloadProgress: Double = 0
     
-    private init() {
-        aiConversation = [
-            AIMessage(text: "¡Hola! Soy tu asistente de pareja Gemini AI. 💖 ¿En qué les puedo ayudar hoy? ¿Buscan una idea para una cita romántica, resolver un desacuerdo o un poema de amor?", isUser: false)
+    public func generateLetter(tone: String, keywords: String) -> String {
+        let letters: [String: [String]] = [
+            "Romántico": ["Mi amor,\n\nCada día que pasa me enamoro más de ti. Eres la luz que ilumina mi camino, la razón de mis sonrisas y el dueño de mi corazón. \(keywords) es solo una pequeña muestra de lo que siento por ti.\n\nSiempre tuyo/a,", "Querido/a \(keywords),\n\nEl amor que siento por ti crece más cada día. Eres mi pensamiento constante, mi alegría eterna."],
+            "Apasionado": ["Amor mío,\n\n\(keywords) me hace pensar en lo mucho que te deseo. Cada momento a tu lado es una explosión de emociones."],
         ]
+        return letters[tone]?.randomElement() ?? "Escribe algo hermoso para tu pareja..."
     }
     
-    public func sendQuery(_ query: String) async {
-        let userMsg = AIMessage(text: query, isUser: true)
-        await MainActor.run {
-            self.aiConversation.append(userMsg)
-            self.isGenerating = true
-        }
-        
-        try? await Task.sleep(nanoseconds: 1_200_000_000) // Simulate Gemini AI latency
-        
-        let responseText = generateMockAIResponse(for: query)
-        let aiMsg = AIMessage(text: responseText, isUser: false)
-        
-        await MainActor.run {
-            self.aiConversation.append(aiMsg)
-            self.isGenerating = false
-        }
+    public func generatePoem(style: String, topic: String) -> String {
+        let poems = ["En tus ojos encuentro el mar,\ndonde mis sueños navegan sin cesar.\n\(topic) es mi cantar,\nun amor que no deja de brillar.",
+                    "Eres poesía hecha persona,\n\(topic) que mi alma emociona."]
+        return poems.randomElement()!
     }
     
-    private func generateMockAIResponse(for text: String) -> String {
-        let lower = text.lowercased()
-        if lower.contains("cita") || lower.contains("plan") || lower.contains("hacer") {
-            return "💡 **Idea de Cita Romántica:**\n1. **Noche de Picnic Estelar:** Preparen bocadillos, una manta cómoda y busquen un lugar al aire libre o la terraza para mirar las estrellas.\n2. **Cocina a Ciegas:** Elijan una receta nueva y cocinen juntos escuchando música suave."
-        } else if lower.contains("poema") || lower.contains("carta") || lower.contains("mensaje") {
-            return "🌹 **Carta de Amor:**\n'Cada momento a tu lado hace que el tiempo se detenga y el mundo desaparezca. Eres mi lugar favorito en el universo y la razón de mis sonrisas diarias. Te amo hoy y siempre.'"
-        } else if lower.contains("consejo") || lower.contains("pelea") || lower.contains("discusión") {
-            return "🕊️ **Consejo de Relaciones:**\nRecuerden siempre escuchar con empatía antes de responder. Un pequeño gesto de cariño o un abrazo sincero puede calmar cualquier tensión. ¡El amor en equipo siempre gana!"
-        } else {
-            return "✨ Me encanta su energía como pareja. Recuerden expresar lo mucho que se aprecian a diario. ¿Les gustaría probar un juego divertido juntos?"
-        }
+    public func suggestDate(type: String, budget: String) -> String {
+        let dates = ["Cena romántica en casa con velas y música", "Picnic al atardecer en el parque", "Noche de películas con palomitas", "Paseo por la playa de noche"]
+        return "\(dates.randomElement()!). Presupuesto: \(budget)"
+    }
+    
+    public func suggestGift(occasion: String) -> String {
+        let gifts = ["Un álbum de fotos personalizado", "Una carta escrita a mano", "Un viaje sorpresa", "Joyas personalizadas"]
+        return "Para \(occasion): \(gifts.randomElement()!)"
+    }
+    
+    public func generateSong(genre: String, details: String) -> String {
+        return "\(details) - Una canción de \(genre)\n\nVerso 1:\n\(details) en mi mente,\ntu amor es mi presente.\n\nCoro:\nEres todo lo que siento,\neres mi mejor momento."
+    }
+    
+    public func generateStory(title: String, details: String) -> String {
+        return "\(title)\n\nHabía una vez una pareja que \(details). Su amor crecía cada día..."
+    }
+    
+    public func answerRelationshipQuestion(question: String) -> String {
+        let answers = ["El amor se demuestra con acciones pequeñas cada día.", "La comunicación es la clave.", "Lo más importante es la confianza y el respeto mutuo."]
+        return answers.randomElement()!
+    }
+    
+    public func downloadLocalModel() {
+        downloadProgress = 0
+        useLocalModel = true
     }
 }

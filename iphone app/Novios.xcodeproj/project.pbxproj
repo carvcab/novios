@@ -75,6 +75,14 @@
 		9A0003A2C00000000000003A /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004222C0000000000000422 /* LockScreenView.swift */; };
 		9A0003B2C00000000000003B /* WhoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004232C0000000000000423 /* WhoView.swift */; };
 		9A0003C2C00000000000003C /* GoogleSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004242C0000000000000424 /* GoogleSetupView.swift */; };
+		9A0003D2C00000000000003D /* SpicyGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004252C0000000000000425 /* SpicyGamesView.swift */; };
+		9A0003E2C00000000000003E /* LoveDiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004262C0000000000000426 /* LoveDiceView.swift */; };
+		9A0003F2C00000000000003F /* HigherCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004272C0000000000000427 /* HigherCardView.swift */; };
+		9A000402C000000000000040 /* WouldYouRatherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004282C0000000000000428 /* WouldYouRatherView.swift */; };
+		9A000412C000000000000041 /* LoveRouletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004292C0000000000000429 /* LoveRouletteView.swift */; };
+		9A000422C000000000000042 /* NeverHaveIEverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0042A2C000000000000042A /* NeverHaveIEverView.swift */; };
+		9A000432C000000000000043 /* GameModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0042B2C000000000000042B /* GameModels.swift */; };
+		9A000442C000000000000044 /* GameHistoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0042C2C000000000000042C /* GameHistoryModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -147,6 +155,14 @@
 		9A004222C0000000000000422 /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/LockScreen/LockScreenView.swift; sourceTree = "<group>"; };
 		9A004232C0000000000000423 /* WhoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Who/WhoView.swift; sourceTree = "<group>"; };
 		9A004242C0000000000000424 /* GoogleSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/GoogleSetup/GoogleSetupView.swift; sourceTree = "<group>"; };
+		9A004252C0000000000000425 /* SpicyGamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/SpicyGamesView.swift; sourceTree = "<group>"; };
+		9A004262C0000000000000426 /* LoveDiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/LoveDiceView.swift; sourceTree = "<group>"; };
+		9A004272C0000000000000427 /* HigherCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/HigherCardView.swift; sourceTree = "<group>"; };
+		9A004282C0000000000000428 /* WouldYouRatherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/WouldYouRatherView.swift; sourceTree = "<group>"; };
+		9A004292C0000000000000429 /* LoveRouletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/LoveRouletteView.swift; sourceTree = "<group>"; };
+		9A0042A2C000000000000042A /* NeverHaveIEverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/NeverHaveIEverView.swift; sourceTree = "<group>"; };
+		9A0042B2C000000000000042B /* GameModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/GameModels.swift; sourceTree = "<group>"; };
+		9A0042C2C000000000000042C /* GameHistoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/GameHistoryModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -239,6 +255,14 @@
 				9A004222C0000000000000422 /* LockScreenView.swift */,
 				9A004232C0000000000000423 /* WhoView.swift */,
 				9A004242C0000000000000424 /* GoogleSetupView.swift */,
+				9A004252C0000000000000425 /* SpicyGamesView.swift */,
+				9A004262C0000000000000426 /* LoveDiceView.swift */,
+				9A004272C0000000000000427 /* HigherCardView.swift */,
+				9A004282C0000000000000428 /* WouldYouRatherView.swift */,
+				9A004292C0000000000000429 /* LoveRouletteView.swift */,
+				9A0042A2C000000000000042A /* NeverHaveIEverView.swift */,
+				9A0042B2C000000000000042B /* GameModels.swift */,
+				9A0042C2C000000000000042C /* GameHistoryModel.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -368,6 +392,14 @@
 				9A0003A2C00000000000003A /* LockScreenView.swift in Sources */,
 				9A0003B2C00000000000003B /* WhoView.swift in Sources */,
 				9A0003C2C00000000000003C /* GoogleSetupView.swift in Sources */,
+				9A0003D2C00000000000003D /* SpicyGamesView.swift in Sources */,
+				9A0003E2C00000000000003E /* LoveDiceView.swift in Sources */,
+				9A0003F2C00000000000003F /* HigherCardView.swift in Sources */,
+				9A000402C000000000000040 /* WouldYouRatherView.swift in Sources */,
+				9A000412C000000000000041 /* LoveRouletteView.swift in Sources */,
+				9A000422C000000000000042 /* NeverHaveIEverView.swift in Sources */,
+				9A000432C000000000000043 /* GameModels.swift in Sources */,
+				9A000442C000000000000044 /* GameHistoryModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

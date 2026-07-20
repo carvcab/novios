@@ -172,7 +172,11 @@ class UserService extends ChangeNotifier {
         final uid = codeDoc.data()?['uid'] as String?;
         if (uid != null && uid != myUid) {
           final userDoc = await db.collection('users').doc(uid).get();
-          if (userDoc.exists) return userDoc.data();
+          if (userDoc.exists) {
+            final data = userDoc.data()!;
+            data['uid'] = uid;
+            return data;
+          }
         }
       }
 
@@ -182,7 +186,11 @@ class UserService extends ChangeNotifier {
         final uid = usernameDoc.data()?['uid'] as String?;
         if (uid != null && uid != myUid) {
           final userDoc = await db.collection('users').doc(uid).get();
-          if (userDoc.exists) return userDoc.data();
+          if (userDoc.exists) {
+            final data = userDoc.data()!;
+            data['uid'] = uid;
+            return data;
+          }
         }
       }
 
@@ -190,7 +198,13 @@ class UserService extends ChangeNotifier {
       final emailSnap = await db.collection('users').where('email', isEqualTo: clean).limit(1).get();
       if (emailSnap.docs.isNotEmpty) {
         final userDoc = emailSnap.docs.first;
-        if (userDoc.id != myUid) return userDoc.data();
+        if (userDoc.id != myUid) {
+          final data = userDoc.data();
+          if (data != null) {
+            data['uid'] = userDoc.id;
+            return data;
+          }
+        }
       }
 
       return null;

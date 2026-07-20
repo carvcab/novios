@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/user_service.dart';
+import '../home_navigation.dart';
 
 class AddPartnerScreen extends StatefulWidget {
   const AddPartnerScreen({super.key});
@@ -82,9 +83,12 @@ class _AddPartnerScreenState extends State<AddPartnerScreen> with SingleTickerPr
     final result = await UserService().addPartner(_searchCtrl.text.trim());
     if (!mounted) return;
     if (result == AddPartnerResult.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vincularon sus cuentas exitosamente!')),
-      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeNavigation()),
+        );
+      }
       return;
     }
     setState(() {
@@ -104,6 +108,12 @@ class _AddPartnerScreenState extends State<AddPartnerScreen> with SingleTickerPr
 
   void _skip() async {
     await UserService().didSkipPartner();
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeNavigation()),
+      );
+    }
   }
 
   void _copyCode() {
