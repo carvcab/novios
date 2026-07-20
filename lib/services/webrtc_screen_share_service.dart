@@ -58,6 +58,7 @@ class WebRTCScreenShareService {
     // 1. Iniciar servicio Foreground para Android 14+ (MediaProjection requirement)
     try {
       await _appChannel.invokeMethod('startScreenShareService');
+      await Future.delayed(const Duration(milliseconds: 500));
     } catch (e) {
       debugPrint('startScreenShareService error: $e');
     }

@@ -110,12 +110,33 @@ class MainActivity : FlutterActivity() {
                 }
                 "startScreenShareService" -> {
                     try {
-                        val intent = Intent(this, ScreenShareService::class.java)
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                            startForegroundService(intent)
-                        } else {
-                            startService(intent)
+                        val serviceClasses = listOf(
+                            "com.cloudwebrtc.webrtc.FlutterWebRtcService",
+                            "com.cloudwebrtc.webrtc.ForegroundService"
+                        )
+                        for (className in serviceClasses) {
+                            try {
+                                val clazz = Class.forName(className)
+                                if (android.app.Service::class.java.isAssignableFrom(clazz)) {
+                                    val intent = Intent(this, clazz)
+                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                        startForegroundService(intent)
+                                    } else {
+                                        startService(intent)
+                                    }
+                                }
+                            } catch (_: Exception) {}
                         }
+
+                        try {
+                            val localIntent = Intent(this, ScreenShareService::class.java)
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                startForegroundService(localIntent)
+                            } else {
+                                startService(localIntent)
+                            }
+                        } catch (_: Exception) {}
+
                         result.success(true)
                     } catch (e: Exception) {
                         result.error("SERVICE_ERROR", e.message, null)
@@ -123,6 +144,18 @@ class MainActivity : FlutterActivity() {
                 }
                 "stopScreenShareService" -> {
                     try {
+                        val serviceClasses = listOf(
+                            "com.cloudwebrtc.webrtc.FlutterWebRtcService",
+                            "com.cloudwebrtc.webrtc.ForegroundService"
+                        )
+                        for (className in serviceClasses) {
+                            try {
+                                val clazz = Class.forName(className)
+                                if (android.app.Service::class.java.isAssignableFrom(clazz)) {
+                                    stopService(Intent(this, clazz))
+                                }
+                            } catch (_: Exception) {}
+                        }
                         stopService(Intent(this, ScreenShareService::class.java))
                         result.success(true)
                     } catch (e: Exception) {
