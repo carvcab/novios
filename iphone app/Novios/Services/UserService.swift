@@ -33,15 +33,15 @@ public class UserService: ObservableObject {
         if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(cleanUsername)"),
            let fields = doc["fields"] as? [String: Any],
            let uid = (fields["uid"] as? [String: Any])?["stringValue"] as? String {
-            // Found in usernames collection, get full user details
             if let uDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                let uf = uDoc["fields"] as? [String: Any] {
                 let displayName = (uf["displayName"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
                 let uname = (uf["username"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
                 let email = (uf["email"] as? [String: Any])?["stringValue"] as? String ?? ""
-                return ["uid": uid, "displayName": displayName, "username": uname, "email": email]
+                let partnerUid = (uf["partnerUid"] as? [String: Any])?["stringValue"] as? String ?? ""
+                return ["uid": uid, "displayName": displayName, "username": uname, "email": email, "hasPartner": !partnerUid.isEmpty]
             }
-            return ["uid": uid, "displayName": cleanUsername, "username": cleanUsername, "email": ""]
+            return ["uid": uid, "displayName": cleanUsername, "username": cleanUsername, "email": "", "hasPartner": false]
         }
 
         // 2. Try Firestore query on users collection by username
@@ -50,7 +50,8 @@ public class UserService: ObservableObject {
            let f = first["fields"] as? [String: Any] {
             let uid = (first["name"] as? String)?.split(separator: "/").last.map(String.init) ?? ""
             let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String ?? cleanUsername
-            return ["uid": uid, "displayName": displayName, "username": cleanUsername, "email": ""]
+            let partnerUid = (f["partnerUid"] as? [String: Any])?["stringValue"] as? String ?? ""
+            return ["uid": uid, "displayName": displayName, "username": cleanUsername, "email": "", "hasPartner": !partnerUid.isEmpty]
         }
 
         // 3. Try by email
@@ -60,7 +61,8 @@ public class UserService: ObservableObject {
                let f = first["fields"] as? [String: Any] {
                 let uid = (first["name"] as? String)?.split(separator: "/").last.map(String.init) ?? ""
                 let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String ?? cleaned
-                return ["uid": uid, "displayName": displayName, "username": cleanUsername, "email": cleaned]
+                let partnerUid = (f["partnerUid"] as? [String: Any])?["stringValue"] as? String ?? ""
+                return ["uid": uid, "displayName": displayName, "username": cleanUsername, "email": cleaned, "hasPartner": !partnerUid.isEmpty]
             }
         }
 
@@ -75,10 +77,18 @@ public class UserService: ObservableObject {
         let partnerId = partnerData["uid"] as? String ?? ""
         guard !partnerId.isEmpty else { return .notFound }
         
+        let myUid = FirebaseRESTService.shared.localId ?? user.id
+        if partnerId == myUid {
+            return .error("No puedes vincularte a ti mismo")
+        }
+        
+        if partnerData["hasPartner"] as? Bool == true {
+            return .targetHasPartner
+        }
+        
         let displayName = partnerData["displayName"] as? String ?? "Mi Pareja ❤️"
         let username = partnerData["username"] as? String ?? "pareja"
         let email = partnerData["email"] as? String ?? ""
-        let myUid = FirebaseRESTService.shared.localId ?? user.id
         let coupleId = [myUid, partnerId].sorted().joined(separator: "_")
 
         do {

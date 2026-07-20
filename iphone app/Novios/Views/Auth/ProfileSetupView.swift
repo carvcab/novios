@@ -36,10 +36,8 @@ public struct ProfileSetupView: View {
                             .padding(.horizontal, 4)
                         
                         GradientButton(title: "Guardar y Continuar", icon: "checkmark.circle.fill") {
-                            guard var user = authService.currentUser else { return }
-                            user.username = username.isEmpty ? "usuario" : username
-                            authService.saveUser(user)
-                            authService.currentUser = user
+                            let cleanUsername = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                            authService.saveProfile(dob: birthday, username: cleanUsername.isEmpty ? "usuario" : cleanUsername, partnerName: nil)
                         }
                     }
                 }
