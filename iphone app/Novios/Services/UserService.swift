@@ -15,11 +15,7 @@ public class UserService: ObservableObject {
     @Published public var partnerUser: UserModel?
     @Published public var isSearching: Bool = false
     
-    private var partnerObserverCancellable: AnyCancellable?
-    
-    private init() {
-        loadMockPartnerIfNeeded()
-    }
+    private init() {}
     
     public func searchUser(query: String) async -> [String: Any]? {
         await MainActor.run { self.isSearching = true }
@@ -29,7 +25,6 @@ public class UserService: ObservableObject {
         let cleanUsername = cleaned.hasPrefix("@") ? String(cleaned.dropFirst()) : cleaned
         if cleanUsername.isEmpty { return nil }
 
-        // 1. Try direct read from usernames/{username} (no index needed)
         if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(cleanUsername)"),
            let fields = doc["fields"] as? [String: Any],
            let uid = (fields["uid"] as? [String: Any])?["stringValue"] as? String {
@@ -44,11 +39,7 @@ public class UserService: ObservableObject {
             return ["uid": uid, "displayName": cleanUsername, "username": cleanUsername, "email": ""]
         }
 
-        // 2. Try as email (if contains @)
         if cleaned.contains("@") {
-            // Try to find the user by checking if their email exists in the system
-            // We can't search Firestore by email without an index, but we can try a direct document read
-            // by checking if there's a usernames document with this email
             if let allDocs = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames?pageSize=200"),
                let docs = allDocs["documents"] as? [[String: Any]] {
                 for doc in docs {
@@ -69,7 +60,6 @@ public class UserService: ObservableObject {
             }
         }
 
-        // 3. Fallback: list all users and filter locally
         if let usersList = try? await FirebaseRESTService.shared.firestoreGet(path: "users?pageSize=200"),
            let docs = usersList["documents"] as? [[String: Any]] {
             for doc in docs {
@@ -138,60 +128,4 @@ public class UserService: ObservableObject {
 
         return .success
     }
-    
-    public func updateMood(emoji: String, message: String? = nil) {
-        guard var user = AuthService.shared.currentUser else { return }
-        user.mood = emoji
-        user.moodMessage = message
-        AuthService.shared.saveUser(user)
-        AuthService.shared.currentUser = user
-    }
-    
-    public func updateBattery(level: Double, isCharging: Bool) {
-        guard var user = AuthService.shared.currentUser else { return }
-        user.batteryLevel = level
-        user.isCharging = isCharging
-        AuthService.shared.saveUser(user)
-        AuthService.shared.currentUser = user
-    }
-    
-    public func didSkipPartner() {
-        guard var user = AuthService.shared.currentUser else { return }
-        user.skippedPartner = true
-        AuthService.shared.saveUser(user)
-        AuthService.shared.currentUser = user
-    }
-    
-    public func simulatePartnerEvent(event: PartnerEventType) {
-        guard var partner = partnerUser else { return }
-        let name = partner.displayName
-        switch event {
-        case .lowBattery(let level):
-            partner.batteryLevel = Double(level) / 100.0
-            partner.isCharging = false; self.partnerUser = partner
-        case .startedCharging:
-            partner.isCharging = true; self.partnerUser = partner
-        case .moodChanged(let emoji, let text):
-            partner.mood = emoji; partner.moodMessage = text; self.partnerUser = partner
-        case .proximityAlert(let distText):
-            break
-        }
-    }
-    
-    private func loadMockPartnerIfNeeded() {
-        if let user = AuthService.shared.currentUser, user.isPaired {
-            self.partnerUser = UserModel(
-                id: user.partnerUid ?? "", email: "", displayName: user.partnerUid ?? "Pareja",
-                username: "", pairCode: "", partnerUid: user.id,
-                anniversaryDate: user.anniversaryDate ?? Date().addingTimeInterval(-86400 * 200),
-                mood: "🥰", batteryLevel: 0.85, isCharging: true)
-        }
-    }
-}
-
-public enum PartnerEventType {
-    case lowBattery(Int)
-    case startedCharging
-    case moodChanged(String, String?)
-    case proximityAlert(String)
 }
