@@ -190,11 +190,20 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     // MARK: - Voice Recording
 
     public func startRecording() {
-        // Only record if permission is already granted
-        if AVAudioSession.sharedInstance().recordPermission == .granted {
+        switch AVAudioSession.sharedInstance().recordPermission {
+        case .granted:
+            actuallyStartRecording()
+        case .undetermined:
+            AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
+                DispatchQueue.main.async {
+                    if granted { self?.actuallyStartRecording() }
+                }
+            }
+        case .denied:
+            break // Silently fail, permission denied
+        @unknown default:
             actuallyStartRecording()
         }
-        // If not granted, silently fail - permission should be requested during onboarding
     }
 
     private func actuallyStartRecording() {
