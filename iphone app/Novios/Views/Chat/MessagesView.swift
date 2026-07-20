@@ -7,6 +7,7 @@ public struct MessagesView: View {
     @State private var textInput = ""
     @State private var showImagePicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var showSettings = false
 
     private let emojis = ["❤️", "😘", "🥺", "💖", "💑", "🔥", "🌹", "✨", "💍"]
 
@@ -47,6 +48,20 @@ public struct MessagesView: View {
             .navigationTitle("Chat")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
+            }
             .photosPicker(isPresented: $showImagePicker, selection: $selectedPhotoItem, matching: .images)
             .onChange(of: selectedPhotoItem) { item in
                 Task {
