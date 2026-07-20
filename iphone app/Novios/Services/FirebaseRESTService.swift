@@ -3,10 +3,8 @@ import Foundation
 public class FirebaseRESTService {
     public static let shared = FirebaseRESTService()
 
-    private let primaryAPIKey = "AIzaSyCSgxk_uEtVFmJHTqCMmlaKmnc8Fvf_rnQ"
-    private let backupAPIKey = "AIzaSyCG9W2qU4SH2RkjNRJHI96fJzt3hHqLzys"
+    private let primaryAPIKey = "AIzaSyCktJIn5LJtLCCSGQxe9sZt1CnCRly7EMw"
     private let primaryProjectID = "novios-8beb7"
-    private let backupProjectID = "novios-49289"
 
     public private(set) var currentAPIKey: String
     public private(set) var currentProjectID: String
@@ -16,20 +14,16 @@ public class FirebaseRESTService {
     public private(set) var refreshToken: String?
 
     private let session = URLSession.shared
-    private var isProcessing = false
-    private var consecutiveErrors = 0
-    private let maxErrorsBeforeBackup = 3
 
     private init() {
         currentAPIKey = primaryAPIKey
         currentProjectID = primaryProjectID
+        UserDefaults.standard.removeObject(forKey: "firebase_use_backup")
     }
 
     public func switchToBackup() {
-        currentAPIKey = backupAPIKey
-        currentProjectID = backupProjectID
-        isUsingBackup = true
-        UserDefaults.standard.set(true, forKey: "firebase_use_backup")
+        // Disabled to ensure iOS stays on novios-8beb7 project with Android
+        switchToPrimary()
     }
 
     public func switchToPrimary() {
@@ -40,9 +34,7 @@ public class FirebaseRESTService {
     }
 
     public func loadSavedConfig() {
-        if UserDefaults.standard.bool(forKey: "firebase_use_backup") {
-            switchToBackup()
-        }
+        switchToPrimary()
         idToken = UserDefaults.standard.string(forKey: "fb_id_token")
         localId = UserDefaults.standard.string(forKey: "fb_local_id")
         refreshToken = UserDefaults.standard.string(forKey: "fb_refresh_token")
