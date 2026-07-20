@@ -144,8 +144,12 @@ public class AuthService: ObservableObject {
             currentUser = UserModel(id: uid, email: email, displayName: name, username: username)
             isLoggedIn = true
             checkProfileAndPartner()
+            // Try to sync from Firestore to get latest data
             Task {
-                try? await syncUserFromFirestore(uid: uid)
+                if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
+                   let fields = doc["fields"] as? [String: Any] {
+                    await self.syncFromFirestore(fields)
+                }
                 await MainActor.run {
                     self.checkProfileAndPartner()
                     self.isRestoringSession = false
@@ -153,6 +157,38 @@ public class AuthService: ObservableObject {
             }
         } else {
             isRestoringSession = false
+        }
+    }
+
+    private func syncFromFirestore(_ fields: [String: Any]) async {
+        let extract = { (key: String) -> String? in
+            (fields[key] as? [String: Any])?["stringValue"] as? String
+        }
+        let username = extract("username") ?? ""
+        let dob = extract("dob") ?? extract("birthdayDate") ?? extract("birthday_date") ?? ""
+        let partnerUid = extract("partnerUid") ?? ""
+        let partnerName = extract("partnerName") ?? ""
+        let displayName = extract("displayName") ?? extract("name") ?? ""
+
+        let defaults = UserDefaults.standard
+
+        // Always save what we got from Firestore
+        if !username.isEmpty || !displayName.isEmpty {
+            defaults.set(dob, forKey: "profile_dob")
+            defaults.set(username.isEmpty ? displayName.lowercased() : username, forKey: "profile_username")
+            defaults.set(true, forKey: "onboarding_complete")
+            if !displayName.isEmpty { defaults.set(displayName, forKey: "auth_user_name") }
+            await MainActor.run { self.hasProfile = true }
+        }
+        if !partnerUid.isEmpty {
+            defaults.set(partnerUid, forKey: "partner_uid")
+            defaults.set(partnerName.isEmpty ? "Pareja" : partnerName, forKey: "partner_name")
+            defaults.set(true, forKey: "onboarding_complete")
+            await MainActor.run { self.hasPartner = true }
+        }
+        // If Firestore has data, also set FirebaseRESTService tokens if missing
+        if FirebaseRESTService.shared.localId == nil {
+            FirebaseRESTService.shared.loadSavedConfig()
         }
     }
 
