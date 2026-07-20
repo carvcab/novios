@@ -98,7 +98,6 @@ class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    GoogleAuthService().addListener(_onAuthChanged);
     UserService().addListener(_onAuthChanged);
     _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
     _ctrl.forward();
@@ -110,13 +109,11 @@ class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
   }
 
   Future<void> _checkFirestore() async {
-    final auth = GoogleAuthService();
-    if (!auth.isSignedIn) return;
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null || firebaseUser.isAnonymous) return;
 
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
-
+      final uid = firebaseUser.uid;
       final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
       if (!mounted) return;
@@ -127,11 +124,6 @@ class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
         final remoteName = data['name'] as String?;
         if (remoteName != null && remoteName.isNotEmpty) {
           await LocalStorage().setString('user_name', remoteName);
-        } else {
-          final googleName = auth.displayName;
-          if (googleName != null && googleName.isNotEmpty) {
-            await LocalStorage().setString('user_name', googleName);
-          }
         }
 
         final bday = data['birthdayDate'];
@@ -150,11 +142,6 @@ class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
         final remoteUsername = data['username'] as String?;
         if (remoteUsername != null && remoteUsername.isNotEmpty) {
           await LocalStorage().setString('username', remoteUsername);
-        } else {
-          final displayName = LocalStorage().getUserName() ?? auth.displayName ?? '';
-          if (displayName.isNotEmpty) {
-            await LocalStorage().setString('username', displayName.toLowerCase().replaceAll(RegExp(r'\s+'), ''));
-          }
         }
 
         final remoteCoupleId = data['coupleId'] as String?;
@@ -170,14 +157,13 @@ class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
           await LocalStorage().setString('partner_name', remotePartnerName);
         }
 
-        final email = auth.currentEmail;
+        final email = firebaseUser.email;
         if (email != null) {
           await LocalStorage().setBool('setup_complete_$email', true);
         }
         await LocalStorage().setBool('has_firestore_profile', true);
       }
 
-      // Rebuild: if doc existed → skip onboarding; if not → show onboarding
       if (mounted) setState(() {});
     } catch (_) {
       if (mounted) setState(() {});
@@ -192,7 +178,6 @@ class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
 
   @override
   void dispose() {
-    GoogleAuthService().removeListener(_onAuthChanged);
     UserService().removeListener(_onAuthChanged);
     _ctrl.dispose();
     super.dispose();

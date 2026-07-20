@@ -1,5 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'local_storage.dart';
-import 'google_auth_service.dart';
+import 'auth_service.dart';
 import 'user_service.dart';
 
 class ProfileService {
@@ -8,7 +9,7 @@ class ProfileService {
   ProfileService._();
 
   String? get myName {
-    return GoogleAuthService().displayName ?? LocalStorage().getUserName() ?? 'Yo';
+    return LocalStorage().getUserName() ?? FirebaseAuth.instance.currentUser?.displayName ?? 'Yo';
   }
 
   String? get partnerName {
@@ -24,12 +25,12 @@ class ProfileService {
     return 'EverUs';
   }
 
-  String? get myPhotoUrl => GoogleAuthService().photoUrl;
+  String? get myPhotoUrl => FirebaseAuth.instance.currentUser?.photoURL;
 
   Future<void> init() async {
   }
 
   Future<void> logout() async {
-    await GoogleAuthService().signOut();
+    await AuthService().signOut();
   }
 }

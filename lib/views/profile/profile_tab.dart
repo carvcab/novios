@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/user_model.dart';
 import '../../services/firebase_service.dart';
 import '../../services/local_storage.dart';
 import '../../services/storage_service.dart';
-import '../../services/google_auth_service.dart';
 import '../../widgets/glass_card.dart';
 import '../letters/letters_tab.dart';
 import '../games/games_tab.dart';
@@ -557,9 +557,8 @@ class _ProfileHeader extends StatefulWidget {
 class _ProfileHeaderState extends State<_ProfileHeader> {
   @override
   Widget build(BuildContext context) {
-    final auth = GoogleAuthService();
     final customPhoto = LocalStorage().getString('custom_profile_photo');
-    final myPhotoUrl = customPhoto ?? auth.photoUrl;
+    final myPhotoUrl = customPhoto ?? FirebaseAuth.instance.currentUser?.photoURL;
 
     final myInitial = widget.name.isNotEmpty ? widget.name[0].toUpperCase() : '?';
     final partnerInitial = widget.partnerName.isNotEmpty ? widget.partnerName[0].toUpperCase() : '?';

@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/user_service.dart';
@@ -20,7 +20,6 @@ class _AddPartnerScreenState extends State<AddPartnerScreen> with SingleTickerPr
   Map<String, dynamic>? _foundUser;
   String? _error;
   Timer? _debounce;
-  String _myPairCode = '';
 
   @override
   void initState() {
@@ -28,12 +27,6 @@ class _AddPartnerScreenState extends State<AddPartnerScreen> with SingleTickerPr
     _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
     _fadeAnim = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
     _ctrl.forward();
-    _loadMyCode();
-  }
-
-  Future<void> _loadMyCode() async {
-    final code = await UserService().getOrGeneratePairCode();
-    if (mounted) setState(() => _myPairCode = code);
   }
 
   @override
@@ -99,9 +92,9 @@ class _AddPartnerScreenState extends State<AddPartnerScreen> with SingleTickerPr
         case AddPartnerResult.targetHasPartner:
           _error = 'Esta persona ya esta vinculada con otra pareja.';
         case AddPartnerResult.notFound:
-          _error = 'No se pudo encontrar al usuario. Verifica el codigo o usuario.';
+          _error = 'No se encontró ningún usuario con ese nombre o correo.';
         default:
-          _error = 'Ocurrio un error al vincular. Intenta de nuevo.';
+          _error = 'Ocurrió un error al vincular. Intenta de nuevo.';
       }
     });
   }
@@ -114,14 +107,6 @@ class _AddPartnerScreenState extends State<AddPartnerScreen> with SingleTickerPr
         MaterialPageRoute(builder: (_) => const HomeNavigation()),
       );
     }
-  }
-
-  void _copyCode() {
-    if (_myPairCode.isEmpty) return;
-    Clipboard.setData(ClipboardData(text: _myPairCode));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Codigo  copiado al portapapeles!')),
-    );
   }
 
   @override
