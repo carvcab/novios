@@ -113,8 +113,5 @@ public struct AddPartnerView: View {
             }
             .padding(.horizontal, 24)
         }
-        .task {
-            myPairCode = await userService.getOrGeneratePairCode()
-        }
     }
 }
