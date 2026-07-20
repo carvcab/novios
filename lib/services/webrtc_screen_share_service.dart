@@ -77,8 +77,12 @@ class WebRTCScreenShareService {
     // 2. Crear RTCPeerConnection
     _peerConnection = await createPeerConnection(_iceServers);
 
-    // 3. Agregar Pista de Video
+    // 3. Agregar Pistas de Video y escuchar la finalización por parte del sistema OS
     for (var track in _localStream!.getTracks()) {
+      track.onEnded = () {
+        debugPrint('[WebRTC] MediaProjection track finalizada por el sistema.');
+        stopAll();
+      };
       _peerConnection!.addTrack(track, _localStream!);
     }
 

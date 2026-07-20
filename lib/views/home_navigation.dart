@@ -5,7 +5,6 @@ import '../services/theme_provider.dart';
 import '../services/status_service.dart';
 import '../services/geofence_service.dart';
 import '../services/app_tracker.dart';
-import '../services/screen_share_service.dart';
 import '../services/firebase_service.dart';
 import '../services/chat_notification_service.dart';
 import '../services/profile_service.dart';
@@ -51,7 +50,6 @@ class _HomeNavigationState extends State<HomeNavigation> with WidgetsBindingObse
       if (mounted) {
         GeofenceService().init().catchError((_) => false);
         try { AppTracker().init(); } catch (e) { debugPrint("AppTracker init: $e"); }
-        try { ScreenShareService().init(); } catch (e) { debugPrint("ScreenShare init: $e"); }
         try { WidgetService().updateAllWidgets().catchError((_) {}); } catch (e) { debugPrint("WidgetService update: $e"); }
       }
     });
@@ -99,10 +97,8 @@ class _HomeNavigationState extends State<HomeNavigation> with WidgetsBindingObse
     final cs = Theme.of(context).colorScheme;
     final isDark = theme.isDark;
 
-    return RepaintBoundary(
-      key: ScreenShareService.screenshotKey,
-      child: ConfettiOverlay(
-        child: Scaffold(
+    return ConfettiOverlay(
+      child: Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             title: Row(

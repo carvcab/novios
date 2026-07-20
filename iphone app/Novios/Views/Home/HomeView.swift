@@ -28,6 +28,7 @@ public struct HomeView: View {
         NavigationStack {
             ZStack {
                 LiquidBackgroundView()
+                    .ignoresSafeArea()
                 FloatingHeartsEffect()
 
                 ScrollView(showsIndicators: false) {
