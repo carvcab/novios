@@ -18,10 +18,6 @@ public struct ProfileView: View {
     private let bestStreakKey = "best_streak"
     private let lastActiveKey = "last_active_date"
 
-    public init() {
-        loadStreak()
-    }
-
     public var body: some View {
         NavigationStack {
             ZStack {
@@ -38,7 +34,7 @@ public struct ProfileView: View {
                 }
             }
             .navigationBarHidden(true)
-            .onAppear { checkAndUpdateStreak() }
+            .onAppear { loadStreak(); checkAndUpdateStreak() }
             .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhoto, matching: .images)
             .alert("Agregar fecha importante", isPresented: $showAddDate) {
                 TextField("Título", text: $newDateTitle)
