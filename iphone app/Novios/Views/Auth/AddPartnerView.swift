@@ -41,9 +41,21 @@ public struct AddPartnerView: View {
                             ProgressView().tint(ThemeManager.shared.primaryPink)
                         } else if foundUser != nil {
                             Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                        } else if searchText.count >= 3 {
+                            Button("Buscar") { performSearch() }
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(ThemeManager.shared.primaryPink)
                         }
                     }
                     .padding(4)
+                }
+                .onChange(of: searchText) { newValue in
+                    let trimmed = newValue.trimmingCharacters(in: .whitespaces)
+                    if trimmed.count >= 3 {
+                        performSearch()
+                    } else {
+                        foundUser = nil; errorMessage = nil
+                    }
                 }
 
                 // Found user card
