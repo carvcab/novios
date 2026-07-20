@@ -26,7 +26,7 @@ public struct MusicHistoryView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
 
                         ForEach(Array(songs.enumerated()), id: \.offset) { index, song in
-                            GlassCard(cornerRadius: 16, opacity: 0.1) {
+                            GlassCard {
                                 HStack(spacing: 14) {
                                     ZStack {
                                         RoundedRectangle(cornerRadius: 12)
