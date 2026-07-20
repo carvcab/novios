@@ -60,7 +60,7 @@ public struct ProfileView: View {
                 Button {
                     showPhotoPicker = true
                 } label: {
-                    if let photo = authService.currentUser?.profilePhotoUrl {
+                    if let photo = authService.currentUser?.avatarUrl {
                         AsyncImage(url: URL(string: photo)) { img in
                             img.resizable().scaledToFill()
                         } placeholder: {
