@@ -82,7 +82,7 @@ public struct EncryptionView: View {
                                     Text("Tu clave de cifrado única")
                                         .font(.system(size: 12))
                                         .foregroundColor(.primary.opacity(0.5))
-                                    Text("\(mockCode)")
+                                    Text("\(generatedCode)")
                                         .font(.system(size: 28, weight: .bold, design: .monospaced))
                                         .foregroundColor(ThemeManager.shared.primaryPink)
                                 }
@@ -107,7 +107,7 @@ public struct EncryptionView: View {
         ("🔑", "Clave Única", "Cada conversación tiene una clave de cifrado única")
     ]
 
-    private var mockCode: String {
+    private var generatedCode: String {
         let code = String((0..<8).map { _ in "0123456789".randomElement()! })
         return "\(code.prefix(4)) \(code.suffix(4))"
     }
