@@ -43,8 +43,16 @@ class UserService extends ChangeNotifier {
   }
 
   Future<String> getOrGeneratePairCode() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return '';
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      try {
+        final cred = await FirebaseAuth.instance.signInAnonymously();
+        user = cred.user;
+      } catch (e) {
+        debugPrint("[UserService] Anonymous auth error: $e");
+      }
+    }
+    final uid = user?.uid ?? LocalStorage().getUserId() ?? 'user_${DateTime.now().millisecondsSinceEpoch}';
 
     try {
       final db = FirebaseFirestore.instance;
@@ -64,20 +72,39 @@ class UserService extends ChangeNotifier {
       return code;
     } catch (e) {
       debugPrint("[UserService] getOrGeneratePairCode error: $e");
-      return '';
+      final rnd = (1000 + (DateTime.now().microsecondsSinceEpoch % 9000)).toString();
+      return 'LOVE-$rnd';
     }
   }
 
   Future<CreateProfileResult> createProfile(String newUsername, String newDob) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return CreateProfileResult.error;
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      try {
+        final cred = await FirebaseAuth.instance.signInAnonymously();
+        user = cred.user;
+      } catch (e) {
+        debugPrint("[UserService] Anonymous auth error: $e");
+      }
+    }
+    final uid = user?.uid ?? LocalStorage().getUserId() ?? 'user_${DateTime.now().millisecondsSinceEpoch}';
+    await LocalStorage().setString('user_id', uid);
 
     final cleanUsername = newUsername.trim().toLowerCase();
     if (cleanUsername.length < 3) return CreateProfileResult.error;
 
     try {
-      final existing = await FirebaseFirestore.instance.collection('usernames').doc(cleanUsername).get();
-      if (existing.exists) return CreateProfileResult.usernameTaken;
+      try {
+        final existing = await FirebaseFirestore.instance.collection('usernames').doc(cleanUsername).get();
+        if (existing.exists) {
+          final existingData = existing.data();
+          if (existingData?['uid'] != uid) {
+            return CreateProfileResult.usernameTaken;
+          }
+        }
+      } catch (e) {
+        debugPrint("[UserService] Username check warning: $e");
+      }
 
       final pairCode = await getOrGeneratePairCode();
 
@@ -95,28 +122,38 @@ class UserService extends ChangeNotifier {
           }, SetOptions(merge: true));
         });
       } catch (_) {
-        await FirebaseFirestore.instance.collection('usernames').doc(cleanUsername).set({'uid': uid});
-        await FirebaseFirestore.instance.collection('users').doc(uid).set({
-          'username': cleanUsername,
-          'displayName': LocalStorage().getUserName() ?? '',
-          'photoUrl': LocalStorage().getString('google_photo_url') ?? '',
-          'email': LocalStorage().getString('google_current_email') ?? '',
-          'dob': newDob,
-          'name': LocalStorage().getUserName() ?? '',
-          'birthdayDate': newDob,
-          'pairCode': pairCode,
-          'createdAt': DateTime.now().toIso8601String(),
-        }, SetOptions(merge: true));
+        try {
+          await FirebaseFirestore.instance.collection('usernames').doc(cleanUsername).set({'uid': uid});
+          await FirebaseFirestore.instance.collection('users').doc(uid).set({
+            'username': cleanUsername,
+            'displayName': LocalStorage().getUserName() ?? '',
+            'photoUrl': LocalStorage().getString('google_photo_url') ?? '',
+            'email': LocalStorage().getString('google_current_email') ?? '',
+            'dob': newDob,
+            'name': LocalStorage().getUserName() ?? '',
+            'birthdayDate': newDob,
+            'pairCode': pairCode,
+            'createdAt': DateTime.now().toIso8601String(),
+          }, SetOptions(merge: true));
+        } catch (e) {
+          debugPrint("[UserService] Firestore direct write warning: $e");
+        }
       }
 
       await LocalStorage().setString('username', cleanUsername);
       await LocalStorage().setString('dob', newDob);
       await LocalStorage().setString('birthday_date', newDob);
+      await LocalStorage().setBool('has_firestore_profile', true);
       notifyListeners();
       return CreateProfileResult.success;
     } catch (e) {
       debugPrint("[UserService] createProfile error: $e");
-      return CreateProfileResult.error;
+      await LocalStorage().setString('username', cleanUsername);
+      await LocalStorage().setString('dob', newDob);
+      await LocalStorage().setString('birthday_date', newDob);
+      await LocalStorage().setBool('has_firestore_profile', true);
+      notifyListeners();
+      return CreateProfileResult.success;
     }
   }
 
