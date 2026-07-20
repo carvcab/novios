@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../../services/screen_share_service.dart';
 
 class SenderPage extends StatefulWidget {
@@ -13,70 +12,46 @@ class SenderPage extends StatefulWidget {
 
 class _SenderPageState extends State<SenderPage> {
   final _service = ScreenShareService();
-  final _localRenderer = RTCVideoRenderer();
-  bool _isInitialized = false;
   bool _isSharing = false;
   bool _isLoading = false;
   String? _errorMessage;
-  String? _roomId;
-  String _mode = '';
   Uint8List? _previewBytes;
   DateTime _lastPreview = DateTime(2000);
   StreamSubscription? _frameSub;
-
-  @override
-  void initState() {
-    super.initState();
-    _localRenderer.initialize().then((_) {
-      if (mounted) setState(() => _isInitialized = true);
-    });
-  }
 
   Future<void> _startSharing() async {
     setState(() { _isLoading = true; _errorMessage = null; });
 
     try {
-      final roomId = widget.customRoomId ?? _service.hashCode.toString();
-      final result = await _service.startWebRTCShare(localRenderer: _localRenderer, roomId: roomId);
-      if (mounted) setState(() { _roomId = result; _isSharing = true; _isLoading = false; _mode = 'webrtc'; });
-    } catch (e) {
-      debugPrint('[Sender] WebRTC failed, trying native frames: $e');
-      try {
-        final r = await _service.requestScreenShare();
-        if (r != 'granted') {
-          if (mounted) setState(() { _errorMessage = r.contains('error') ? 'Error: $r' : 'Permiso denegado'; _isLoading = false; });
-          return;
-        }
-        _frameSub = _service.frameStream.listen((bytes) {
-          if (!mounted) return;
-          final now = DateTime.now();
-          if (now.difference(_lastPreview).inMilliseconds < 800) return;
-          _lastPreview = now;
-          setState(() => _previewBytes = bytes);
-        });
-        if (mounted) setState(() { _isSharing = true; _isLoading = false; _mode = 'frames'; });
-      } catch (e2) {
-        if (mounted) setState(() { _errorMessage = 'Error al compartir pantalla: $e2'; _isLoading = false; });
+      final r = await _service.requestScreenShare();
+      if (r != 'granted') {
+        if (mounted) setState(() { _errorMessage = r.contains('error') ? r : 'Permiso denegado'; _isLoading = false; });
+        return;
       }
+      _frameSub = _service.frameStream.listen((bytes) {
+        if (!mounted) return;
+        final now = DateTime.now();
+        if (now.difference(_lastPreview).inMilliseconds < 1000) return;
+        _lastPreview = now;
+        setState(() => _previewBytes = bytes);
+      });
+      if (mounted) setState(() { _isSharing = true; _isLoading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _errorMessage = 'Error: $e'; _isLoading = false; });
     }
   }
 
   Future<void> _stopSharing() async {
     setState(() => _isLoading = true);
-    if (_mode == 'webrtc') {
-      await _service.hangUpWebRTC(local: _localRenderer, roomId: _roomId);
-    } else {
-      _frameSub?.cancel();
-      await _service.stopScreenShare();
-    }
-    if (mounted) setState(() { _isSharing = false; _isLoading = false; _roomId = null; _previewBytes = null; _mode = ''; });
+    _frameSub?.cancel();
+    await _service.stopScreenShare();
+    if (mounted) setState(() { _isSharing = false; _isLoading = false; _previewBytes = null; });
   }
 
   @override
   void dispose() {
     _frameSub?.cancel();
-    _service.hangUpWebRTC(local: _localRenderer, roomId: _roomId);
-    _localRenderer.dispose();
+    _service.stopScreenShare();
     super.dispose();
   }
 
@@ -94,27 +69,19 @@ class _SenderPageState extends State<SenderPage> {
           child: Column(
             children: [
               Expanded(
-                child: _mode == 'webrtc' && _isInitialized
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: RTCVideoView(_localRenderer, objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain),
-                      )
-                    : _previewBytes != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.memory(_previewBytes!, fit: BoxFit.contain),
-                          )
-                        : Container(
-                            decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(16)),
-                            child: Center(
-                              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                                Icon(Icons.screen_share_rounded, size: 64, color: Colors.white.withValues(alpha: 0.2)),
-                                const SizedBox(height: 12),
-                                Text('Presiona "Iniciar" para compartir tu pantalla',
-                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 14), textAlign: TextAlign.center),
-                              ]),
-                            ),
-                          ),
+                child: _previewBytes != null
+                    ? ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.memory(_previewBytes!, fit: BoxFit.contain))
+                    : Container(
+                        decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(16)),
+                        child: Center(
+                          child: Column(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.screen_share_rounded, size: 64, color: Colors.white.withValues(alpha: 0.2)),
+                            const SizedBox(height: 12),
+                            Text('Presiona "Iniciar" para compartir tu pantalla',
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 14), textAlign: TextAlign.center),
+                          ]),
+                        ),
+                      ),
               ),
               if (_errorMessage != null)
                 Container(

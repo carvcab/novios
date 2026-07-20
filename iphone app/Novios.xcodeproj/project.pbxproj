@@ -83,6 +83,10 @@
 		9A000422C000000000000042 /* NeverHaveIEverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0042A2C000000000000042A /* NeverHaveIEverView.swift */; };
 		9A000432C000000000000043 /* GameModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0042B2C000000000000042B /* GameModels.swift */; };
 		9A000442C000000000000044 /* GameHistoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0042C2C000000000000042C /* GameHistoryModel.swift */; };
+		9A000452C000000000000045 /* QuizGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0042D2C000000000000042D /* QuizGameView.swift */; };
+		9A000462C000000000000046 /* MemoramaGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0042E2C000000000000042E /* MemoramaGameView.swift */; };
+		9A000472C000000000000047 /* TicTacToeGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0042F2C000000000000042F /* TicTacToeGameView.swift */; };
+		9A000482C000000000000048 /* RPSGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004302C0000000000000430 /* RPSGameView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -163,6 +167,10 @@
 		9A0042A2C000000000000042A /* NeverHaveIEverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/NeverHaveIEverView.swift; sourceTree = "<group>"; };
 		9A0042B2C000000000000042B /* GameModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/GameModels.swift; sourceTree = "<group>"; };
 		9A0042C2C000000000000042C /* GameHistoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/GameHistoryModel.swift; sourceTree = "<group>"; };
+		9A0042D2C000000000000042D /* QuizGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/QuizGameView.swift; sourceTree = "<group>"; };
+		9A0042E2C000000000000042E /* MemoramaGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/MemoramaGameView.swift; sourceTree = "<group>"; };
+		9A0042F2C000000000000042F /* TicTacToeGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/TicTacToeGameView.swift; sourceTree = "<group>"; };
+		9A004302C0000000000000430 /* RPSGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Games/RPSGameView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -263,6 +271,10 @@
 				9A0042A2C000000000000042A /* NeverHaveIEverView.swift */,
 				9A0042B2C000000000000042B /* GameModels.swift */,
 				9A0042C2C000000000000042C /* GameHistoryModel.swift */,
+				9A0042D2C000000000000042D /* QuizGameView.swift */,
+				9A0042E2C000000000000042E /* MemoramaGameView.swift */,
+				9A0042F2C000000000000042F /* TicTacToeGameView.swift */,
+				9A004302C0000000000000430 /* RPSGameView.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -400,6 +412,10 @@
 				9A000422C000000000000042 /* NeverHaveIEverView.swift in Sources */,
 				9A000432C000000000000043 /* GameModels.swift in Sources */,
 				9A000442C000000000000044 /* GameHistoryModel.swift in Sources */,
+				9A000452C000000000000045 /* QuizGameView.swift in Sources */,
+				9A000462C000000000000046 /* MemoramaGameView.swift in Sources */,
+				9A000472C000000000000047 /* TicTacToeGameView.swift in Sources */,
+				9A000482C000000000000048 /* RPSGameView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
