@@ -364,7 +364,7 @@ public struct CoupleGamesView: View {
         ZStack {
             RoundedRectangle(cornerRadius: 20)
                 .fill(card.gradient)
-                .shadow(color: card.gradient.colors[0].opacity(0.25), radius: 12, x: 0, y: 6)
+                .shadow(color: ThemeManager.shared.primaryPink.opacity(0.25), radius: 12, x: 0, y: 6)
 
             VStack(spacing: 12) {
                 ZStack {
