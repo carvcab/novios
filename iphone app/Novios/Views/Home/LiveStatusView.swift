@@ -1,25 +1,8 @@
 import SwiftUI
 
-private struct StatusData {
-    var isOnline = false
-    var currentScreen = ""
-    var lastSeen: Date?
-    var batteryLevel = -1
-    var isCharging = false
-    var currentApp = ""
-    var currentAppLabel = ""
-    var phoneState = "activo"
-    var lastNotification: (app: String, title: String, text: String)?
-    var lastNotificationTime: Date?
-}
-
-private let partnerName = "Valentina"
-
 public struct LiveStatusView: View {
-    @State private var status = StatusData()
+    @StateObject private var statusService = StatusService.shared
     @State private var screenHistory: [(String, Date)] = []
-
-    private let statusTimer = Timer.publish(every: 3, on: .main, in: .common).autoconnect()
 
     public var body: some View {
         NavigationStack {
@@ -29,39 +12,41 @@ public struct LiveStatusView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 12) {
                         // Avatar
+                        let isOnline = statusService.isOnline
                         ZStack {
                             Circle()
-                                .fill(LinearGradient(colors: status.isOnline ? [.green, Color.green.opacity(0.7)] : [.gray.opacity(0.2), .gray.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .fill(LinearGradient(colors: isOnline ? [.green, Color.green.opacity(0.7)] : [.gray.opacity(0.2), .gray.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing))
                                 .frame(width: 110, height: 110)
-                                .shadow(color: status.isOnline ? .green.opacity(0.3) : .clear, radius: 24)
-                            Image(systemName: status.isOnline ? "heart.fill" : "heart")
+                                .shadow(color: isOnline ? .green.opacity(0.3) : .clear, radius: 24)
+                            Image(systemName: isOnline ? "heart.fill" : "heart")
                                 .font(.system(size: 46)).foregroundColor(.white)
                         }
 
+                        let partnerName = UserDefaults.standard.string(forKey: "partner_name") ?? "Pareja"
                         Text(partnerName).font(.system(size: 22, weight: .bold)).foregroundColor(.primary)
 
                         // Online badge
                         HStack(spacing: 8) {
-                            Circle().fill(status.isOnline ? Color.green : Color.gray.opacity(0.3)).frame(width: 8, height: 8)
-                            Text(status.isOnline ? "En línea ahora" : "Desconectado")
+                            Circle().fill(isOnline ? Color.green : Color.gray.opacity(0.3)).frame(width: 8, height: 8)
+                            Text(isOnline ? "En línea ahora" : "Desconectado")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(status.isOnline ? .green : .primary.opacity(0.4))
+                                .foregroundColor(isOnline ? .green : .primary.opacity(0.4))
                         }
                         .padding(.horizontal, 16).padding(.vertical, 6)
-                        .background(status.isOnline ? Color.green.opacity(0.12) : .primary.opacity(0.06))
+                        .background(isOnline ? Color.green.opacity(0.12) : .primary.opacity(0.06))
                         .cornerRadius(20)
 
-                        // Current app card
+                        // Current app card (from Firestore)
                         GlassCard { appCardContent }
                         // Battery card
-                        GlassCard { detailCard(icon: status.isCharging ? "battery.100.bolt" : "battery.100", label: "Batería", value: status.batteryLevel >= 0 ? "\(status.batteryLevel)%\(status.isCharging ? "  Cargando" : "")" : "Desconocido", color: status.isCharging ? .green : (status.batteryLevel > 20 ? .green : (status.batteryLevel >= 0 ? .red : .gray)), isActive: status.batteryLevel >= 0) }
+                        GlassCard { detailCard(icon: isCharging ? "battery.100.bolt" : "battery.100", label: "Batería", value: batteryValue, color: batteryColor, isActive: batteryLevel >= 0) }
                         // Last seen card
-                        GlassCard { detailCard(icon: "clock", label: "Última vez activo", value: status.lastSeen != nil ? formatDateTime(status.lastSeen!) : "Desconocido", color: .orange, isActive: status.lastSeen != nil, trailing: status.lastSeen != nil ? Text(timeAgo(status.lastSeen!)).font(.system(size: 11)).foregroundColor(.primary.opacity(0.4)) : nil) }
+                        GlassCard { detailCard(icon: "clock", label: "Última vez activo", value: lastSeenText, color: .orange, isActive: lastSeen != nil) }
                         // Phone state card
                         GlassCard { phoneStateCard }
                         // Last notification card
-                        if let notif = status.lastNotification {
-                            GlassCard { lastNotificationCard(app: notif.app, title: notif.title, text: notif.text, time: status.lastNotificationTime) }
+                        if let notif = lastNotification {
+                            GlassCard { lastNotificationCard(notif) }
                         }
 
                         // Screen share button
@@ -95,8 +80,7 @@ public struct LiveStatusView: View {
                                             Circle().fill(i == 0 ? Color.green : .primary.opacity(0.2)).frame(width: 6, height: 6)
                                             Text(entry.0).font(.system(size: 13, weight: .medium)).foregroundColor(.primary)
                                             Spacer()
-                                            Text("\(Calendar.current.component(.hour, from: entry.1)):\(String(format: "%02d", Calendar.current.component(.minute, from: entry.1))):\(String(format: "%02d", Calendar.current.component(.second, from: entry.1)))")
-                                                .font(.system(size: 11)).foregroundColor(.primary.opacity(0.4))
+                                            Text(timeString(entry.1)).font(.system(size: 11)).foregroundColor(.primary.opacity(0.4))
                                         }
                                     }
                                 }
@@ -111,62 +95,98 @@ public struct LiveStatusView: View {
             }
             .navigationTitle("💞 \(partnerName)")
             .navigationBarTitleDisplayMode(.inline)
-            .onReceive(statusTimer) { _ in updateMockStatus() }
-            .onAppear { updateMockStatus() }
         }
     }
 
+    // MARK: - Data from StatusService
+
+    private var status: [String: Any] { statusService.partnerStatus }
+    private var partnerName: String { UserDefaults.standard.string(forKey: "partner_name") ?? "Pareja" }
+
+    private var currentApp: String { status["currentApp"] as? String ?? status["currentScreen"] as? String ?? "" }
+    private var currentAppLabel: String {
+        let a = currentApp.lowercased()
+        if a.contains("whatsapp") { return "WhatsApp" }
+        if a.contains("instagram") { return "Instagram" }
+        if a.contains("tiktok") { return "TikTok" }
+        if a.contains("facebook") || a.contains("messenger") { return a.contains("messenger") ? "Messenger" : "Facebook" }
+        if a.contains("twitter") || a.contains("x") { return "Twitter / X" }
+        if a.contains("youtube") { return "YouTube" }
+        if a.contains("telegram") { return "Telegram" }
+        if a.contains("snapchat") { return "Snapchat" }
+        if a.contains("gmail") || a.contains("mail") { return "Correo" }
+        if a.contains("maps") { return "Google Maps" }
+        if a.contains("spotify") || a.contains("music") { return "Música" }
+        if a.contains("chrome") || a.contains("safari") { return "Navegador" }
+        return currentApp.isEmpty ? "Ninguna" : currentApp
+    }
+    private var batteryLevel: Int { status["batteryLevel"] as? Int ?? -1 }
+    private var isCharging: Bool { status["isCharging"] as? Bool ?? false }
+    private var phoneState: String { status["phoneState"] as? String ?? "activo" }
+    private var lastSeen: Date? { status["lastSeenDate"] as? Date }
+    private var lastNotification: (app: String, title: String, text: String)? {
+        guard let app = status["lastNotificationApp"] as? String, !app.isEmpty else { return nil }
+        let title = status["lastNotificationTitle"] as? String ?? ""
+        let text = status["lastNotificationText"] as? String ?? ""
+        return (app, title, text)
+    }
+
+    private var batteryValue: String {
+        batteryLevel >= 0 ? "\(batteryLevel)%\(isCharging ? "  Cargando" : "")" : "Desconocido"
+    }
+    private var batteryColor: Color {
+        isCharging ? .green : (batteryLevel > 20 ? .green : (batteryLevel >= 0 ? .red : .gray))
+    }
+
+    private var lastSeenText: String {
+        guard let ls = lastSeen else { return "Desconocido" }
+        let f = DateFormatter()
+        f.dateStyle = .short; f.timeStyle = .short
+        return f.string(from: ls)
+    }
+
+    // MARK: - App Card
+
     private var appCardContent: some View {
-        let hasApp = status.currentApp.isEmpty == false && status.isOnline
+        let hasApp = !currentApp.isEmpty && statusService.isOnline
         let color: Color
         let icon: String
-        let label: String
-        let appLabel = status.currentAppLabel
+        let label = currentAppLabel
+        let a = currentApp.lowercased()
 
         if !hasApp {
-            icon = "iphone"
-            color = .gray.opacity(0.4)
-            label = status.isOnline ? "Sin datos de apps" : "Desconectado"
-        } else {
-            let a = status.currentApp.lowercased()
-            if a.contains("whatsapp") { icon = "message.fill"; color = Color(red: 0.15, green: 0.83, blue: 0.4); label = appLabel.isEmpty ? "WhatsApp" : appLabel }
-            else if a.contains("instagram") { icon = "camera.fill"; color = Color(red: 0.89, green: 0.25, blue: 0.37); label = "Instagram" }
-            else if a.contains("tiktok") { icon = "music.note"; color = .black; label = "TikTok" }
-            else if a.contains("facebook") || a.contains("messenger") { icon = "f.circle.fill"; color = Color(red: 0.09, green: 0.47, blue: 0.95); label = a.contains("messenger") ? "Messenger" : "Facebook" }
-            else if a.contains("twitter") || a.contains("x") { icon = "bolt.fill"; color = Color(red: 0.11, green: 0.69, blue: 0.96); label = "Twitter / X" }
-            else if a.contains("youtube") { icon = "play.rectangle.fill"; color = .red; label = "YouTube" }
-            else if a.contains("telegram") { icon = "paperplane.fill"; color = Color(red: 0, green: 0.53, blue: 0.8); label = "Telegram" }
-            else if a.contains("snapchat") { icon = "ghost.fill"; color = .yellow; label = "Snapchat" }
-            else if a.contains("gmail") || a.contains("mail") { icon = "envelope.fill"; color = Color(red: 0.92, green: 0.26, blue: 0.21); label = "Correo" }
-            else if a.contains("maps") { icon = "map.fill"; color = Color(red: 0.2, green: 0.66, blue: 0.33); label = "Google Maps" }
-            else if a.contains("spotify") || a.contains("music") { icon = "headphones"; color = Color(red: 0.11, green: 0.72, blue: 0.33); label = "Música" }
-            else if a.contains("chrome") || a.contains("browser") || a.contains("safari") { icon = "globe"; color = Color(red: 0.26, green: 0.52, blue: 0.96); label = "Navegador" }
-            else if a.contains("phone") || a.contains("teléfono") { icon = "phone.fill"; color = .green; label = "Teléfono" }
-            else { icon = "app.gift"; color = .blue; label = appLabel.isEmpty ? status.currentApp : appLabel }
-        }
+            icon = "iphone"; color = .gray.opacity(0.4); label = statusService.isOnline ? "Sin datos de apps" : "Desconectado"
+        } else if a.contains("whatsapp") { icon = "message.fill"; color = Color(red: 0.15, green: 0.83, blue: 0.4) }
+        else if a.contains("instagram") { icon = "camera.fill"; color = Color(red: 0.89, green: 0.25, blue: 0.37) }
+        else if a.contains("tiktok") { icon = "music.note"; color = .black }
+        else if a.contains("facebook") || a.contains("messenger") { icon = "f.circle.fill"; color = Color(red: 0.09, green: 0.47, blue: 0.95) }
+        else if a.contains("twitter") || a.contains("x") { icon = "bolt.fill"; color = Color(red: 0.11, green: 0.69, blue: 0.96) }
+        else if a.contains("youtube") { icon = "play.rectangle.fill"; color = .red }
+        else if a.contains("telegram") { icon = "paperplane.fill"; color = Color(red: 0, green: 0.53, blue: 0.8) }
+        else if a.contains("snapchat") { icon = "ghost.fill"; color = .yellow }
+        else if a.contains("gmail") || a.contains("mail") { icon = "envelope.fill"; color = Color(red: 0.92, green: 0.26, blue: 0.21) }
+        else if a.contains("maps") { icon = "map.fill"; color = Color(red: 0.2, green: 0.66, blue: 0.33) }
+        else if a.contains("spotify") || a.contains("music") { icon = "headphones"; color = Color(red: 0.11, green: 0.72, blue: 0.33) }
+        else if a.contains("chrome") || a.contains("safari") { icon = "globe"; color = Color(red: 0.26, green: 0.52, blue: 0.96) }
+        else { icon = "app.gift"; color = .blue }
 
         return AnyView(HStack(spacing: 14) {
             Image(systemName: icon).font(.system(size: 22)).foregroundColor(color)
                 .padding(10).background(color.opacity(0.12)).cornerRadius(12)
             VStack(alignment: .leading, spacing: 4) {
-                Text(status.phoneState == "suspendido" ? "Última app (pantalla apagada)" : "Usando app")
+                Text(phoneState == "suspendido" ? "Última app (pantalla apagada)" : "Usando app")
                     .font(.system(size: 12)).foregroundColor(.primary.opacity(0.5))
                 Text(label).font(.system(size: 16, weight: .semibold)).foregroundColor(.primary)
             }
             Spacer()
-            if hasApp {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(status.phoneState == "suspendido" ? "Suspendido" : "Activo")
-                        .font(.system(size: 10)).foregroundColor(status.phoneState == "suspendido" ? .orange : .green)
-                    Text("ahora").font(.system(size: 11)).foregroundColor(.primary.opacity(0.4))
-                }
-            }
-            Circle().fill(hasApp ? (status.phoneState == "suspendido" ? Color.orange : Color.green) : .gray.opacity(0.2))
+            Circle().fill(hasApp ? (phoneState == "suspendido" ? Color.orange : Color.green) : .gray.opacity(0.2))
                 .frame(width: 10, height: 10)
         })
     }
 
-    private func detailCard(icon: String, label: String, value: String, color: Color, isActive: Bool, trailing: Text? = nil) -> some View {
+    // MARK: - Detail Card
+
+    private func detailCard(icon: String, label: String, value: String, color: Color, isActive: Bool) -> some View {
         HStack(spacing: 14) {
             Image(systemName: icon).font(.system(size: 22)).foregroundColor(color)
                 .padding(10).background(color.opacity(0.12)).cornerRadius(12)
@@ -175,18 +195,18 @@ public struct LiveStatusView: View {
                 Text(value).font(.system(size: 16, weight: .semibold)).foregroundColor(.primary)
             }
             Spacer()
-            if let t = trailing { t }
             Circle().fill(isActive ? Color.green : .gray.opacity(0.2)).frame(width: 10, height: 10)
         }
     }
 
+    // MARK: - Phone State Card
+
     private var phoneStateCard: some View {
-        let ls = status.lastSeen
-        let recentlySeen = ls != nil && Date().timeIntervalSince(ls!) < 130
-        let effectiveState = status.isOnline ? status.phoneState : "apagado"
+        let recentlySeen = lastSeen != nil && Date().timeIntervalSince(lastSeen!) < 130
+        let effectiveState = statusService.isOnline ? phoneState : "apagado"
         let (label, stateColor, stateIcon): (String, Color, String)
 
-        if status.isOnline || recentlySeen {
+        if statusService.isOnline || recentlySeen {
             switch effectiveState {
             case "suspendido": (label, stateColor, stateIcon) = ("suspendido (pantalla apagada)", .orange, "lock.rectangle")
             case "bloqueado": (label, stateColor, stateIcon) = ("bloqueado (pantalla bloqueada)", .orange, "lock.fill")
@@ -197,57 +217,27 @@ public struct LiveStatusView: View {
             (label, stateColor, stateIcon) = ("apagado o sin conexión", .gray.opacity(0.4), "wifi.slash")
         }
 
-        return AnyView(detailCard(icon: stateIcon, label: "Estado del teléfono", value: label, color: stateColor, isActive: label != "apagado o sin conexión"))
+        return AnyView(detailCard(icon: stateIcon, label: "Estado del teléfono", value: label, color: stateColor, isActive: !label.contains("apagado")))
     }
 
-    private func lastNotificationCard(app: String, title: String, text: String, time: Date?) -> some View {
+    // MARK: - Last Notification Card
+
+    private func lastNotificationCard(_ notif: (app: String, title: String, text: String)) -> some View {
         HStack(spacing: 14) {
             Image(systemName: "bell.badge.fill").font(.system(size: 22)).foregroundColor(ThemeManager.shared.primaryPink)
                 .padding(10).background(ThemeManager.shared.primaryPink.opacity(0.12)).cornerRadius(12)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Última notificación").font(.system(size: 12)).foregroundColor(.primary.opacity(0.5))
-                if !app.isEmpty { Text(app).font(.system(size: 12, weight: .semibold)).foregroundColor(ThemeManager.shared.primaryPink) }
-                if !title.isEmpty { Text(title).font(.system(size: 14, weight: .semibold)).foregroundColor(.primary).lineLimit(1) }
-                if !text.isEmpty { Text(text).font(.system(size: 12)).foregroundColor(.primary.opacity(0.6)).lineLimit(2) }
+                if !notif.app.isEmpty { Text(notif.app).font(.system(size: 12, weight: .semibold)).foregroundColor(ThemeManager.shared.primaryPink) }
+                if !notif.title.isEmpty { Text(notif.title).font(.system(size: 14, weight: .semibold)).foregroundColor(.primary).lineLimit(1) }
+                if !notif.text.isEmpty { Text(notif.text).font(.system(size: 12)).foregroundColor(.primary.opacity(0.6)).lineLimit(2) }
             }
             Spacer()
-            if let t = time { Text("\(Calendar.current.component(.hour, from: t)):\(String(format: "%02d", Calendar.current.component(.minute, from: t)))").font(.system(size: 11)).foregroundColor(.primary.opacity(0.4)) }
         }
     }
 
-    private func updateMockStatus() {
-        let apps = ["WhatsApp", "Instagram", "TikTok", "YouTube", "Spotify", "Telegram", "Chrome", "Gmail", "Twitter"]
-        let appIds = ["com.whatsapp", "com.instagram", "com.zhiliao", "com.google.ios.youtube", "com.spotify", "org.telegram", "com.google.chrome.ios", "com.google.gmail", "com.twitter"]
-        let idx = Int(Date().timeIntervalSince1970) % apps.count
-        status.isOnline = true
-        status.currentApp = appIds[idx]
-        status.currentAppLabel = apps[idx]
-        status.batteryLevel = [15, 23, 45, 67, 88, 95].randomElement() ?? 50
-        status.isCharging = Bool.random()
-        status.lastSeen = Date()
-        status.phoneState = ["activo", "suspendido", "bloqueado"].randomElement() ?? "activo"
-        if Int(Date().timeIntervalSince1970) % 5 == 0 {
-            status.lastNotification = ("WhatsApp", "Mensaje de amor 💕", "¡Te extraño mucho! ¿Cuándo nos vemos?")
-            status.lastNotificationTime = Date()
-        }
-        let newScreen = apps.randomElement() ?? "WhatsApp"
-        if screenHistory.isEmpty || screenHistory.first?.0 != newScreen {
-            screenHistory.insert((newScreen, Date()), at: 0)
-            if screenHistory.count > 30 { screenHistory = Array(screenHistory.prefix(30)) }
-        }
-    }
-
-    private func formatDateTime(_ dt: Date) -> String {
-        let cal = Calendar.current
-        if cal.isDateInToday(dt) { return "Hoy \(cal.component(.hour, from: dt)):\(String(format: "%02d", cal.component(.minute, from: dt)))" }
-        if cal.isDateInYesterday(dt) { return "Ayer \(cal.component(.hour, from: dt)):\(String(format: "%02d", cal.component(.minute, from: dt)))" }
-        return "\(cal.component(.day, from: dt))/\(cal.component(.month, from: dt)) \(cal.component(.hour, from: dt)):\(String(format: "%02d", cal.component(.minute, from: dt)))"
-    }
-
-    private func timeAgo(_ date: Date) -> String {
-        let s = Int(-date.timeIntervalSinceNow)
-        if s < 60 { return "\(s)s" }
-        if s < 3600 { return "\(s/60)m" }
-        return "\(s/3600)h"
+    private func timeString(_ d: Date) -> String {
+        let c = Calendar.current
+        return "\(c.component(.hour, from: d)):\(String(format: "%02d", c.component(.minute, from: d)))"
     }
 }
