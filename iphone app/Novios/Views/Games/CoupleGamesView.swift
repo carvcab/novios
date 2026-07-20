@@ -469,7 +469,9 @@ public struct CoupleGamesView: View {
             if mode == "local" {
                 localGameView(for: card.type)
             } else {
-                PlaceholderGameView(gameName: card.name, mode: "online")
+                Text("\(card.name) - Online\nAmbos deben abrir este juego")
+                    .font(.title3).foregroundColor(.primary).multilineTextAlignment(.center)
+                    .padding(40)
             }
         } else {
             EmptyView()
@@ -504,7 +506,7 @@ public struct CoupleGamesView: View {
         case "spicy":
             SpicyGamesView()
         default:
-            PlaceholderGameView(gameName: type, mode: "local")
+            Text("\(type) - próximamente").font(.title3).foregroundColor(.primary).padding(40)
         }
     }
 }
