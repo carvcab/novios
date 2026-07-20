@@ -1,0 +1,55 @@
+name: Flutter iOS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: 'Identificador único del build'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: |
+          cd "iphone flutter"
+          flutter pub get
+
+      - name: Build iOS App (No Signing)
+        run: |
+          cd "iphone flutter"
+          flutter build ios --no-codesign --debug
+
+      - name: Package IPA
+        run: |
+          cd "iphone flutter/build/ios/iphoneos" || cd "iphone flutter/build/ios/Debug-iphoneos" || cd "iphone flutter/build/ios/Release-iphoneos"
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r "${{ inputs.build_id }}.ipa" Payload
+          mkdir -p "${GITHUB_WORKSPACE}/iphone flutter/ipa"
+          cp "${{ inputs.build_id }}.ipa" "${GITHUB_WORKSPACE}/iphone flutter/ipa/"
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipa-flutter
+          path: iphone flutter/ipa/*.ipa
+          retention-days: 30
