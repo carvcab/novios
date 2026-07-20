@@ -18,8 +18,6 @@ private struct GameCard: Identifiable {
     let gradient: LinearGradient
 }
 
-private let partnerName = "Pareja"
-
 private let gameCards: [GameCard] = [
     GameCard(id: "quiz", type: "quiz", icon: "questionmark.bubble.fill", name: "Quiz", desc: "Pon a prueba tu conocimiento",
         gradient: LinearGradient(colors: [Color(red: 1.0, green: 0.361, blue: 0.541), Color(red: 1.0, green: 0.541, blue: 0.671)], startPoint: .topLeading, endPoint: .bottomTrailing)),
@@ -106,6 +104,7 @@ public struct CoupleGamesView: View {
     @State private var selectedMode: String? = nil
     @State private var navigateToGame = false
     @State private var snackbarMessage: String? = nil
+    private let onlineTimer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
 
     public var body: some View {
         NavigationStack {
@@ -169,6 +168,8 @@ public struct CoupleGamesView: View {
             }
             .animation(.easeInOut(duration: 0.3), value: snackbarMessage != nil)
         }
+        .onAppear { Task { await fetchActiveGames() } }
+        .onReceive(onlineTimer) { _ in Task { await fetchActiveGames() } }
     }
 
     @State private var navigateToHistory = false
@@ -399,8 +400,8 @@ public struct CoupleGamesView: View {
             VStack(spacing: 0) {
                 Button {
                     showSheet = false
-                    withAnimation {
-                        snackbarMessage = "Invitación enviada a \(partnerName) 🎮"
+                    Task {
+                        await createOnlineGameSession(for: card)
                     }
                 } label: {
                     HStack(spacing: 12) {
@@ -453,6 +454,71 @@ public struct CoupleGamesView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 24)
         .presentationDetents([.height(220)])
+    }
+
+    // MARK: - Online Game Sessions
+
+    private func createOnlineGameSession(for card: GameCard) async {
+        guard let myUid = FirebaseRESTService.shared.localId else { return }
+        let partnerUid = UserDefaults.standard.string(forKey: "partner_uid") ?? ""
+        let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
+        let gameId = UUID().uuidString
+
+        let fields: [String: Any] = [
+            "gameType": card.type, "senderId": myUid, "sender": "Yo",
+            "status": "pending", "createdAt": Date()
+        ]
+        try? await FirebaseRESTService.shared.firestoreSet(
+            path: "couples/\(coupleId)/games/\(gameId)", fields: fields)
+
+        withAnimation { snackbarMessage = "Invitación enviada a \(partnerName) 🎮" }
+    }
+
+    private func fetchActiveGames() async {
+        guard let myUid = FirebaseRESTService.shared.localId else { return }
+        let partnerUid = UserDefaults.standard.string(forKey: "partner_uid") ?? ""
+        let coupleId = [myUid, partnerUid].sorted().joined(separator: "_")
+
+        guard let docs = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(coupleId)/games"),
+              let documents = (docs["documents"] as? [[String: Any]]) else { return }
+
+        var games: [ActiveGame] = []
+        for doc in documents {
+            guard let name = doc["name"] as? String,
+                  let fields = doc["fields"] as? [String: Any] else { continue }
+            let id = name.split(separator: "/").last.map(String.init) ?? ""
+            let type = (fields["gameType"] as? [String: Any])?["stringValue"] as? String ?? ""
+            let status = (fields["status"] as? [String: Any])?["stringValue"] as? String ?? "pending"
+            let sender = (fields["sender"] as? [String: Any])?["stringValue"] as? String ?? ""
+            let senderId = (fields["senderId"] as? [String: Any])?["stringValue"] as? String ?? ""
+            let isSender = senderId == myUid
+            let gameLabel = gameLabel(for: type)
+
+            games.append(ActiveGame(id: id, type: type, status: status, sender: sender, isSender: isSender, gameLabel: gameLabel))
+        }
+        activeGames = games
+    }
+
+    private func gameLabel(for type: String) -> String {
+        switch type {
+        case "quiz": return "Quiz"
+        case "truth_dare": return "Verdad o Reto"
+        case "memorama": return "Memorama"
+        case "tictactoe": return "Tres en Raya"
+        case "rps": return "Piedra Papel Tijera"
+        case "hangman": return "Ahorcado"
+        case "dice": return "Dados del Amor"
+        case "cards": return "Carta Mayor"
+        case "prefer": return "Qué Prefieres?"
+        case "roulette": return "Ruleta del Amor"
+        case "never": return "Yo Nunca Nunca"
+        case "spicy": return "Picante"
+        default: return type
+        }
+    }
+
+    private var partnerName: String {
+        UserDefaults.standard.string(forKey: "partner_name") ?? "Pareja"
     }
 
     // MARK: - Navigation Destination
