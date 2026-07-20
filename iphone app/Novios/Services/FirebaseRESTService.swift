@@ -3,10 +3,10 @@ import Foundation
 public class FirebaseRESTService {
     public static let shared = FirebaseRESTService()
 
-    private let primaryAPIKey = "AIzaSyCSgxk_uEtVFmJHTqCMmlaKmnc8Fvf_rnQ"
-    private let primaryProjectID = "novios-8beb7"
-    private let backupAPIKey = "AIzaSyCG9W2qU4SH2RkjNRJHI96fJzt3hHqLzys"
-    private let backupProjectID = "novios-49289"
+    private let primaryAPIKey = "AIzaSyCG9W2qU4SH2RkjNRJHI96fJzt3hHqLzys"
+    private let primaryProjectID = "novios-49289"
+    private let backupAPIKey = "AIzaSyCSgxk_uEtVFmJHTqCMmlaKmnc8Fvf_rnQ"
+    private let backupProjectID = "novios-8beb7"
 
     public private(set) var currentAPIKey: String
     public private(set) var currentProjectID: String
