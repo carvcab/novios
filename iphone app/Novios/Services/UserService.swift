@@ -57,7 +57,7 @@ public class UserService: ObservableObject {
 
         // 3. Search by Email (iterate usernames collection)
         if clean.contains("@") {
-            if let allDocs = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames?pageSize=200"),
+            if let allDocs = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames"),
                let docs = allDocs["documents"] as? [[String: Any]] {
                 for doc in docs {
                     guard let f = doc["fields"] as? [String: Any] else { continue }
@@ -76,7 +76,7 @@ public class UserService: ObservableObject {
         }
 
         // 4. Fallback: iterate all users
-        if let usersList = try? await FirebaseRESTService.shared.firestoreGet(path: "users?pageSize=200"),
+        if let usersList = try? await FirebaseRESTService.shared.firestoreGet(path: "users"),
            let docs = usersList["documents"] as? [[String: Any]] {
             for doc in docs {
                 guard let f = doc["fields"] as? [String: Any],
