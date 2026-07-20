@@ -3,80 +3,162 @@ import Combine
 
 public class AuthService: ObservableObject {
     public static let shared = AuthService()
-    
+
     @Published public var currentUser: UserModel?
-    @Published public var isAuthenticated: Bool = false
-    @Published public var isLoading: Bool = false
-    @Published public var authError: String?
-    
+    @Published public var isLoggedIn = false
+    @Published public var hasProfile = false
+    @Published public var hasPartner = false
+    @Published public var partnerSkipped = false
+    @Published public var isLoading = false
+
+    private let defaults = UserDefaults.standard
+
     private init() {
-        // Load saved session locally if exists
-        loadSavedUserSession()
-    }
-    
-    public func loadSavedUserSession() {
-        if let data = UserDefaults.standard.data(forKey: "novios_saved_user"),
-           let user = try? JSONDecoder().decode(UserModel.self, from: data) {
-            self.currentUser = user
-            self.isAuthenticated = true
-        }
-    }
-    
-    public func signIn(email: String, pass: String) async -> Bool {
-        await MainActor.run { self.isLoading = true; self.authError = nil }
-        try? await Task.sleep(nanoseconds: 500_000_000) // Simulate network
-        
-        let uid = "user_" + UUID().uuidString.prefix(6)
-        let pairCode = String((0..<6).map { _ in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()! })
-        let newUser = UserModel(
-            id: uid,
-            email: email,
-            displayName: email.components(separatedBy: "@").first ?? "Usuario",
-            username: email.components(separatedBy: "@").first?.lowercased() ?? "usuario",
-            pairCode: pairCode
-        )
-        
-        saveUser(newUser)
-        await MainActor.run {
-            self.currentUser = newUser
-            self.isAuthenticated = true
-            self.isLoading = false
-        }
-        return true
-    }
-    
-    public func signUp(email: String, pass: String, name: String) async -> Bool {
-        await MainActor.run { self.isLoading = true; self.authError = nil }
-        try? await Task.sleep(nanoseconds: 500_000_000)
-        
-        let uid = "user_" + UUID().uuidString.prefix(6)
-        let pairCode = String((0..<6).map { _ in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()! })
-        let newUser = UserModel(
-            id: uid,
-            email: email,
-            displayName: name,
-            username: name.lowercased().replacingOccurrences(of: " ", with: ""),
-            pairCode: pairCode
-        )
-        
-        saveUser(newUser)
-        await MainActor.run {
-            self.currentUser = newUser
-            self.isAuthenticated = true
-            self.isLoading = false
-        }
-        return true
+        loadSession()
     }
 
-    public func saveUser(_ user: UserModel) {
-        if let encoded = try? JSONEncoder().encode(user) {
-            UserDefaults.standard.set(encoded, forKey: "novios_saved_user")
+    public func signInWithGoogle() async -> UserModel? {
+        await MainActor.run { isLoading = true }
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        let user = UserModel(
+            id: UUID().uuidString,
+            email: "usuario@gmail.com",
+            displayName: "Usuario",
+            username: "usuario_\(Int.random(in: 100...999))"
+        )
+        await MainActor.run {
+            self.currentUser = user
+            self.isLoggedIn = true
+            self.isLoading = false
+            saveSession(user: user)
+        }
+        return user
+    }
+
+    public func signInWithEmail(email: String, password: String) async throws {
+        await MainActor.run { isLoading = true }
+        try? await Task.sleep(nanoseconds: 800_000_000)
+        guard email.contains("@"), password.count >= 6 else {
+            await MainActor.run { isLoading = false }
+            throw AuthError.invalidCredentials
+        }
+        let user = UserModel(
+            id: UUID().uuidString,
+            email: email,
+            displayName: email.components(separatedBy: "@").first?.capitalized ?? "Usuario",
+            username: email.components(separatedBy: "@").first ?? "usuario"
+        )
+        await MainActor.run {
+            self.currentUser = user
+            self.isLoggedIn = true
+            self.isLoading = false
+            saveSession(user: user)
+            checkProfileAndPartner()
         }
     }
-    
+
+    public func signUpWithEmail(email: String, password: String, name: String) async throws {
+        await MainActor.run { isLoading = true }
+        try? await Task.sleep(nanoseconds: 800_000_000)
+        guard email.contains("@"), password.count >= 6, !name.isEmpty else {
+            await MainActor.run { isLoading = false }
+            throw AuthError.invalidCredentials
+        }
+        let user = UserModel(
+            id: UUID().uuidString,
+            email: email,
+            displayName: name,
+            username: email.components(separatedBy: "@").first ?? name.lowercased()
+        )
+        await MainActor.run {
+            self.currentUser = user
+            self.isLoggedIn = true
+            self.isLoading = false
+            saveSession(user: user)
+        }
+    }
+
     public func signOut() {
-        UserDefaults.standard.removeObject(forKey: "novios_saved_user")
-        self.currentUser = nil
-        self.isAuthenticated = false
+        currentUser = nil
+        isLoggedIn = false
+        hasProfile = false
+        hasPartner = false
+        partnerSkipped = false
+        defaults.removeObject(forKey: "auth_user_id")
+        defaults.removeObject(forKey: "auth_user_email")
+        defaults.removeObject(forKey: "auth_user_name")
+        defaults.removeObject(forKey: "auth_logged_in")
+    }
+
+    public func checkProfileAndPartner() {
+        hasProfile = defaults.string(forKey: "profile_dob") != nil &&
+                     defaults.string(forKey: "profile_username") != nil &&
+                     !(defaults.string(forKey: "profile_username")?.isEmpty ?? true)
+        hasPartner = defaults.string(forKey: "partner_uid") != nil &&
+                     !(defaults.string(forKey: "partner_uid")?.isEmpty ?? true)
+        partnerSkipped = defaults.bool(forKey: "partner_skipped")
+    }
+
+    private func loadSession() {
+        if defaults.bool(forKey: "auth_logged_in"),
+           let uid = defaults.string(forKey: "auth_user_id") {
+            let email = defaults.string(forKey: "auth_user_email") ?? ""
+            let name = defaults.string(forKey: "auth_user_name") ?? "Usuario"
+            currentUser = UserModel(id: uid, email: email, displayName: name, username: "")
+            isLoggedIn = true
+            checkProfileAndPartner()
+        }
+    }
+
+    private func saveSession(user: UserModel) {
+        defaults.set(user.id, forKey: "auth_user_id")
+        defaults.set(user.email, forKey: "auth_user_email")
+        defaults.set(user.displayName, forKey: "auth_user_name")
+        defaults.set(true, forKey: "auth_logged_in")
+    }
+
+    public func saveProfile(dob: Date, username: String, partnerName: String?) {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        defaults.set(df.string(from: dob), forKey: "profile_dob")
+        defaults.set(username, forKey: "profile_username")
+        if let name = partnerName { defaults.set(name, forKey: "profile_partner_name") }
+        hasProfile = true
+    }
+
+    public func savePartner(uid: String, name: String) {
+        defaults.set(uid, forKey: "partner_uid")
+        defaults.set(name, forKey: "partner_name")
+        hasPartner = true
+        partnerSkipped = false
+    }
+
+    public func didSkipPartner() {
+        partnerSkipped = true
+        defaults.set(true, forKey: "partner_skipped")
+    }
+
+    public var currentUserName: String {
+        currentUser?.displayName ?? "Usuario"
+    }
+
+    public var currentUserEmail: String {
+        currentUser?.email ?? ""
+    }
+
+    public var currentUserId: String {
+        currentUser?.id ?? ""
+    }
+}
+
+public enum AuthError: Error, LocalizedError {
+    case invalidCredentials
+    case networkError
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidCredentials: return "Correo o contraseña inválidos"
+        case .networkError: return "Error de conexión. Intenta de nuevo."
+        }
     }
 }
