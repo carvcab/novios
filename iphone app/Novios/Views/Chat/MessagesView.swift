@@ -20,7 +20,7 @@ public struct MessagesView: View {
                     ScrollViewReader { proxy in
                         ScrollView {
                             LazyVStack(spacing: 0) {
-                                ForEach(chatService.messages.reversed()) { msg in
+                                ForEach(chatService.messages) { msg in
                                     let isMe = msg.senderId == (authService.currentUser?.id ?? "me")
                                     ChatBubbleView(
                                         message: msg,

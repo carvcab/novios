@@ -10,6 +10,7 @@ public class AuthService: ObservableObject {
     @Published public var hasPartner = false
     @Published public var partnerSkipped = false
     @Published public var isLoading = false
+    @Published public var isRestoringSession = true
 
     private let defaults = UserDefaults.standard
 
@@ -131,6 +132,7 @@ public class AuthService: ObservableObject {
     }
 
     private func loadSession() {
+        isRestoringSession = true
         if defaults.bool(forKey: "auth_logged_in"),
            let uid = defaults.string(forKey: "auth_user_id") {
             let email = defaults.string(forKey: "auth_user_email") ?? ""
@@ -143,8 +145,11 @@ public class AuthService: ObservableObject {
                 try? await syncUserFromFirestore(uid: uid)
                 await MainActor.run {
                     self.checkProfileAndPartner()
+                    self.isRestoringSession = false
                 }
             }
+        } else {
+            isRestoringSession = false
         }
     }
 
