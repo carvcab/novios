@@ -8,6 +8,7 @@ public struct MessagesView: View {
     @State private var showImagePicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showSettings = false
+    @State private var scrollTargetId: String?
 
     private let emojis = ["❤️", "😘", "🥺", "💖", "💑", "🔥", "🌹", "✨", "💍"]
 
@@ -22,7 +23,7 @@ public struct MessagesView: View {
                             LazyVStack(spacing: 6) {
                                 ForEach(chatService.messages) { msg in
                                     let isMe = msg.senderId == (authService.currentUser?.id ?? FirebaseRESTService.shared.localId ?? "me")
-                                    ChatBubbleView(message: msg, isFromMe: isMe, onReply: { chatService.setReplyTo(message: msg) }, onReact: { chatService.addReaction(to: msg.id, emoji: $0) })
+                                    ChatBubbleView(message: msg, isFromMe: isMe, onReply: { chatService.setReplyTo(message: msg) }, onReact: { chatService.addReaction(to: msg.id, emoji: $0) }, onTapReply: { replyId in scrollTargetId = replyId })
                                         .id(msg.id)
                                 }
                                 Color.clear.frame(height: 4).id("bottom")
@@ -32,6 +33,14 @@ public struct MessagesView: View {
                         .scrollIndicators(.hidden)
                         .onReceive(chatService.autoScrollToBottom) { _ in
                             withAnimation(.spring(duration: 0.45)) { proxy.scrollTo("bottom", anchor: .bottom) }
+                        }
+                        .onChange(of: scrollTargetId) { id in
+                            if let id = id {
+                                withAnimation(.spring(duration: 0.45)) {
+                                    proxy.scrollTo(id, anchor: .center)
+                                }
+                                scrollTargetId = nil
+                            }
                         }
                         .onReceive(chatService.$messages) { msgs in
                             for msg in msgs where msg.readTimestamp == nil && msg.senderId != (authService.currentUser?.id ?? "me") {

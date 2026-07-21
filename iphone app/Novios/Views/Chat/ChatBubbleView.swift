@@ -6,6 +6,7 @@ public struct ChatBubbleView: View {
     public var isFromMe: Bool
     public var onReply: () -> Void
     public var onReact: (String) -> Void
+    public var onTapReply: ((String) -> Void)?
 
     @State private var loadedImage: UIImage?
     @State private var isLoadingMedia = false
@@ -126,19 +127,20 @@ public struct ChatBubbleView: View {
         HStack(spacing: 6) {
             Capsule().fill(ThemeManager.shared.primaryPink).frame(width: 3)
             VStack(alignment: .leading, spacing: 1) {
-                Text(isFromSender ? "Ella/Él" : "Tú")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(isFromMe ? .white.opacity(0.7) : ThemeManager.shared.primaryPink)
+                Text(message.replyToSenderId == nil ? "" : "En respuesta")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundColor(isFromMe ? .white.opacity(0.6) : ThemeManager.shared.primaryPink.opacity(0.8))
                 Text(text).font(.system(size: 11))
-                    .foregroundColor(isFromMe ? .white.opacity(0.6) : .primary.opacity(0.6)).lineLimit(1)
+                    .foregroundColor(isFromMe ? .white.opacity(0.5) : .primary.opacity(0.5)).lineLimit(2)
             }
         }
         .padding(.horizontal, 8).padding(.vertical, 4)
         .background(replyBg).clipShape(RoundedRectangle(cornerRadius: 6))
-    }
-
-    private var isFromSender: Bool {
-        message.replyToSenderId == message.senderId
+        .onTapGesture {
+            if let replyId = message.replyToId {
+                onTapReply?(replyId)
+            }
+        }
     }
 
     private var replyBg: Color {

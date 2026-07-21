@@ -316,13 +316,26 @@ class ChatNotificationService {
       }
 
       _partnerNotifRetryTimer?.cancel();
-      debugPrint("[ChatNotif] Partner notif: listening to partner $partnerUid");
+      debugPrint("[ChatNotif] Partner notif: listening to partner $partnerUid (my uid: $userId)");
+
+      if (partnerUid == userId) {
+        debugPrint("[ChatNotif] ERROR: partnerUid == userId! No me escucho a mi mismo.");
+        _partnerNotifRetryTimer?.cancel();
+        _partnerNotifRetryTimer = Timer(const Duration(seconds: 10), () {
+          _startPartnerNotifListener();
+        });
+        return;
+      }
 
       _partnerNotifSub = FirebaseFirestore.instance
           .collection('users').doc(partnerUid)
           .snapshots()
           .listen((snap) {
         if (!snap.exists) return;
+        if (snap.id == userId) {
+          debugPrint("[ChatNotif] SKIP: escuchando mi propio documento!");
+          return;
+        }
         final pData = snap.data();
         if (pData == null) return;
 
