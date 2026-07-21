@@ -11,6 +11,17 @@ public struct MessagesView: View {
     @State private var scrollTargetId: String?
     private var currentUserId: String { authService.currentUser?.id ?? FirebaseRESTService.shared.localId ?? "me" }
 
+    private func messageBubble(_ msg: MessageModel) -> ChatBubbleView {
+        let isMe = msg.senderId == currentUserId
+        return ChatBubbleView(message: msg, isFromMe: isMe, onReply: {
+            self.chatService.setReplyTo(message: msg)
+        }, onReact: { emoji in
+            self.chatService.addReaction(to: msg.id, emoji: emoji)
+        }, onTapReply: { replyId in
+            self.scrollTargetId = replyId
+        })
+    }
+
     @State private var nextDateLabel: String?
     @State private var nextDateDays: Int?
 
@@ -28,8 +39,7 @@ public struct MessagesView: View {
                         ScrollView {
                             LazyVStack(spacing: 6) {
                                 ForEach(chatService.messages) { msg in
-                                    let isMe = msg.senderId == currentUserId
-                                    ChatBubbleView(message: msg, isFromMe: isMe, onReply: { self.chatService.setReplyTo(message: msg) }, onReact: { self.chatService.addReaction(to: msg.id, emoji: $0) }, onTapReply: { self.scrollTargetId = $0 })
+                                    self.messageBubble(msg)
                                         .id(msg.id)
                                 }
                                 Color.clear.frame(height: 4).id("bottom")
