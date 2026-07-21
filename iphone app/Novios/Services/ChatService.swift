@@ -53,7 +53,6 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 guard let name = doc["name"] as? String,
                       let fields = doc["fields"] as? [String: Any] else { continue }
                 let msgId = name.split(separator: "/").last.map(String.init) ?? UUID().uuidString
-                if messages.contains(where: { $0.id == msgId }) || sentIds.contains(msgId) { continue }
 
                 let senderId = (fields["senderId"] as? [String: Any])?["stringValue"] as? String ?? ""
                 let text = (fields["text"] as? [String: Any])?["stringValue"] as? String ?? ""
@@ -85,6 +84,17 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                         }
                     }
                 }
+
+                if let idx = messages.firstIndex(where: { $0.id == msgId }) {
+                    if messages[idx].readTimestamp != readTs {
+                        messages[idx].readTimestamp = readTs
+                    }
+                    if messages[idx].reactions != reactions {
+                        messages[idx].reactions = reactions
+                    }
+                    continue
+                }
+                if sentIds.contains(msgId) { continue }
 
                 let replyToId = (fields["replyToId"] as? [String: Any])?["stringValue"] as? String
                 let replyToText = (fields["replyToText"] as? [String: Any])?["stringValue"] as? String

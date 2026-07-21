@@ -12,6 +12,7 @@ public struct ChatBubbleView: View {
     @State private var audioPlayer: AVAudioPlayer?
     @State private var isPlaying = false
     @State private var isAppeared = false
+    @State private var showImageViewer = false
 
     private let reactions = ["❤️", "😘", "😂", "😮", "😢", "🔥", "💖", "👍", "👎"]
 
@@ -32,6 +33,21 @@ public struct ChatBubbleView: View {
 
             if !isFromMe { Spacer(minLength: 50) }
             if isFromMe { Spacer(minLength: 20) }
+        }
+        .fullScreenCover(isPresented: $showImageViewer) {
+            if let img = loadedImage {
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    Button {
+                        showImageViewer = false
+                    } label: {
+                        Image(uiImage: img)
+                            .resizable().scaledToFit()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
         .padding(.vertical, 2)
         .contextMenu {
@@ -180,6 +196,7 @@ public struct ChatBubbleView: View {
             if let img = loadedImage {
                 Image(uiImage: img).resizable().scaledToFill()
                     .frame(maxWidth: 200, maxHeight: 200).cornerRadius(12).clipped()
+                    .onTapGesture { showImageViewer = true }
             } else if isLoadingMedia {
                 ProgressView().frame(width: 180, height: 180)
             } else {
