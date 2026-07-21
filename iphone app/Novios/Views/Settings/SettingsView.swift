@@ -272,41 +272,6 @@ public struct SettingsView: View {
         }
     }
 
-    private func unlinkPartner() {
-        guard let uid = AuthService.shared.currentUser?.id else { return }
-        let partnerUid = defaults.string(forKey: "partner_uid") ?? ""
-        let coupleId = defaults.string(forKey: "couple_id") ?? ""
-
-        Task {
-            // Remove partner data from my user doc
-            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [
-                "partnerUid": "", "partnerName": "", "partnerUsername": "", "partnerDisplayName": "", "coupleId": ""
-            ])
-            // Remove my data from partner's user doc
-            if !partnerUid.isEmpty {
-                try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(partnerUid)", fields: [
-                    "partnerUid": "", "partnerName": "", "partnerUsername": "", "partnerDisplayName": "", "coupleId": ""
-                ])
-            }
-            // Clear couple document
-            if !coupleId.isEmpty {
-                try? await FirebaseRESTService.shared.firestoreDelete(path: "couples/\(coupleId)")
-            }
-        }
-
-        // Clear local defaults
-        defaults.removeObject(forKey: "partner_uid")
-        defaults.removeObject(forKey: "partner_name")
-        defaults.removeObject(forKey: "partner_username")
-        defaults.removeObject(forKey: "partner_display_name")
-        defaults.removeObject(forKey: "couple_id")
-        defaults.removeObject(forKey: "pair_id")
-
-        userService.partnerUser = nil
-        AuthService.shared.hasPartner = false
-        UserService.shared.partnerUser = nil
-    }
-
     private func sendCheckIn(message: String) {
         guard let uid = AuthService.shared.currentUser?.id,
               let lat = locationService.lastLatitude,
