@@ -26,6 +26,7 @@ public struct ProfileView: View {
     @State private var editingDate: [String: Any]?
     @State private var showSettings = false
     @State private var errorMessage: String?
+    @State private var pollingTimer: Timer?
 
     private let defaults = UserDefaults.standard
 
@@ -85,7 +86,11 @@ public struct ProfileView: View {
         .onAppear {
             loadUserData()
             loadStreak()
-            loadImportantDates()
+            loadImportantDatesFromCouples()
+            startPolling()
+        }
+        .onDisappear {
+            pollingTimer?.invalidate()
         }
         .sheet(isPresented: $showPhotoPicker) {
             PhotoPicker { image in
@@ -502,7 +507,7 @@ public struct ProfileView: View {
 
                     isLoading = false
                 }
-                loadImportantDatesFromFirestore(fields: fields)
+                loadImportantDatesFromCouples()
             } else {
                 await MainActor.run {
                     loadFromDefaults()
@@ -585,18 +590,53 @@ public struct ProfileView: View {
         }
     }
 
-    // MARK: - Firestore Data Helpers
+    // MARK: - Partner Sync (Important Dates via couples collection)
 
-    private func loadImportantDatesFromFirestore(fields: [String: Any]) {
-        if let datesJson = extractString(fields, key: "importantDatesJson"),
-           let data = datesJson.data(using: .utf8),
-           let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-            importantDates = arr
-            saveImportantDatesLocally()
+    private var coupleListPath: String? {
+        let cid = defaults.string(forKey: "couple_id") ?? defaults.string(forKey: "pair_id") ?? ""
+        return cid.isEmpty ? nil : "couples/\(cid)/lists/important_dates"
+    }
+
+    private func loadImportantDatesFromCouples() {
+        if let path = coupleListPath {
+            Task {
+                if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
+                   let fields = doc["fields"] as? [String: Any],
+                   let items = extractArray(fields, key: "items") {
+                    await MainActor.run {
+                        self.importantDates = items
+                        self.saveImportantDatesLocally()
+                    }
+                    return
+                }
+                loadImportantDatesFromUserLegacy()
+            }
+        } else {
+            loadImportantDatesFromUserLegacy()
         }
     }
 
-    private func loadImportantDates() {
+    private func loadImportantDatesFromUserLegacy() {
+        guard let uid = resolveUid() else {
+            loadImportantDatesLocally()
+            return
+        }
+        Task {
+            let path = "users/\(uid)/lists/important_dates"
+            if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
+               let fields = doc["fields"] as? [String: Any],
+               let items = extractArray(fields, key: "items") {
+                await MainActor.run {
+                    self.importantDates = items
+                    self.saveImportantDatesLocally()
+                }
+                return
+            }
+            await MainActor.run { self.loadImportantDatesLocally() }
+        }
+    }
+
+    private func loadImportantDatesLocally() {
         if let data = defaults.data(forKey: "important_dates"),
            let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
             importantDates = arr
@@ -605,12 +645,19 @@ public struct ProfileView: View {
 
     private func saveImportantDates() {
         saveImportantDatesLocally()
-        guard let uid = resolveUid() else { return }
-        if let data = try? JSONSerialization.data(withJSONObject: importantDates),
-           let json = String(data: data, encoding: .utf8) {
+        if let path = coupleListPath {
             Task {
-                try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [
-                    "importantDatesJson": json
+                try? await FirebaseRESTService.shared.firestoreSet(path: path, fields: [
+                    "items": importantDates,
+                    "updatedAt": df.string(from: Date())
+                ])
+            }
+        } else {
+            guard let uid = resolveUid() else { return }
+            Task {
+                try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)/lists/important_dates", fields: [
+                    "items": importantDates,
+                    "updatedAt": df.string(from: Date())
                 ])
             }
         }
@@ -619,6 +666,62 @@ public struct ProfileView: View {
     private func saveImportantDatesLocally() {
         if let data = try? JSONSerialization.data(withJSONObject: importantDates) {
             defaults.set(data, forKey: "important_dates")
+        }
+    }
+
+    // MARK: - Polling (real-time sync with partner)
+
+    private func startPolling() {
+        pollingTimer?.invalidate()
+        pollingTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
+            Task { @MainActor in
+                if let path = self.coupleListPath {
+                    if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
+                       let fields = doc["fields"] as? [String: Any],
+                       let items = self.extractArray(fields, key: "items") {
+                        let currentJson = (try? JSONSerialization.data(withJSONObject: self.importantDates)).flatMap { String(data: $0, encoding: .utf8) }
+                        let newJson = (try? JSONSerialization.data(withJSONObject: items)).flatMap { String(data: $0, encoding: .utf8) }
+                        if currentJson != newJson {
+                            self.importantDates = items
+                            self.saveImportantDatesLocally()
+                        }
+                    }
+                }
+                self.refreshUserData()
+            }
+        }
+    }
+
+    private func refreshUserData() {
+        guard let uid = resolveUid() else { return }
+        Task {
+            if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
+               let fields = doc["fields"] as? [String: Any] {
+                await MainActor.run {
+                    let newName = extractString(fields, key: "displayName") ?? extractString(fields, key: "name") ?? displayName
+                    let newUsername = extractString(fields, key: "username") ?? username
+                    let newPartnerName = extractString(fields, key: "partnerName") ?? extractString(fields, key: "partnerDisplayName") ?? partnerName
+                    let newPartnerUid = extractString(fields, key: "partnerUid") ?? partnerUid
+
+                    if newName != displayName { displayName = newName }
+                    if newUsername != username { username = newUsername; defaults.set(newUsername, forKey: "profile_username") }
+                    if newPartnerName != partnerName { partnerName = newPartnerName }
+                    if newPartnerUid != partnerUid { partnerUid = newPartnerUid }
+
+                    if let photoUrl = extractString(fields, key: "profilePhotoUrl"), photoUrl != profilePhotoFirestoreUrl {
+                        profilePhotoFirestoreUrl = photoUrl
+                        loadProfilePhoto(photoUrl)
+                    }
+
+                    if let bdStr = extractString(fields, key: "birthdayDate") ?? extractString(fields, key: "dob") {
+                        if let newBd = dateFormatter.date(from: bdStr) ?? df.date(from: bdStr) {
+                            if birthdayDate == nil || !Calendar.current.isDate(newBd, equalTo: birthdayDate!, toGranularity: .day) {
+                                birthdayDate = newBd
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -695,6 +798,24 @@ public struct ProfileView: View {
     private func extractString(_ fields: [String: Any], key: String) -> String? {
         guard let map = fields[key] as? [String: Any] else { return nil }
         return map["stringValue"] as? String ?? map["timestampValue"] as? String
+    }
+
+    private func extractArray(_ fields: [String: Any], key: String) -> [[String: Any]]? {
+        guard let map = fields[key] as? [String: Any],
+              let values = map["arrayValue"] as? [String: Any],
+              let items = values["values"] as? [[String: Any]] else { return nil }
+        return items.compactMap { item in
+            guard let mapValue = item["mapValue"] as? [String: Any],
+                  let mapFields = mapValue["fields"] as? [String: Any] else { return nil }
+            var result: [String: Any] = [:]
+            for (k, v) in mapFields {
+                if let strVal = (v as? [String: Any])?["stringValue"] as? String { result[k] = strVal }
+                else if let boolVal = (v as? [String: Any])?["booleanValue"] as? Bool { result[k] = boolVal }
+                else if let intVal = (v as? [String: Any])?["integerValue"] as? String { result[k] = intVal }
+                else { result[k] = v }
+            }
+            return result
+        }
     }
 }
 
