@@ -60,7 +60,23 @@ public class UserService: ObservableObject {
             return result
         }
 
-        // 2. List ALL users and find by any matching field (most reliable)
+        // 2. Try structured query via runQuery endpoint
+        for (field, skipIfNoAt) in [("username", false), ("email", true), ("name", false), ("displayName", false)] {
+            if skipIfNoAt, !clean.contains("@") { continue }
+            if let docs = try? await FirebaseRESTService.shared.firestoreQuery(path: "users", field: field, op: "EQUAL", value: clean),
+               let first = docs.first,
+               let docName = first["name"] as? String,
+               let fields = first["fields"] as? [String: Any] {
+                let uid = docName.split(separator: "/").last.map(String.init) ?? ""
+                if !uid.isEmpty, uid != myUid {
+                    var result = self.extractUserData(uid: uid, fields: fields)
+                    result["_source"] = "query_\(field)"
+                    return result
+                }
+            }
+        }
+
+        // 3. List ALL users and find by any matching field
         if let usersList = try? await FirebaseRESTService.shared.firestoreList(path: "users") {
             for doc in usersList {
                 guard let f = doc["fields"] as? [String: Any],
