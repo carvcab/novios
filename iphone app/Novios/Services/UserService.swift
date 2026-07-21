@@ -22,7 +22,7 @@ public class UserService: ObservableObject {
     public func searchUser(query: String) async -> [String: Any]? {
         let clean = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !clean.isEmpty else { return nil }
-        let myUid = FirebaseRESTService.shared.localId
+        let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id
 
         // 1. Search by Pair Code (e.g. LOVE-8492)
         let upper = clean.uppercased()
@@ -56,8 +56,7 @@ public class UserService: ObservableObject {
         }
 
         // 3. Try structured queries (users WHERE username == clean / email == clean)
-        //    These use the Firestore :runQuery endpoint — works if security rules allow
-        for (field, skipIfNoAt) in [("username", false), ("email", true), ("name", false)] {
+        for (field, skipIfNoAt) in [("username", false), ("email", true), ("name", false), ("displayName", false)] {
             if skipIfNoAt, !clean.contains("@") { continue }
             if let docs = try? await FirebaseRESTService.shared.firestoreQuery(path: "users", field: field, op: "EQUAL", value: clean),
                let first = docs.first,
@@ -72,27 +71,30 @@ public class UserService: ObservableObject {
             }
         }
 
-        // 4. Fallback: iterate usernames collection to find by email
-        if clean.contains("@") {
-            if let allDocs = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames"),
-               let docs = allDocs["documents"] as? [[String: Any]] {
-                for doc in docs {
-                    guard let f = doc["fields"] as? [String: Any] else { continue }
-                    let emailVal = ((f["email"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-                    guard emailVal == clean else { continue }
-                    let uid = (f["uid"] as? [String: Any])?["stringValue"] as? String ?? ""
-                    guard !uid.isEmpty, uid != myUid else { continue }
-                    if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
-                       let userFields = userDoc["fields"] as? [String: Any] {
-                        var result = extractUserData(uid: uid, fields: userFields)
-                        result["_source"] = "email"
-                        return result
-                    }
+        // 4. Fallback: iterate usernames collection (matches by document ID or email)
+        if let allDocs = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames"),
+           let docs = allDocs["documents"] as? [[String: Any]] {
+            for doc in docs {
+                guard let f = doc["fields"] as? [String: Any] else { continue }
+                let docId = (doc["name"] as? String)?.split(separator: "/").last.map(String.init)?.lowercased() ?? ""
+                let emailVal = ((f["email"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
+                let match = docId == clean || emailVal == clean
+                guard match else { continue }
+                let uid = (f["uid"] as? [String: Any])?["stringValue"] as? String ?? ""
+                guard !uid.isEmpty, uid != myUid else { continue }
+                if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
+                   let userFields = userDoc["fields"] as? [String: Any] {
+                    var result = extractUserData(uid: uid, fields: userFields)
+                    result["_source"] = docId == clean ? "username_iter" : "email"
+                    return result
                 }
+                var result: [String: Any] = ["uid": uid, "username": docId, "displayName": docId]
+                result["_source"] = "username_iter_only"
+                return result
             }
         }
 
-        // 5. Final fallback: iterate all users documents — matches on username, displayName, name, email
+        // 5. Final fallback: iterate all users documents
         if let usersList = try? await FirebaseRESTService.shared.firestoreGet(path: "users"),
            let docs = usersList["documents"] as? [[String: Any]] {
             for doc in docs {
