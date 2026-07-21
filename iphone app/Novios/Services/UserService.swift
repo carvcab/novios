@@ -23,91 +23,67 @@ public class UserService: ObservableObject {
         let clean = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !clean.isEmpty else { return nil }
 
-        // Force refresh token first
-        if let token = FirebaseRESTService.shared.idToken {
-            if let exp = try? parseJWTExp(token), exp < Date().timeIntervalSince1970 {
-                _ = try? await FirebaseRESTService.shared.refreshIdToken()
-            }
-        }
-
         let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id
         guard let myUid = myUid else { return nil }
 
-        // Verify auth works by fetching own user doc
-        let ownDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(myUid)")
-        if ownDoc == nil {
-            if (try? await FirebaseRESTService.shared.refreshIdToken()) == nil {
-                return nil
-            }
-            guard (try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(myUid)")) != nil else {
-                return nil
-            }
+        // 1. Search by Pair Code (e.g. LOVE-8492)
+        let formattedCode = clean.uppercased().contains("LOVE-") ? clean.uppercased() : "LOVE-\(clean.uppercased())"
+        if let codeDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "pair_codes/\(formattedCode)"),
+           let cf = codeDoc["fields"] as? [String: Any],
+           let uid = (cf["uid"] as? [String: Any])?["stringValue"] as? String,
+           uid != myUid,
+           let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
+           let uf = userDoc["fields"] as? [String: Any] {
+            return extractUserData(uid: uid, fields: uf)
         }
 
-        // 1. Try direct usernames/{clean} lookup
-        if let usernameDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(clean)"),
-           let unFields = usernameDoc["fields"] as? [String: Any],
-           let uid = (unFields["uid"] as? [String: Any])?["stringValue"] as? String,
+        // 2. Search by Username (exactly like Android: usernames/{doc} → uid → users/{uid})
+        if let unDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(clean)"),
+           let uf = unDoc["fields"] as? [String: Any],
+           let uid = (uf["uid"] as? [String: Any])?["stringValue"] as? String,
            uid != myUid {
             if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                let userFields = userDoc["fields"] as? [String: Any] {
-                var result = self.extractUserData(uid: uid, fields: userFields)
-                result["_source"] = "username"
-                return result
+                return extractUserData(uid: uid, fields: userFields)
             }
-            var result: [String: Any] = ["uid": uid, "username": clean, "displayName": clean]
-            result["_source"] = "username_only"
-            return result
+            return ["uid": uid, "username": clean, "displayName": clean, "name": clean]
         }
 
-        // 2. Try structured query via runQuery endpoint
-        for (field, skipIfNoAt) in [("username", false), ("email", true), ("name", false), ("displayName", false)] {
-            if skipIfNoAt, !clean.contains("@") { continue }
-            if let docs = try? await FirebaseRESTService.shared.firestoreQuery(path: "users", field: field, op: "EQUAL", value: clean),
-               let first = docs.first,
-               let docName = first["name"] as? String,
-               let fields = first["fields"] as? [String: Any] {
-                let uid = docName.split(separator: "/").last.map(String.init) ?? ""
-                if !uid.isEmpty, uid != myUid {
-                    var result = self.extractUserData(uid: uid, fields: fields)
-                    result["_source"] = "query_\(field)"
-                    return result
-                }
-            }
-        }
-
-        // 3. List ALL users and find by any matching field
-        if let usersList = try? await FirebaseRESTService.shared.firestoreList(path: "users") {
+        // 3. Search by Email (like Android: users where email == clean)
+        if clean.contains("@"),
+           let usersList = try? await FirebaseRESTService.shared.firestoreList(path: "users") {
             for doc in usersList {
                 guard let f = doc["fields"] as? [String: Any],
                       let docName = doc["name"] as? String else { continue }
                 let uid = docName.split(separator: "/").last.map(String.init) ?? ""
-                guard !uid.isEmpty, uid != myUid else { continue }
-
-                let extractStr = { (key: String) -> String in
-                    ((f[key] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-                }
-
-                let fieldsToCheck = ["username", "displayName", "name", "email"]
-                for field in fieldsToCheck {
-                    if extractStr(field) == clean {
-                        var result = self.extractUserData(uid: uid, fields: f)
-                        result["_source"] = "field_\(field)"
-                        return result
-                    }
+                guard uid != myUid else { continue }
+                let email = ((f["email"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
+                if email == clean {
+                    return extractUserData(uid: uid, fields: f)
                 }
             }
         }
 
-        // 3. Try listing usernames collection (fallback)
-        if let allDocs = try? await FirebaseRESTService.shared.firestoreList(path: "usernames") {
-            for doc in allDocs {
-                guard let f = doc["fields"] as? [String: Any] else { continue }
-                let docId = (doc["name"] as? String)?.split(separator: "/").last.map(String.init)?.lowercased() ?? ""
-                let emailVal = ((f["email"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-                let match = docId == clean || emailVal == clean
-                guard match else { continue }
-                let uid = (f["uid"] as? [String: Any])?["stringValue"] as? String ?? ""
+        return nil
+    }
+
+    private func extractUserData(uid: String, fields: [String: Any]) -> [String: Any] {
+        let extract = { (key: String) -> String? in
+            (fields[key] as? [String: Any])?["stringValue"] as? String
+        }
+        var result: [String: Any] = [:]
+        result["uid"] = uid
+        result["username"] = extract("username") ?? ""
+        result["displayName"] = extract("displayName") ?? extract("name") ?? ""
+        result["name"] = extract("name") ?? extract("displayName") ?? ""
+        result["email"] = extract("email") ?? ""
+        for (k, v) in fields {
+            if let sv = (v as? [String: Any])?["stringValue"] as? String {
+                result[k] = sv
+            }
+        }
+        return result
+    }
                 guard !uid.isEmpty, uid != myUid else { continue }
                 if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                    let userFields = userDoc["fields"] as? [String: Any] {
@@ -122,30 +98,6 @@ public class UserService: ObservableObject {
         }
 
         return nil
-    }
-
-    private func parseJWTExp(_ token: String) -> TimeInterval? {
-        let parts = token.split(separator: ".")
-        guard parts.count >= 2 else { return nil }
-        var padded = String(parts[1])
-        while padded.count % 4 != 0 { padded += "=" }
-        guard let data = Data(base64Encoded: padded),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let exp = json["exp"] as? TimeInterval else { return nil }
-        return exp
-    }
-
-    private func extractUserData(uid: String, fields: [String: Any]) -> [String: Any] {
-        let extract = { (key: String) -> String? in
-            (fields[key] as? [String: Any])?["stringValue"] as? String
-        }
-        return [
-            "uid": uid,
-            "displayName": extract("displayName") ?? extract("name") ?? "",
-            "username": extract("username") ?? "",
-            "email": extract("email") ?? "",
-            "hasPartner": (extract("partnerUid") ?? "").isEmpty == false
-        ]
     }
 
     // MARK: - Add Partner (matches Android exactly)
