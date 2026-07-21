@@ -4,7 +4,10 @@ import MapKit
 public struct LocationView: View {
     @ObservedObject private var locationService = LocationService.shared
     @ObservedObject private var theme = ThemeManager.shared
-    @State private var position: MapCameraPosition = .automatic
+    @State private var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 4.6097, longitude: -74.0817),
+        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+    )
     @State private var showCheckInSheet = false
     @State private var checkInMessage = ""
     @State private var checkIns: [[String: Any]] = []
@@ -18,11 +21,9 @@ public struct LocationView: View {
     public var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
-                // Map
                 mapView
                     .ignoresSafeArea(edges: [.top, .horizontal])
 
-                // Bottom sheet
                 bottomSheet
             }
             .navigationTitle("Ubicación")
@@ -45,52 +46,101 @@ public struct LocationView: View {
             }
             .onAppear {
                 loadCheckIns()
+                updateRegionToFitBoth()
             }
+            .onChange(of: locationService.lastLatitude) { _ in updateRegionToFitBoth() }
+            .onChange(of: locationService.partnerLatitude) { _ in updateRegionToFitBoth() }
+        }
+    }
+
+    private func updateRegionToFitBoth() {
+        let myLat = locationService.lastLatitude
+        let myLng = locationService.lastLongitude
+        let pLat = locationService.partnerLatitude
+        let pLng = locationService.partnerLongitude
+
+        if let lat = myLat, let lng = myLng {
+            region.center = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+        }
+        if let lat = pLat, let lng = pLng, let myLat = myLat, let myLng = myLng {
+            let midLat = (myLat + lat) / 2
+            let midLng = (myLng + lng) / 2
+            region.center = CLLocationCoordinate2D(latitude: midLat, longitude: midLng)
+            let spanLat = abs(myLat - lat) * 1.5 + 0.01
+            let spanLng = abs(myLng - lng) * 1.5 + 0.01
+            region.span = MKCoordinateSpan(latitudeDelta: max(spanLat, 0.01), longitudeDelta: max(spanLng, 0.01))
         }
     }
 
     // MARK: - Map
 
     private var mapView: some View {
-        Map(position: $position) {
-            if let lat = locationService.lastLatitude, let lng = locationService.lastLongitude {
-                Annotation("Tú", coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng)) {
+        Map(coordinateRegion: $region, showsUserLocation: false, annotationItems: annotations) { item in
+            MapAnnotation(coordinate: item.coordinate) {
+                VStack(spacing: 2) {
                     Circle()
-                        .fill(theme.primary)
+                        .fill(item.color)
                         .frame(width: 20, height: 20)
                         .overlay(Circle().stroke(.white, lineWidth: 3))
-                        .shadow(radius: 4)
-                }
-            }
-            if let lat = locationService.partnerLatitude, let lng = locationService.partnerLongitude {
-                Annotation(locationService.partnerOnline ? "Pareja" : "Pareja (offline)", coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng)) {
-                    Circle()
-                        .fill(locationService.partnerOnline ? Color.green : Color.gray)
-                        .frame(width: 20, height: 20)
-                        .overlay(Circle().stroke(.white, lineWidth: 3))
-                        .shadow(radius: 4)
-                }
-            }
-            if let myLat = locationService.lastLatitude, let myLng = locationService.lastLongitude,
-               let pLat = locationService.partnerLatitude, let pLng = locationService.partnerLongitude {
-                MapPolyline(coordinates: [
-                    CLLocationCoordinate2D(latitude: myLat, longitude: myLng),
-                    CLLocationCoordinate2D(latitude: pLat, longitude: pLng)
-                ])
-                .stroke(theme.primary.opacity(0.3), lineWidth: 1)
-            }
-            ForEach(checkIns.indices, id: \.self) { i in
-                if let lat = checkIns[i]["latitude"] as? Double,
-                   let lng = checkIns[i]["longitude"] as? Double {
-                    Annotation("", coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng)) {
-                        Image(systemName: "pin.fill")
-                            .foregroundColor(.orange)
-                            .appFont(size: 16)
-                    }
+                        .shadow(radius: 3)
+                    Text(item.label)
+                        .appFont(size: 10, weight: .medium)
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(4)
                 }
             }
         }
-        .mapStyle(.standard)
+        .overlay(alignment: .topTrailing) {
+            VStack(spacing: 8) {
+                Button {
+                    updateRegionToFitBoth()
+                } label: {
+                    Image(systemName: "minus.magnifyingglass")
+                        .appFont(size: 16)
+                        .padding(10)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .shadow(radius: 2)
+                }
+                if let dist = locationService.distanceToPartner {
+                    HStack(spacing: 4) {
+                        Image(systemName: "ruler").appFont(size: 10)
+                        Text("\(String(format: "%.1f", dist)) km")
+                            .appFont(size: 11, weight: .semibold)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(12)
+                    .shadow(radius: 2)
+                }
+            }
+            .padding(12)
+        }
+    }
+
+    private var annotations: [MapAnnotationItem] {
+        var items: [MapAnnotationItem] = []
+        if let lat = locationService.lastLatitude, let lng = locationService.lastLongitude {
+            items.append(MapAnnotationItem(
+                id: "me",
+                coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+                label: "Tú",
+                color: theme.primary
+            ))
+        }
+        if let lat = locationService.partnerLatitude, let lng = locationService.partnerLongitude {
+            items.append(MapAnnotationItem(
+                id: "partner",
+                coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng),
+                label: locationService.partnerOnline ? "Pareja" : "Offline",
+                color: locationService.partnerOnline ? .green : .gray
+            ))
+        }
+        return items
     }
 
     // MARK: - Bottom Sheet
@@ -104,7 +154,6 @@ public struct LocationView: View {
 
             ScrollView {
                 VStack(spacing: 12) {
-                    // Status
                     HStack {
                         Circle()
                             .fill(locationService.isSharing ? Color.green : Color.gray)
@@ -129,36 +178,11 @@ public struct LocationView: View {
                     .padding(.top, 8)
 
                     if locationService.isSharing {
-                        // Partner info
-                        if let dist = locationService.distanceToPartner {
-                            HStack {
-                                Image(systemName: "ruler")
-                                    .foregroundColor(theme.primary)
-                                Text("A \(String(format: "%.1f", dist)) km de tu pareja")
-                                    .appFont(size: 14)
-                                Spacer()
-                                if let lat = locationService.partnerLatitude, let lng = locationService.partnerLongitude {
-                                    Button("Centrar") {
-                                        position = .region(MKCoordinateRegion(
-                                            center: CLLocationCoordinate2D(latitude: lat, longitude: lng),
-                                            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                                        ))
-                                    }
-                                    .appFont(size: 12)
-                                    .foregroundColor(theme.primary)
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                        }
-
                         if locationService.partnerOnline {
                             HStack {
-                                Image(systemName: "circle.fill")
-                                    .foregroundColor(.green)
-                                    .appFont(size: 8)
+                                Circle().fill(Color.green).frame(width: 8, height: 8)
                                 Text("Pareja en línea")
-                                    .appFont(size: 13)
-                                    .foregroundColor(theme.textSecondary)
+                                    .appFont(size: 13).foregroundColor(theme.textSecondary)
                                 Spacer()
                             }
                             .padding(.horizontal, 16)
@@ -166,7 +190,6 @@ public struct LocationView: View {
 
                         Divider().padding(.horizontal, 16)
 
-                        // Buttons
                         HStack(spacing: 12) {
                             Button {
                                 sendCheckIn(message: "Voy para casa 🏠")
@@ -179,7 +202,6 @@ public struct LocationView: View {
                                     .background(LinearGradient(colors: [theme.pastelMint, Color(red: 0.5, green: 0.8, blue: 0.5)], startPoint: .leading, endPoint: .trailing))
                                     .cornerRadius(10)
                             }
-
                             Button {
                                 sendCheckIn(message: "Llegué bien! Estoy en mi destino ✅")
                             } label: {
@@ -194,11 +216,10 @@ public struct LocationView: View {
                         }
                         .padding(.horizontal, 16)
 
-                        // Check-in button
                         Button {
                             showCheckInSheet = true
                         } label: {
-                            Label("Enviar check-in personalizado", systemImage: "paperplane.fill")
+                            Label("Enviar check-in", systemImage: "paperplane.fill")
                                 .appFont(size: 13)
                                 .foregroundColor(theme.primary)
                                 .frame(maxWidth: .infinity)
@@ -206,6 +227,19 @@ public struct LocationView: View {
                                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(theme.primary.opacity(0.3)))
                         }
                         .padding(.horizontal, 16)
+
+                        if !checkIns.isEmpty {
+                            Button {
+                                showHistory = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "clock.arrow.circlepath")
+                                    Text("Historial (\(checkIns.count))")
+                                }
+                                .appFont(size: 12)
+                                .foregroundColor(theme.textSecondary)
+                            }
+                        }
                     }
                 }
                 .padding(.bottom, 16)
@@ -216,12 +250,12 @@ public struct LocationView: View {
         }
     }
 
-    // MARK: - Check-In Sheet
+    // MARK: - Sheets
 
     private var checkInSheet: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                Text("Enviar check-in")
+                Text("Check-in personalizado")
                     .appFont(size: 18, weight: .semibold)
                 TextField("¿Qué quieres decir?", text: $checkInMessage)
                     .appFont(size: 14)
@@ -234,26 +268,17 @@ public struct LocationView: View {
                     checkInMessage = ""
                 } label: {
                     Text("Enviar")
-                        .appFont(size: 16, weight: .bold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(theme.primaryGradient)
-                        .cornerRadius(14)
+                        .appFont(size: 16, weight: .bold).foregroundColor(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 14)
+                        .background(theme.primaryGradient).cornerRadius(14)
                 }
                 .disabled(checkInMessage.trimmingCharacters(in: .whitespaces).isEmpty)
                 Spacer()
             }
             .padding(20)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancelar") { showCheckInSheet = false }
-                }
-            }
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Cancelar") { showCheckInSheet = false } } }
         }
     }
-
-    // MARK: - History Sheet
 
     private var historySheet: some View {
         NavigationStack {
@@ -266,19 +291,14 @@ public struct LocationView: View {
                         if let ts = item["timestamp"] as? String,
                            let date = df.date(from: ts) {
                             Text(date.formatted(date: .abbreviated, time: .shortened))
-                                .appFont(size: 11)
-                                .foregroundColor(theme.textSecondary)
+                                .appFont(size: 11).foregroundColor(theme.textSecondary)
                         }
                     }
                     .padding(.vertical, 4)
                 }
             }
             .navigationTitle("Historial")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cerrar") { showHistory = false }
-                }
-            }
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Cerrar") { showHistory = false } } }
         }
     }
 
@@ -286,21 +306,15 @@ public struct LocationView: View {
 
     private func sendCheckIn(message: String) {
         let coupleId = defaults.string(forKey: "couple_id") ?? ""
-        guard !coupleId.isEmpty,
-              let lat = locationService.lastLatitude,
-              let lng = locationService.lastLongitude else { return }
+        guard !coupleId.isEmpty, let lat = locationService.lastLatitude, let lng = locationService.lastLongitude else { return }
         let msgId = UUID().uuidString
         let now = df.string(from: Date())
         Task {
             try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(coupleId)/checkins/\(msgId)", fields: [
-                "message": message,
-                "latitude": lat,
-                "longitude": lng,
-                "timestamp": now,
+                "message": message, "latitude": lat, "longitude": lng, "timestamp": now,
             ])
             await MainActor.run {
-                let item: [String: Any] = ["message": message, "latitude": lat, "longitude": lng, "timestamp": now]
-                checkIns.append(item)
+                checkIns.insert(["message": message, "latitude": lat, "longitude": lng, "timestamp": now], at: 0)
             }
         }
     }
@@ -313,24 +327,25 @@ public struct LocationView: View {
                 var items: [[String: Any]] = []
                 for doc in docs {
                     guard let f = doc["fields"] as? [String: Any] else { continue }
-                    let extract = { (key: String) -> String? in (f[key] as? [String: Any])?["stringValue"] as? String }
-                    let extractD = { (key: String) -> Double? in
-                        if let v = (f[key] as? [String: Any])?["doubleValue"] as? Double { return v }
-                        return (f[key] as? [String: Any])?["stringValue"].flatMap { Double($0) }
-                    }
-                    if let msg = extract("message") {
-                        items.append([
-                            "message": msg,
-                            "latitude": extractD("latitude") ?? 0,
-                            "longitude": extractD("longitude") ?? 0,
-                            "timestamp": extract("timestamp") ?? ""
-                        ])
+                    let s = { (k: String) -> String? in (f[k] as? [String: Any])?["stringValue"] as? String }
+                    let d = { (k: String) -> Double? in (f[k] as? [String: Any])?["doubleValue"] as? Double ?? (f[k] as? [String: Any])?["stringValue"].flatMap { Double($0) } }
+                    if let msg = s("message") {
+                        items.append(["message": msg, "latitude": d("latitude") ?? 0, "longitude": d("longitude") ?? 0, "timestamp": s("timestamp") ?? ""])
                     }
                 }
                 await MainActor.run { checkIns = items.reversed() }
             }
         }
     }
+}
+
+// MARK: - Annotation Model
+
+struct MapAnnotationItem: Identifiable {
+    let id: String
+    let coordinate: CLLocationCoordinate2D
+    let label: String
+    let color: Color
 }
 
 // MARK: - CornerRadius helper
@@ -344,9 +359,7 @@ extension View {
 struct RoundedCorner: Shape {
     var radius: CGFloat = .infinity
     var corners: UIRectCorner = .allCorners
-
     func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
-        return Path(path.cgPath)
+        Path(UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius)).cgPath)
     }
 }
