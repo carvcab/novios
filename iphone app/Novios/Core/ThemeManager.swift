@@ -113,6 +113,32 @@ public class ThemeManager: ObservableObject {
     public var pastelRoseAccent: Color { primary }
     public var pastelLavenderAccent: Color { secondary }
 
+    // MARK: - Bubble Colors (adapt to themes)
+
+    public var myBubbleBackground: Color {
+        if isDarkMode { return surfaceBackground }
+        if isRedMode { return redSecondary.opacity(0.25) }
+        return Color(red: 0.93, green: 0.65, blue: 0.75)
+    }
+
+    public var partnerBubbleBackground: Color {
+        if isDarkMode { return Color(red: 0.18, green: 0.18, blue: 0.20) }
+        return Color(.systemGray6)
+    }
+
+    public var myBubbleText: Color {
+        if isDarkMode { return .white.opacity(0.9) }
+        return Color(red: 0.35, green: 0.15, blue: 0.2)
+    }
+
+    public var myBubbleShadow: Color {
+        primary.opacity(isDarkMode ? 0.1 : 0.25)
+    }
+
+    public var myBubbleHeart: Color {
+        isRedMode ? redSecondary : Color(red: 1, green: 0.85, blue: 0.95)
+    }
+
     // MARK: - Font
 
     public func font(size: CGFloat, weight: Font.Weight = .regular) -> Font {

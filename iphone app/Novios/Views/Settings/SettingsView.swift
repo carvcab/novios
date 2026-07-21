@@ -428,6 +428,8 @@ public struct SettingsView: View {
         invitationDate = dateFromDefaults("invitation_date")
         aiMode = defaults.integer(forKey: "ai_mode")
         modelDownloaded = defaults.bool(forKey: "model_downloaded")
+
+        Task { await loadCoupleSettings() }
     }
 
     private func saveSettings() {
@@ -459,11 +461,54 @@ public struct SettingsView: View {
                     "weddingDate": weddingDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
                     "invitationDate": invitationDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
                 ])
+
+                if let coupleId = defaults.string(forKey: "couple_id"), !coupleId.isEmpty {
+                    try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(coupleId)", fields: [
+                        "anniversaryDate": anniversaryDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
+                        "metDate": metDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
+                        "datingDate": datingDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
+                        "weddingDate": weddingDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
+                        "invitationDate": invitationDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
+                        "isDarkMode": theme.isDarkMode,
+                        "isRedMode": theme.isRedMode,
+                        "fontFamily": theme.fontFamily,
+                    ])
+                }
             }
         }
 
         let impact = UIImpactFeedbackGenerator(style: .medium)
         impact.impactOccurred()
+    }
+
+    private func loadCoupleSettings() async {
+        guard let coupleId = defaults.string(forKey: "couple_id"), !coupleId.isEmpty,
+              let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(coupleId)"),
+              let fields = doc["fields"] as? [String: Any] else { return }
+
+        let s = { (key: String) -> String? in (fields[key] as? [String: Any])?["stringValue"] as? String }
+        let b = { (key: String) -> Bool? in (fields[key] as? [String: Any])?["booleanValue"] as? Bool }
+        let formatter = ISO8601DateFormatter()
+
+        if anniversaryDate == nil, let val = s("anniversaryDate"), let d = formatter.date(from: val) {
+            anniversaryDate = d
+        }
+        if metDate == nil, let val = s("metDate"), let d = formatter.date(from: val) {
+            metDate = d
+        }
+        if datingDate == nil, let val = s("datingDate"), let d = formatter.date(from: val) {
+            datingDate = d
+        }
+        if weddingDate == nil, let val = s("weddingDate"), let d = formatter.date(from: val) {
+            weddingDate = d
+        }
+        if invitationDate == nil, let val = s("invitationDate"), let d = formatter.date(from: val) {
+            invitationDate = d
+        }
+
+        if let val = b("isDarkMode") { theme.isDarkMode = val; defaults.set(val, forKey: "is_dark_mode") }
+        if let val = b("isRedMode") { theme.isRedMode = val; isRedMode = val; defaults.set(val, forKey: "is_red_mode") }
+        if let val = s("fontFamily"), !val.isEmpty { theme.fontFamily = val; defaults.set(val, forKey: "font_family") }
     }
 
     private func dateFromDefaults(_ key: String) -> Date? {

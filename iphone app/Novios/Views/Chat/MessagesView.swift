@@ -10,6 +10,9 @@ public struct MessagesView: View {
     @State private var showSettings = false
     @State private var scrollTargetId: String?
 
+    @State private var nextDateLabel: String?
+    @State private var nextDateDays: Int?
+
     private let emojis = ["❤️", "😘", "🥺", "💖", "💑", "🔥", "🌹", "✨", "💍"]
 
     public var body: some View {
@@ -18,6 +21,8 @@ public struct MessagesView: View {
                 LiquidBackgroundView()
 
                 VStack(spacing: 0) {
+                    dateBanner
+
                     ScrollViewReader { proxy in
                         ScrollView {
                             LazyVStack(spacing: 6) {
@@ -68,6 +73,7 @@ public struct MessagesView: View {
                     }
                 }
             }
+            .onAppear(perform: loadDates)
             .sheet(isPresented: $showSettings) {
                 SettingsView()
             }
@@ -242,6 +248,53 @@ public struct MessagesView: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.15), lineWidth: 0.5))
         .padding(.horizontal, 10)
+    }
+
+    @ViewBuilder
+    private var dateBanner: some View {
+        if let label = nextDateLabel, let days = nextDateDays {
+            HStack(spacing: 8) {
+                Image(systemName: days == 0 ? "heart.fill" : "calendar")
+                    .appFont(size: 12)
+                    .foregroundColor(days == 0 ? ThemeManager.shared.primary : ThemeManager.shared.textSecondary)
+                Text(days == 0 ? "💕 ¡Hoy es \(label)!" : "\(label) en \(days) días")
+                    .appFont(size: 12, weight: .medium)
+                    .foregroundColor(days == 0 ? ThemeManager.shared.primary : ThemeManager.shared.textSecondary)
+                Spacer()
+            }
+            .padding(.horizontal, 14).padding(.vertical, 6)
+            .background(.ultraThinMaterial.opacity(0.5))
+            .overlay(alignment: .bottom) { Divider().opacity(0.15) }
+        }
+    }
+
+    private func loadDates() {
+        let defaults = UserDefaults.standard
+        let dateKeys: [(String, String)] = [
+            ("anniversary_date", "Aniversario"),
+            ("met_date", "Conocimos"),
+            ("dating_date", "Primera cita"),
+            ("wedding_date", "Boda"),
+            ("invitation_date", "Invitación"),
+        ]
+        let today = Calendar.current.startOfDay(for: Date())
+        var nearestLabel: String?
+        var nearestDays: Int?
+
+        for (key, label) in dateKeys {
+            guard let iso = defaults.string(forKey: key), !iso.isEmpty,
+                  let date = ISO8601DateFormatter().date(from: iso) else { continue }
+            let day = Calendar.current.startOfDay(for: date)
+            let diff = Calendar.current.dateComponents([.day], from: today, to: day).day ?? 0
+            if diff >= 0 {
+                if nearestDays == nil || diff < nearestDays! {
+                    nearestDays = diff
+                    nearestLabel = label
+                }
+            }
+        }
+        nextDateLabel = nearestLabel
+        nextDateDays = nearestDays
     }
 
     private func sendText() {

@@ -61,8 +61,10 @@ public struct ChatBubbleView: View {
         .task(id: message.id) { loadMediaIfNeeded() }
     }
 
+    private var theme: ThemeManager { ThemeManager.shared }
+
     private var bubbleBackground: Color {
-        isFromMe ? Color(red: 0.93, green: 0.65, blue: 0.75) : Color(.systemGray6)
+        isFromMe ? theme.myBubbleBackground : theme.partnerBubbleBackground
     }
 
     private var bubbleGlass: some View {
@@ -85,7 +87,7 @@ public struct ChatBubbleView: View {
     }
 
     private var shadowColor: Color {
-        isFromMe ? Color(red: 0.87, green: 0.55, blue: 0.65).opacity(0.25) : .black.opacity(0.04)
+        isFromMe ? theme.myBubbleShadow : .black.opacity(0.04)
     }
 
     private var partnerAvatar: some View {
@@ -108,7 +110,7 @@ public struct ChatBubbleView: View {
             } else {
                 Text(message.text ?? "")
                     .appFont(size: 15, weight: isSpecialType ? .semibold : .regular)
-                    .foregroundColor(isFromMe ? Color(red: 0.35, green: 0.15, blue: 0.2) : Color(.darkGray)).lineSpacing(4)
+                    .foregroundColor(isFromMe ? theme.myBubbleText : (theme.isDarkMode ? .white.opacity(0.8) : Color(.darkGray))).lineSpacing(4)
             }
             if let reactions = message.reactions, !reactions.isEmpty {
                 reactionRow
@@ -154,7 +156,7 @@ public struct ChatBubbleView: View {
             if isFromMe {
                 Image(systemName: message.readTimestamp != nil ? "heart.fill" : "heart")
                     .appFont(size: 8)
-                    .foregroundColor(message.readTimestamp != nil ? Color(red: 1, green: 0.85, blue: 0.95) : .white.opacity(0.4))
+                    .foregroundColor(message.readTimestamp != nil ? theme.myBubbleHeart : .white.opacity(0.4))
             }
         }
     }
@@ -182,7 +184,7 @@ public struct ChatBubbleView: View {
             }
             .onTapGesture { togglePlay() }
             VStack(alignment: .leading, spacing: 1) {
-                Text("Nota de voz").appFont(size: 12, weight: .semibold).foregroundColor(isFromMe ? .white : Color(.darkGray))
+                Text("Nota de voz").appFont(size: 12, weight: .semibold).foregroundColor(isFromMe ? .white : (theme.isDarkMode ? .white.opacity(0.8) : Color(.darkGray)))
                 if isPlaying {
                     Text("Reproduciendo...").appFont(size: 10)
                         .foregroundColor(isFromMe ? .white.opacity(0.7) : .gray)
