@@ -7,6 +7,12 @@ public struct SettingsView: View {
     @State private var showingAddPartner = false
 
     @State private var isRedMode = false
+
+    @State private var showDatePicker = false
+    @State private var datePickerLabel = ""
+    @State private var datePickerBinding: Binding<Date?>?
+    @State private var datePickerColor = Color.primary
+
     @State private var anniversaryDate: Date?
     @State private var metDate: Date?
     @State private var datingDate: Date?
@@ -62,6 +68,11 @@ public struct SettingsView: View {
             }
             .sheet(isPresented: $showingAddPartner) {
                 AddPartnerView()
+            }
+            .sheet(isPresented: $showDatePicker) {
+                if let binding = datePickerBinding {
+                    DatePickerView(label: datePickerLabel, date: binding, color: datePickerColor)
+                }
             }
         }
     }
@@ -400,14 +411,10 @@ public struct SettingsView: View {
     }
 
     private func showDatePicker(for label: String, binding: Binding<Date?>, color: Color) {
-        let store = DateStore(binding: binding)
-        let host = UIHostingController(
-            rootView: DatePickerView(label: label, store: store, color: color)
-        )
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let root = windowScene.windows.first?.rootViewController {
-            root.present(host, animated: true)
-        }
+        datePickerLabel = label
+        datePickerBinding = binding
+        datePickerColor = color
+        showDatePicker = true
     }
 
     private func loadSettings() {
@@ -524,15 +531,11 @@ public struct SettingsView: View {
 
 // MARK: - Date Picker Helper
 
-private class DateStore: ObservableObject {
-    @Binding var date: Date?
-    init(binding: Binding<Date?>) { _date = binding }
-}
-
 private struct DatePickerView: View {
     let label: String
-    @StateObject var store: DateStore
+    @Binding var date: Date?
     let color: Color
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedDate = Date()
 
     var body: some View {
@@ -542,10 +545,8 @@ private struct DatePickerView: View {
                 DatePicker("Selecciona fecha", selection: $selectedDate, displayedComponents: .date)
                     .datePickerStyle(.graphical).tint(color)
                 Button {
-                    store.date = selectedDate
-                    UIApplication.shared.connectedScenes
-                        .compactMap { ($0 as? UIWindowScene)?.windows.first?.rootViewController }
-                        .first?.dismiss(animated: true)
+                    date = selectedDate
+                    dismiss()
                 } label: {
                     Text("Guardar").appFont(size: 16, weight: .bold).foregroundColor(.white)
                         .frame(maxWidth: .infinity).padding(.vertical, 14)
@@ -555,11 +556,7 @@ private struct DatePickerView: View {
             .padding(20)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancelar") {
-                        UIApplication.shared.connectedScenes
-                            .compactMap { ($0 as? UIWindowScene)?.windows.first?.rootViewController }
-                            .first?.dismiss(animated: true)
-                    }
+                    Button("Cancelar") { dismiss() }
                 }
             }
         }
