@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../services/local_storage.dart';
+import '../../services/auth_service.dart';
 import '../../services/status_service.dart';
 import '../../services/geofence_service.dart';
 import '../../widgets/glass_card.dart';
