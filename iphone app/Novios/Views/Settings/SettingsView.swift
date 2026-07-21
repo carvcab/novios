@@ -336,33 +336,86 @@ public struct SettingsView: View {
 
     // MARK: - AI Services
 
+    @State private var aiTestResult: String?
+    @State private var isTestingAI = false
+
     private var aiSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             sectionHeader(icon: "brain.head.profile", title: "Servicios de IA")
             GlassCard {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text("Motor de IA").appFont(size: 13, weight: .medium).foregroundColor(theme.textSecondary)
                     Picker("Motor de IA", selection: $aiMode) {
                         Text("DeepSeek API (Online)").tag(0)
                         Text("DeepSeek Local (Sin Internet)").tag(1)
                     }
                     .pickerStyle(.menu)
-                    if aiMode == 0 {
-                        SecureField("DeepSeek API Key", text: $deepseekKey)
-                            .appFont(size: 14)
-                            .padding(12)
-                            .background(.ultraThinMaterial)
-                            .background(theme.pastelWarmBg.opacity(0.2))
-                            .cornerRadius(10)
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.2), lineWidth: 0.5))
-                        Text("Obtén una key en platform.deepseek.com/api_keys")
-                            .appFont(size: 10).foregroundColor(theme.textSecondary)
+                    .onChange(of: aiMode) { _ in
+                        AIService.shared.setMode(aiMode == 0 ? .deepseek : .local)
                     }
+
+                    if aiMode == 0 {
+                        VStack(spacing: 8) {
+                            SecureField("DeepSeek API Key", text: $deepseekKey)
+                                .appFont(size: 14)
+                                .padding(12)
+                                .background(.ultraThinMaterial)
+                                .background(theme.pastelWarmBg.opacity(0.2))
+                                .cornerRadius(10)
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.2), lineWidth: 0.5))
+                                .onChange(of: deepseekKey) { newKey in
+                                    AIService.shared.saveApiKey(newKey)
+                                }
+
+                            HStack(spacing: 4) {
+                                Image(systemName: "info.circle.fill")
+                                    .appFont(size: 10)
+                                    .foregroundColor(theme.textSecondary)
+                                Text("Obtén una key gratis en platform.deepseek.com/api_keys")
+                                    .appFont(size: 9)
+                                    .foregroundColor(theme.textSecondary)
+                            }
+
+                            if !deepseekKey.isEmpty {
+                                Button {
+                                    testAIKey()
+                                } label: {
+                                    HStack {
+                                        if isTestingAI {
+                                            ProgressView().tint(.white).scaleEffect(0.8)
+                                        } else {
+                                            Image(systemName: "bolt.fill")
+                                        }
+                                        Text(isTestingAI ? "Probando..." : "Probar conexión")
+                                    }
+                                    .appFont(size: 13, weight: .semibold)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(theme.primaryGradient)
+                                    .cornerRadius(10)
+                                }
+                                .disabled(isTestingAI)
+
+                                if let result = aiTestResult {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: result.contains("Error") ? "xmark.circle.fill" : "checkmark.circle.fill")
+                                            .appFont(size: 12)
+                                            .foregroundColor(result.contains("Error") ? .red : .green)
+                                        Text(result)
+                                            .appFont(size: 11)
+                                            .foregroundColor(result.contains("Error") ? .red : .green)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if aiMode == 1 {
                         VStack(spacing: 10) {
                             HStack(spacing: 8) {
                                 Image(systemName: "iphone.gen3").foregroundColor(theme.pastelMint)
-                                Text("El modelo DeepSeek R1 1.5B se descarga una vez (~1.1 GB) y corre 100% offline")
+                                Text("El modelo DeepSeek R1 1.5B se descarga una vez y corre 100% offline")
                                     .appFont(size: 11).foregroundColor(theme.pastelMint)
                             }
                             if modelDownloaded {
@@ -372,6 +425,7 @@ public struct SettingsView: View {
                                 }
                                 Button {
                                     modelDownloaded = false
+                                    defaults.set(false, forKey: "model_downloaded")
                                 } label: {
                                     Label("Eliminar modelo", systemImage: "trash")
                                         .appFont(size: 13).foregroundColor(.red)
@@ -379,26 +433,31 @@ public struct SettingsView: View {
                                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.3)))
                                 }
                             } else {
-                                Button {
-                                    isDownloadingModel = true
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                        isDownloadingModel = false
-                                        modelDownloaded = true
+                                VStack(spacing: 6) {
+                                    Text("El modelo local requiere ~1.1 GB de espacio. La descarga se realiza en segundo plano.")
+                                        .appFont(size: 10).foregroundColor(theme.textSecondary).multilineTextAlignment(.center)
+                                    Button {
+                                        isDownloadingModel = true
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                            isDownloadingModel = false
+                                            modelDownloaded = true
+                                            defaults.set(true, forKey: "model_downloaded")
+                                        }
+                                    } label: {
+                                        HStack {
+                                            if isDownloadingModel { ProgressView().tint(.white).scaleEffect(0.8) }
+                                            else { Image(systemName: "arrow.down.circle.fill") }
+                                            Text(isDownloadingModel ? "Descargando..." : "Descargar Modelo Local")
+                                        }
+                                        .appFont(size: 13, weight: .semibold).foregroundColor(.white)
+                                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                        .background(
+                                            LinearGradient(colors: [theme.pastelMint, Color(red: 0.5, green: 0.8, blue: 0.5)],
+                                                startPoint: .leading, endPoint: .trailing)
+                                        ).cornerRadius(10)
                                     }
-                                } label: {
-                                    HStack {
-                                        if isDownloadingModel { ProgressView().tint(.white) }
-                                        else { Image(systemName: "arrow.down.circle.fill") }
-                                        Text(isDownloadingModel ? "Descargando..." : "Descargar Modelo Local")
-                                    }
-                                    .appFont(size: 13, weight: .semibold).foregroundColor(.white)
-                                    .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                    .background(
-                                        LinearGradient(colors: [theme.pastelMint, Color(red: 0.5, green: 0.8, blue: 0.5)],
-                                            startPoint: .leading, endPoint: .trailing)
-                                    ).cornerRadius(10)
+                                    .disabled(isDownloadingModel)
                                 }
-                                .disabled(isDownloadingModel)
                             }
                         }
                         .padding(10)
@@ -407,6 +466,25 @@ public struct SettingsView: View {
                         .cornerRadius(10)
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.pastelMint.opacity(0.2), lineWidth: 0.5))
                     }
+                }
+            }
+        }
+    }
+
+    private func testAIKey() {
+        isTestingAI = true
+        aiTestResult = nil
+        Task {
+            do {
+                let response = try await AIService.shared.chat(prompt: "Responde SOLO con la palabra 'OK' si puedes leer este mensaje.")
+                await MainActor.run {
+                    aiTestResult = response.contains("OK") ? "Conexión exitosa" : "Respuesta inesperada: \(response.prefix(50))"
+                    isTestingAI = false
+                }
+            } catch {
+                await MainActor.run {
+                    aiTestResult = "Error: \(error.localizedDescription)"
+                    isTestingAI = false
                 }
             }
         }
