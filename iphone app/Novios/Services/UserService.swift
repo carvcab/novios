@@ -85,10 +85,6 @@ public class UserService: ObservableObject {
         return result
     }
 
-    private func fstr(_ fields: [String: Any], _ key: String) -> String? {
-        (fields[key] as? [String: Any])?["stringValue"] as? String
-    }
-
     // MARK: - Add Partner (matches Android exactly)
 
     public func addPartner(query: String) async -> AddPartnerResult {
