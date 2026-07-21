@@ -29,7 +29,7 @@ public struct MessagesView: View {
                                 ForEach(chatService.messages) { msg in
                                     let myId = authService.currentUser?.id ?? FirebaseRESTService.shared.localId ?? "me"
                                     let isMe = msg.senderId == myId
-                                    ChatBubbleView(message: msg, isFromMe: isMe, onReply: { chatService.setReplyTo(message: msg) }, onReact: { chatService.addReaction(to: msg.id, emoji: $0) }, onTapReply: { replyId in scrollTargetId = replyId })
+                                    ChatBubbleView(message: msg, isFromMe: isMe, onReply: { self.chatService.setReplyTo(message: msg) }, onReact: { self.chatService.addReaction(to: msg.id, emoji: $0) }, onTapReply: { self.scrollTargetId = $0 })
                                         .id(msg.id)
                                 }
                                 Color.clear.frame(height: 4).id("bottom")
