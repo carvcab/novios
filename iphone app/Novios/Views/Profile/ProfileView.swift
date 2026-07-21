@@ -601,32 +601,11 @@ public struct ProfileView: View {
     }
 
     private func loadImportantDatesFromCouples() {
-        if let path = coupleListPath {
-            Task {
-                if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
-                   let fields = doc["fields"] as? [String: Any],
-                   let items = extractArray(fields, key: "items") {
-                    await MainActor.run {
-                        self.importantDates = items
-                        self.saveImportantDatesLocally()
-                    }
-                    return
-                }
-                loadImportantDatesFromUserLegacy()
-            }
-        } else {
-            loadImportantDatesFromUserLegacy()
-        }
-    }
-
-    private func loadImportantDatesFromUserLegacy() {
-        guard let uid = resolveUid() else {
-            loadImportantDatesLocally()
-            return
-        }
+        let uid = resolveUid()
         Task {
-            let path = "users/\(uid)/lists/important_dates"
-            if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
+            // 1. Try couples/{cid}/lists/important_dates (shared with partner)
+            if let path = coupleListPath,
+               let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
                let fields = doc["fields"] as? [String: Any],
                let items = extractArray(fields, key: "items") {
                 await MainActor.run {
@@ -635,6 +614,34 @@ public struct ProfileView: View {
                 }
                 return
             }
+
+            // 2. Try users/{uid}/lists/important_dates (own data)
+            if let uid = uid,
+               let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)/lists/important_dates"),
+               let fields = doc["fields"] as? [String: Any],
+               let items = extractArray(fields, key: "items") {
+                await MainActor.run {
+                    self.importantDates = items
+                    self.saveImportantDatesLocally()
+                }
+                return
+            }
+
+            // 3. Try users/{uid} importantDatesJson field
+            if let uid = uid,
+               let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
+               let fields = doc["fields"] as? [String: Any],
+               let datesJson = extractString(fields, key: "importantDatesJson"),
+               let data = datesJson.data(using: .utf8),
+               let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                await MainActor.run {
+                    self.importantDates = arr
+                    self.saveImportantDatesLocally()
+                }
+                return
+            }
+
+            // 4. Fallback to local
             await MainActor.run { self.loadImportantDatesLocally() }
         }
     }
@@ -648,20 +655,24 @@ public struct ProfileView: View {
 
     private func saveImportantDates() {
         saveImportantDatesLocally()
-        if let path = coupleListPath {
-            Task {
-                try? await FirebaseRESTService.shared.firestoreSet(path: path, fields: [
-                    "items": importantDates,
-                    "updatedAt": df.string(from: Date())
-                ])
-            }
-        } else {
-            guard let uid = resolveUid() else { return }
-            Task {
-                try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)/lists/important_dates", fields: [
-                    "items": importantDates,
-                    "updatedAt": df.string(from: Date())
-                ])
+        guard let uid = resolveUid() else { return }
+
+        let fields: [String: Any] = [
+            "items": importantDates,
+            "updatedAt": df.string(from: Date())
+        ]
+        let dateJson = (try? JSONSerialization.data(withJSONObject: importantDates)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+
+        Task {
+            // Always save to user doc (most reliable, single document write)
+            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)/lists/important_dates", fields: fields)
+            // Also save as JSON field in user doc
+            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [
+                "importantDatesJson": dateJson
+            ])
+            // Also try to save to couples path (for partner sync)
+            if let couplePath = coupleListPath {
+                try? await FirebaseRESTService.shared.firestoreSet(path: couplePath, fields: fields)
             }
         }
     }
@@ -678,6 +689,9 @@ public struct ProfileView: View {
         pollingTimer?.invalidate()
         pollingTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
             Task { @MainActor in
+                var changed = false
+
+                // Check couples path for important dates changes
                 if let path = self.coupleListPath {
                     if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
                        let fields = doc["fields"] as? [String: Any],
@@ -687,9 +701,27 @@ public struct ProfileView: View {
                         if currentJson != newJson {
                             self.importantDates = items
                             self.saveImportantDatesLocally()
+                            changed = true
                         }
                     }
                 }
+
+                // Also check user doc for importantDatesJson
+                if !changed, let uid = self.resolveUid() {
+                    if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
+                       let fields = doc["fields"] as? [String: Any],
+                       let datesJson = self.extractString(fields, key: "importantDatesJson"),
+                       let data = datesJson.data(using: .utf8),
+                       let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                        let currentJson = (try? JSONSerialization.data(withJSONObject: self.importantDates)).flatMap { String(data: $0, encoding: .utf8) }
+                        let newJson = (try? JSONSerialization.data(withJSONObject: arr)).flatMap { String(data: $0, encoding: .utf8) }
+                        if currentJson != newJson {
+                            self.importantDates = arr
+                            self.saveImportantDatesLocally()
+                        }
+                    }
+                }
+
                 self.refreshUserData()
             }
         }
@@ -698,6 +730,7 @@ public struct ProfileView: View {
     private func refreshUserData() {
         guard let uid = resolveUid() else { return }
         Task {
+            // Refresh from own user document
             if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                let fields = doc["fields"] as? [String: Any] {
                 await MainActor.run {
@@ -713,7 +746,7 @@ public struct ProfileView: View {
                         if var user = authService.currentUser { user.username = newUsername; authService.currentUser = user }
                     }
                     if newPartnerName != partnerName { partnerName = newPartnerName }
-                    if newPartnerUid != partnerUid { partnerUid = newPartnerUid }
+                    if newPartnerUid != partnerUid { partnerUid = newPartnerUid; self.loadStreak() }
 
                     if let photoUrl = extractString(fields, key: "profilePhotoUrl"), photoUrl != profilePhotoFirestoreUrl {
                         profilePhotoFirestoreUrl = photoUrl
@@ -724,6 +757,22 @@ public struct ProfileView: View {
                         if let newBd = dateFormatter.date(from: bdStr) ?? df.date(from: bdStr) {
                             if birthdayDate == nil || !Calendar.current.isDate(newBd, equalTo: birthdayDate!, toGranularity: .day) {
                                 birthdayDate = newBd
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Also refresh from couples document for shared dates
+            if let coupleId = defaults.string(forKey: "couple_id") ?? defaults.string(forKey: "pair_id"), !coupleId.isEmpty {
+                if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(coupleId)"),
+                   let fields = doc["fields"] as? [String: Any] {
+                    let s = { (key: String) -> String? in (fields[key] as? [String: Any])?["stringValue"] as? String }
+                    if let partnerName = s("partnerDisplayName") ?? s("partnerName") {
+                        await MainActor.run {
+                            if self.partnerName != partnerName {
+                                self.partnerName = partnerName
+                                defaults.set(partnerName, forKey: "partner_name")
                             }
                         }
                     }
