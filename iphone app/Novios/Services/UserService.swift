@@ -19,49 +19,50 @@ public class UserService: ObservableObject {
 
     // MARK: - Search User (matches Android exactly)
 
+    private var rest: FirebaseRESTService { FirebaseRESTService.shared }
+
     public func searchUser(query: String) async -> [String: Any]? {
         let clean = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !clean.isEmpty else { return nil }
 
-        let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id
-        guard let myUid = myUid else { return nil }
+        let myUid = rest.localId ?? AuthService.shared.currentUser?.id
 
-        // 1. Search by Pair Code (e.g. LOVE-8492)
-        let formattedCode = clean.uppercased().contains("LOVE-") ? clean.uppercased() : "LOVE-\(clean.uppercased())"
-        if let codeDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "pair_codes/\(formattedCode)"),
-           let cf = codeDoc["fields"] as? [String: Any],
-           let uid = (cf["uid"] as? [String: Any])?["stringValue"] as? String,
-           uid != myUid,
-           let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
-           let uf = userDoc["fields"] as? [String: Any] {
-            return extractUserData(uid: uid, fields: uf)
+        // Try to fetch usernames/{clean} directly with API key fallback
+        var unDoc: [String: Any]?
+        let path = "usernames/\(clean)"
+
+        // Method A: Authenticated request
+        unDoc = try? await rest.firestoreGet(path: path)
+
+        // Method B: If auth failed, try with API key directly (security rules allow public read)
+        if unDoc == nil {
+            let urlStr = "https://firestore.googleapis.com/v1/projects/\(rest.currentProjectID)/databases/(default)/documents/\(path)?key=\(rest.currentAPIKey)"
+            if let url = URL(string: urlStr),
+               let data = try? await URLSession.shared.data(from: url).0,
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                unDoc = json
+            }
         }
 
-        // 2. Search by Username (exactly like Android: usernames/{doc} → uid → users/{uid})
-        if let unDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(clean)"),
+        if let unDoc = unDoc,
            let uf = unDoc["fields"] as? [String: Any],
            let uid = (uf["uid"] as? [String: Any])?["stringValue"] as? String,
            uid != myUid {
-            if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
+            // Try to get user doc with auth first, then API key
+            var userDoc = try? await rest.firestoreGet(path: "users/\(uid)")
+            if userDoc == nil {
+                let urlStr = "https://firestore.googleapis.com/v1/projects/\(rest.currentProjectID)/databases/(default)/documents/users/\(uid)?key=\(rest.currentAPIKey)"
+                if let url = URL(string: urlStr),
+                   let data = try? await URLSession.shared.data(from: url).0,
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    userDoc = json
+                }
+            }
+            if let userDoc = userDoc,
                let userFields = userDoc["fields"] as? [String: Any] {
                 return extractUserData(uid: uid, fields: userFields)
             }
             return ["uid": uid, "username": clean, "displayName": clean, "name": clean]
-        }
-
-        // 3. Search by Email (like Android: users where email == clean)
-        if clean.contains("@"),
-           let usersList = try? await FirebaseRESTService.shared.firestoreList(path: "users") {
-            for doc in usersList {
-                guard let f = doc["fields"] as? [String: Any],
-                      let docName = doc["name"] as? String else { continue }
-                let uid = docName.split(separator: "/").last.map(String.init) ?? ""
-                guard uid != myUid else { continue }
-                let email = ((f["email"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-                if email == clean {
-                    return extractUserData(uid: uid, fields: f)
-                }
-            }
         }
 
         return nil
