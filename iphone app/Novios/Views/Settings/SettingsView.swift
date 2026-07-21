@@ -56,7 +56,11 @@ public struct SettingsView: View {
                     }
                 }
             }
-            .onAppear(perform: loadSettings)
+            .onAppear {
+                loadSettings()
+                userService.loadPartnerFromDefaults()
+                Task { await userService.fetchPartnerFromFirestore() }
+            }
             .sheet(isPresented: $showingAddPartner) {
                 AddPartnerView()
             }
@@ -74,9 +78,12 @@ public struct SettingsView: View {
                         Circle().fill(ThemeManager.shared.pastelPink.opacity(0.25)).frame(width: 48, height: 48)
                             .overlay(Image(systemName: "person.fill").font(.system(size: 20)).foregroundColor(ThemeManager.shared.pastelRose))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("@\(userService.partnerUser?.username ?? "")")
+                            Text(userService.partnerUser?.displayName ?? "Pareja")
                                 .font(.system(size: 16, weight: .semibold))
-                            Text(userService.partnerUser?.displayName ?? "Sin nombre")
+                            let uname = userService.partnerUser?.username ?? ""
+                            let email = userService.partnerUser?.email ?? ""
+                            let subtitle = !uname.isEmpty ? "@\(uname)" : (!email.isEmpty ? email : "Conectado")
+                            Text(subtitle)
                                 .font(.system(size: 13)).foregroundColor(ThemeManager.shared.textSecondary)
                         }
                         Spacer()

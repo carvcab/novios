@@ -217,4 +217,30 @@ public class UserService: ObservableObject {
 
         return .success
     }
+
+    public func loadPartnerFromDefaults() {
+        let defaults = UserDefaults.standard
+        guard let puid = defaults.string(forKey: "partner_uid"), !puid.isEmpty else {
+            partnerUser = nil
+            return
+        }
+        let pname = defaults.string(forKey: "partner_name") ?? "Pareja"
+        let pusername = defaults.string(forKey: "partner_username") ?? ""
+        partnerUser = UserModel(id: puid, email: "", displayName: pname, username: pusername, partnerUid: AuthService.shared.currentUser?.id, mood: "🥰", batteryLevel: 0.88, isCharging: true)
+    }
+
+    public func fetchPartnerFromFirestore() async {
+        let defaults = UserDefaults.standard
+        guard let puid = defaults.string(forKey: "partner_uid"), !puid.isEmpty else { return }
+        if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(puid)"),
+           let fields = doc["fields"] as? [String: Any] {
+            let extract = { (key: String) -> String? in (fields[key] as? [String: Any])?["stringValue"] as? String }
+            let displayName = extract("displayName") ?? extract("name") ?? defaults.string(forKey: "partner_name") ?? "Pareja"
+            let username = extract("username") ?? defaults.string(forKey: "partner_username") ?? ""
+            let email = extract("email") ?? ""
+            await MainActor.run {
+                self.partnerUser = UserModel(id: puid, email: email, displayName: displayName, username: username, partnerUid: AuthService.shared.currentUser?.id, mood: "🥰", batteryLevel: 0.88, isCharging: true)
+            }
+        }
+    }
 }
