@@ -123,7 +123,7 @@ public class UserService: ObservableObject {
         }
         return [
             "uid": uid,
-            "displayName": extract("displayName") ?? extract("name") ?? uid,
+            "displayName": extract("displayName") ?? extract("name") ?? "",
             "username": extract("username") ?? "",
             "email": extract("email") ?? "",
             "hasPartner": (extract("partnerUid") ?? "").isEmpty == false
@@ -147,7 +147,10 @@ public class UserService: ObservableObject {
         }
 
         let targetUsername = targetData["username"] as? String ?? ""
-        let targetName = targetData["displayName"] as? String ?? targetUsername
+        let targetEmail = targetData["email"] as? String ?? ""
+        var targetName = targetData["displayName"] as? String ?? ""
+        if targetName.isEmpty { targetName = targetUsername }
+        if targetName.isEmpty { targetName = targetEmail }
 
         let coupleId = [myUid, targetUid].sorted().joined(separator: "_")
 
@@ -224,9 +227,11 @@ public class UserService: ObservableObject {
             partnerUser = nil
             return
         }
-        let pname = defaults.string(forKey: "partner_name") ?? "Pareja"
+        var pname = defaults.string(forKey: "partner_name") ?? ""
+        if pname.count > 20 || pname == puid { pname = "" }
         let pusername = defaults.string(forKey: "partner_username") ?? ""
-        partnerUser = UserModel(id: puid, email: "", displayName: pname, username: pusername, partnerUid: AuthService.shared.currentUser?.id, mood: "🥰", batteryLevel: 0.88, isCharging: true)
+        let display = !pname.isEmpty ? pname : (!pusername.isEmpty ? pusername : "Pareja")
+        partnerUser = UserModel(id: puid, email: "", displayName: display, username: pusername, partnerUid: AuthService.shared.currentUser?.id, mood: "🥰", batteryLevel: 0.88, isCharging: true)
     }
 
     public func fetchPartnerFromFirestore() async {
@@ -235,11 +240,12 @@ public class UserService: ObservableObject {
         if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(puid)"),
            let fields = doc["fields"] as? [String: Any] {
             let extract = { (key: String) -> String? in (fields[key] as? [String: Any])?["stringValue"] as? String }
-            let displayName = extract("displayName") ?? extract("name") ?? defaults.string(forKey: "partner_name") ?? "Pareja"
-            let username = extract("username") ?? defaults.string(forKey: "partner_username") ?? ""
+            let displayName = extract("displayName") ?? extract("name") ?? ""
+            let username = extract("username") ?? ""
             let email = extract("email") ?? ""
+            let finalName = !displayName.isEmpty ? displayName : (!username.isEmpty ? username : (!email.isEmpty ? email : "Pareja"))
             await MainActor.run {
-                self.partnerUser = UserModel(id: puid, email: email, displayName: displayName, username: username, partnerUid: AuthService.shared.currentUser?.id, mood: "🥰", batteryLevel: 0.88, isCharging: true)
+                self.partnerUser = UserModel(id: puid, email: email, displayName: finalName, username: username, partnerUid: AuthService.shared.currentUser?.id, mood: "🥰", batteryLevel: 0.88, isCharging: true)
             }
         }
     }
