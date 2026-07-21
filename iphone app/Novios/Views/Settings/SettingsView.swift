@@ -323,7 +323,7 @@ public struct SettingsView: View {
         defaults.removeObject(forKey: "pair_id")
 
         userService.partnerUser = nil
-        authService.hasPartner = false
+        AuthService.shared.hasPartner = false
         UserService.shared.partnerUser = nil
     }
 
