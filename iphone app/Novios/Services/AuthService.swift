@@ -40,15 +40,20 @@ public class AuthService: ObservableObject {
                 self.isLoading = false
                 saveSession(user: user)
             }
-            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(result.localId)", fields: [
-                "nombre": account.name, "correo": email, "ultimaConexion": ISO8601DateFormatter().string(from: Date())
+            let df = ISO8601DateFormatter()
+            let now = df.string(from: Date())
+            try? await FirebaseRESTService.shared.firestoreSet(path: "usuarios/\(result.localId)", fields: [
+                "nombre": account.name,
+                "correo": email,
+                "foto": "",
+                "PIN": "",
+                "ultimaConexion": now,
+                "ultimoAcceso": now,
+                "tokenFCM": "",
+                "configuracionPersonal": "",
+                "parejaId": "pareja_001",
             ])
-            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(result.localId)", fields: [
-                "ultimoAcceso": ISO8601DateFormatter().string(from: Date())
-            ])
-            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(result.localId)", fields: [
-                "parejaId": "pareja_001"
-            ])
+            try? await CoupleService.shared.ensureParejaDocExists()
             return true
         } catch {
             await MainActor.run { isLoading = false; authError = "Correo o contraseña incorrectos." }

@@ -95,7 +95,7 @@ public struct ProfileView: View {
                     profileImage = image
                     let uid = AuthService.shared.currentUser?.id ?? ""
                     Task {
-                        try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [
+                        try? await FirebaseRESTService.shared.firestoreSet(path: "usuarios/\(uid)", fields: [
                             "foto": "data:image/jpeg;base64,\(b64)"
                         ])
                     }

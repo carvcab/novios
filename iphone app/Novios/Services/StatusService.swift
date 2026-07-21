@@ -39,12 +39,12 @@ public class StatusService: ObservableObject {
             // Try to fetch, refresh token if needed
             var doc: [String: Any]?
             do {
-                doc = try await FirebaseRESTService.shared.firestoreGet(path: "users/\(partnerUid)")
+                doc = try await FirebaseRESTService.shared.firestoreGet(path: "usuarios/\(partnerUid)")
             } catch FirebaseError.notAuthenticated {
                 // Token expired, try refresh
                 if let newToken = try? await FirebaseRESTService.shared.refreshIdToken() {
                     _ = newToken
-                    doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(partnerUid)")
+                    doc = try? await FirebaseRESTService.shared.firestoreGet(path: "usuarios/\(partnerUid)")
                 }
             } catch {
                 // Silently fail for other errors
@@ -90,7 +90,7 @@ public class StatusService: ObservableObject {
     private func updatePresence() {
         Task {
             guard let myUid = FirebaseRESTService.shared.localId else { return }
-            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(myUid)", fields: [
+            try? await FirebaseRESTService.shared.firestoreSet(path: "usuarios/\(myUid)", fields: [
                 "isOnline": true,
                 "lastSeenDate": Date()
             ])
@@ -100,7 +100,7 @@ public class StatusService: ObservableObject {
     public func updateCurrentScreen(_ screen: String) {
         Task {
             guard let myUid = FirebaseRESTService.shared.localId else { return }
-            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(myUid)", fields: [
+            try? await FirebaseRESTService.shared.firestoreSet(path: "usuarios/\(myUid)", fields: [
                 "currentScreen": screen,
                 "lastSeenDate": Date()
             ])
@@ -110,7 +110,7 @@ public class StatusService: ObservableObject {
     public func updateLocation(lat: Double, lon: Double) {
         Task {
             guard let myUid = FirebaseRESTService.shared.localId else { return }
-            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(myUid)", fields: [
+            try? await FirebaseRESTService.shared.firestoreSet(path: "usuarios/\(myUid)", fields: [
                 "latitude": lat, "longitude": lon
             ])
         }
@@ -119,7 +119,7 @@ public class StatusService: ObservableObject {
     public func setOffline() {
         Task {
             guard let myUid = FirebaseRESTService.shared.localId else { return }
-            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(myUid)", fields: [
+            try? await FirebaseRESTService.shared.firestoreSet(path: "usuarios/\(myUid)", fields: [
                 "isOnline": false
             ])
         }

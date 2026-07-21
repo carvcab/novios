@@ -83,7 +83,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     private func setOffline() {
         guard let uid = AuthService.shared.currentUser?.id ?? rest.localId else { return }
         Task {
-            await firestoreSetWithFallback(path: "users/\(uid)", fields: [
+            await firestoreSetWithFallback(path: "usuarios/\(uid)", fields: [
                 "isOnline": false,
                 "lastLocationUpdate": df.string(from: Date()),
             ])
@@ -206,7 +206,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         let battery = shareBattery ? (UIDevice.current.batteryLevel >= 0 ? Int(UIDevice.current.batteryLevel * 100) : -1) : -1
 
         Task {
-            await firestoreSetWithFallback(path: "users/\(uid)", fields: [
+            await firestoreSetWithFallback(path: "usuarios/\(uid)", fields: [
                 "latitude": loc.coordinate.latitude,
                 "longitude": loc.coordinate.longitude,
                 "speed": speed,
@@ -220,7 +220,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     private func setOnline() {
         guard let uid = AuthService.shared.currentUser?.id ?? rest.localId else { return }
         Task {
-            await firestoreSetWithFallback(path: "users/\(uid)", fields: [
+            await firestoreSetWithFallback(path: "usuarios/\(uid)", fields: [
                 "isOnline": true,
                 "lastLocationUpdate": df.string(from: Date()),
             ])
@@ -246,7 +246,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         let puid = CoupleService.shared.partnerUID
         guard !puid.isEmpty else { return }
         Task { @MainActor in
-            if let doc = await firestoreGetWithFallback(path: "users/\(puid)"),
+            if let doc = await firestoreGetWithFallback(path: "usuarios/\(puid)"),
                let fields = doc["fields"] as? [String: Any] {
                 let ed = { (k: String) -> Double? in
                     if let dv = (fields[k] as? [String: Any])?["doubleValue"] as? Double { return dv }

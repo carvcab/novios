@@ -496,7 +496,7 @@ public struct LocationView: View {
         defaults.set(shareSpeed, forKey: "privacy_share_speed")
         guard let uid = AuthService.shared.currentUser?.id else { return }
         Task {
-            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [
+            try? await FirebaseRESTService.shared.firestoreSet(path: "usuarios/\(uid)", fields: [
                 "privacySettings": ["shareLocation": shareLocation, "shareHistory": shareHistory, "shareBattery": shareBattery, "shareSpeed": shareSpeed]
             ])
         }
@@ -507,7 +507,7 @@ public struct LocationView: View {
         guard !coupleId.isEmpty, let lat = locationService.lastLatitude, let lng = locationService.lastLongitude else { return }
         let msgId = UUID().uuidString; let now = df.string(from: Date())
         Task {
-            try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(coupleId)/checkins/\(msgId)", fields: [
+            try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)/checkins/\(msgId)", fields: [
                 "message": message, "latitude": lat, "longitude": lng, "timestamp": now
             ])
             await MainActor.run { checkIns.insert(["message": message, "latitude": lat, "longitude": lng, "timestamp": now], at: 0) }
@@ -518,7 +518,7 @@ public struct LocationView: View {
         let coupleId = defaults.string(forKey: "couple_id") ?? ""
         guard !coupleId.isEmpty else { return }
         Task {
-            guard let docs = try? await FirebaseRESTService.shared.firestoreList(path: "couples/\(coupleId)/checkins") else { return }
+            guard let docs = try? await FirebaseRESTService.shared.firestoreList(path: "parejas/\(coupleId)/checkins") else { return }
             var items: [[String: Any]] = []
             for doc in docs {
                 guard let f = doc["fields"] as? [String: Any] else { continue }
@@ -533,7 +533,7 @@ public struct LocationView: View {
         let coupleId = defaults.string(forKey: "couple_id") ?? ""
         guard !coupleId.isEmpty else { return }
         Task {
-            guard let docs = try? await FirebaseRESTService.shared.firestoreList(path: "couples/\(coupleId)/places") else { return }
+            guard let docs = try? await FirebaseRESTService.shared.firestoreList(path: "parejas/\(coupleId)/places") else { return }
             var items: [PlaceItem] = []
             for doc in docs {
                 guard let f = doc["fields"] as? [String: Any], let name = (f["name"] as? [String: Any])?["stringValue"] as? String else { continue }
@@ -553,7 +553,7 @@ public struct LocationView: View {
         let id = editingPlace?.id ?? UUID().uuidString
         let place = PlaceItem(id: id, name: trimmed, description: placeDesc.trimmingCharacters(in: .whitespaces), latitude: editingPlace?.latitude ?? lat, longitude: editingPlace?.longitude ?? lng, type: placeType)
         Task {
-            try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(coupleId)/places/\(id)", fields: [
+            try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)/places/\(id)", fields: [
                 "id": id, "name": place.name, "description": place.description, "latitude": place.latitude, "longitude": place.longitude, "type": place.type
             ])
             await MainActor.run {
@@ -567,7 +567,7 @@ public struct LocationView: View {
     private func deletePlace(_ place: PlaceItem) {
         let coupleId = defaults.string(forKey: "couple_id") ?? ""
         Task {
-            try? await FirebaseRESTService.shared.firestoreDelete(path: "couples/\(coupleId)/places/\(place.id)")
+            try? await FirebaseRESTService.shared.firestoreDelete(path: "parejas/\(coupleId)/places/\(place.id)")
             await MainActor.run { places.removeAll { $0.id == place.id } }
         }
     }
