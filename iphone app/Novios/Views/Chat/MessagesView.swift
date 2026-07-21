@@ -27,7 +27,8 @@ public struct MessagesView: View {
                         ScrollView {
                             LazyVStack(spacing: 6) {
                                 ForEach(chatService.messages) { msg in
-                                    let isMe = msg.senderId == (authService.currentUser?.id ?? FirebaseRESTService.shared.localId ?? "me")
+                                    let myId = authService.currentUser?.id ?? FirebaseRESTService.shared.localId ?? "me"
+                                    let isMe = msg.senderId == myId
                                     ChatBubbleView(message: msg, isFromMe: isMe, onReply: { chatService.setReplyTo(message: msg) }, onReact: { chatService.addReaction(to: msg.id, emoji: $0) }, onTapReply: { replyId in scrollTargetId = replyId })
                                         .id(msg.id)
                                 }
