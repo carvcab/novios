@@ -46,7 +46,6 @@ public struct LocationView: View {
                 mapLayer
                 VStack(spacing: 0) {
                     Spacer()
-                    topButtons
                     bottomSheet
                 }
             }
@@ -263,7 +262,7 @@ public struct LocationView: View {
     }
 
     private func quickActionButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action) {
+        Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: icon).appFont(size: 18).foregroundColor(color)
                 Text(label).appFont(size: 9).foregroundColor(theme.textSecondary)
@@ -318,10 +317,10 @@ public struct LocationView: View {
         NavigationStack {
             Form {
                 Section("Compartir con tu pareja") {
-                    Toggle("Ubicación en tiempo real", isOn: $shareLocation).onChange(of: shareLocation) { savePrivacy() }
-                    Toggle("Historial de ubicaciones", isOn: $shareHistory).onChange(of: shareHistory) { savePrivacy() }
-                    Toggle("Batería", isOn: $shareBattery).onChange(of: shareBattery) { savePrivacy() }
-                    Toggle("Velocidad", isOn: $shareSpeed).onChange(of: shareSpeed) { savePrivacy() }
+                    Toggle("Ubicación en tiempo real", isOn: $shareLocation).onChange(of: shareLocation) { newVal in savePrivacy() }
+                    Toggle("Historial de ubicaciones", isOn: $shareHistory).onChange(of: shareHistory) { newVal in savePrivacy() }
+                    Toggle("Batería", isOn: $shareBattery).onChange(of: shareBattery) { newVal in savePrivacy() }
+                    Toggle("Velocidad", isOn: $shareSpeed).onChange(of: shareSpeed) { newVal in savePrivacy() }
                 }
             }
             .navigationTitle("Privacidad")
@@ -404,7 +403,8 @@ public struct LocationView: View {
 
     private var historySheet: some View {
         NavigationStack {
-            List(checkIns, id: \.self) { item in
+            List(checkIns.indices, id: \.self) { i in
+                let item = checkIns[i]
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item["message"] as? String ?? "").appFont(size: 14)
                     if let ts = item["timestamp"] as? String, let date = df.date(from: ts) {
