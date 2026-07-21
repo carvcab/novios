@@ -76,7 +76,7 @@ public struct AddPartnerView: View {
                             .fill(ThemeManager.shared.pastelPink.opacity(0.2))
                                 .frame(width: 68, height: 68)
                                 .overlay(Image(systemName: "person.fill").appFont(size: 28)
-                                    .foregroundColor(ThemeManager.shared.primary)
+                                    .foregroundColor(ThemeManager.shared.primary))
 
                             Text(found["displayName"] as? String ?? "Usuario Encontrado")
                                 .appFont(size: 18, weight: .bold).foregroundColor(.primary)
