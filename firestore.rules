@@ -1,34 +1,51 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isMember() {
+    function isDiegoOrYosmari() {
       return request.auth != null && (
         request.auth.uid == 'joeBcVn2o1hfXfU68rWNOyAZIqt2' ||
         request.auth.uid == 'Dd1X94n3gxg7leWtMtnLlxDVHcm2'
       );
     }
 
-    function isInPareja() {
-      return isMember() && (
-        resource.data.miembros != null &&
-        request.auth.uid in resource.data.miembros
-      );
-    }
-
     match /usuarios/{uid} {
-      allow read: if isMember();
+      allow read: if isDiegoOrYosmari();
       allow write: if request.auth.uid == uid;
     }
 
     match /parejas/{parejaId} {
-      allow read: if isMember();
-      allow write: if isMember();
+      allow read, write: if isDiegoOrYosmari();
       match /{document=**} {
-        allow read: if isMember();
-        allow create: if isMember();
-        allow update: if isMember();
-        allow delete: if isMember();
+        allow read, write: if isDiegoOrYosmari();
       }
+    }
+
+    match /couples/{coupleId} {
+      allow read, write: if isDiegoOrYosmari();
+      match /{document=**} {
+        allow read, write: if isDiegoOrYosmari();
+      }
+    }
+
+    match /users/{uid} {
+      allow read, write: if isDiegoOrYosmari() && (uid == request.auth.uid || uid == 'Dd1X94n3gxg7leWtMtnLlxDVHcm2' || uid == 'joeBcVn2o1hfXfU68rWNOyAZIqt2');
+      match /{document=**} {
+        allow read, write: if isDiegoOrYosmari();
+      }
+    }
+
+    match /usernames/{username} {
+      allow read: if isDiegoOrYosmari();
+      allow write: if isDiegoOrYosmari();
+    }
+
+    match /pair_codes/{code} {
+      allow read: if isDiegoOrYosmari();
+      allow write: if isDiegoOrYosmari();
+    }
+
+    match /_health/{document} {
+      allow read, write: if true;
     }
 
     match /{document=**} {
