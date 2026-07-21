@@ -13,13 +13,8 @@ public struct MessagesView: View {
 
     private func messageBubble(_ msg: MessageModel) -> ChatBubbleView {
         let isMe = msg.senderId == currentUserId
-        return ChatBubbleView(message: msg, isFromMe: isMe, onReply: {
-            self.chatService.setReplyTo(message: msg)
-        }, onReact: { emoji in
-            self.chatService.addReaction(to: msg.id, emoji: emoji)
-        }, onTapReply: { replyId in
-            self.scrollTargetId = replyId
-        })
+        let s = ChatService.shared
+        return ChatBubbleView(message: msg, isFromMe: isMe, onReply: { s.setReplyTo(message: msg) }, onReact: { s.addReaction(to: msg.id, emoji: $0) }, onTapReply: { self.scrollTargetId = $0 })
     }
 
     @State private var nextDateLabel: String?
