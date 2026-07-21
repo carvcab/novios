@@ -10,7 +10,7 @@ public struct SettingsView: View {
 
     @State private var showDatePicker = false
     @State private var datePickerLabel = ""
-    @State private var datePickerBinding: Binding<Date?>?
+    @State private var datePickerHandler: ((Date) -> Void)?
     @State private var datePickerColor = Color.primary
 
     @State private var anniversaryDate: Date?
@@ -70,9 +70,7 @@ public struct SettingsView: View {
                 AddPartnerView()
             }
             .sheet(isPresented: $showDatePicker) {
-                if let binding = datePickerBinding {
-                    DatePickerView(label: datePickerLabel, date: binding, color: datePickerColor)
-                }
+                DatePickerView(label: datePickerLabel, onSelect: datePickerHandler ?? { _ in }, color: datePickerColor)
             }
         }
     }
@@ -412,7 +410,7 @@ public struct SettingsView: View {
 
     private func showDatePicker(for label: String, binding: Binding<Date?>, color: Color) {
         datePickerLabel = label
-        datePickerBinding = binding
+        datePickerHandler = { date in binding.wrappedValue = date }
         datePickerColor = color
         showDatePicker = true
     }
@@ -533,7 +531,7 @@ public struct SettingsView: View {
 
 private struct DatePickerView: View {
     let label: String
-    @Binding var date: Date?
+    let onSelect: (Date) -> Void
     let color: Color
     @Environment(\.dismiss) private var dismiss
     @State private var selectedDate = Date()
@@ -545,7 +543,7 @@ private struct DatePickerView: View {
                 DatePicker("Selecciona fecha", selection: $selectedDate, displayedComponents: .date)
                     .datePickerStyle(.graphical).tint(color)
                 Button {
-                    date = selectedDate
+                    onSelect(selectedDate)
                     dismiss()
                 } label: {
                     Text("Guardar").appFont(size: 16, weight: .bold).foregroundColor(.white)
