@@ -114,6 +114,7 @@ public class AuthService: ObservableObject {
         let dob = extract("dob") ?? extract("birthdayDate") ?? extract("birthday_date") ?? ""
         let partnerUid = extract("partnerUid") ?? ""
         let partnerName = extract("partnerName") ?? ""
+        let coupleId = extract("coupleId") ?? ""
 
         if !username.isEmpty || !displayName.isEmpty {
             defaults.set(dob, forKey: "profile_dob")
@@ -133,6 +134,7 @@ public class AuthService: ObservableObject {
             if !partnerUid.isEmpty {
                 defaults.set(partnerUid, forKey: "partner_uid")
                 defaults.set(partnerName.isEmpty ? "Pareja" : partnerName, forKey: "partner_name")
+                if !coupleId.isEmpty { defaults.set(coupleId, forKey: "couple_id"); defaults.set(coupleId, forKey: "pair_id") }
                 self.hasPartner = true
             } else {
                 defaults.removeObject(forKey: "partner_uid")
@@ -191,6 +193,7 @@ public class AuthService: ObservableObject {
         let dob = extract("dob") ?? extract("birthdayDate") ?? extract("birthday_date") ?? ""
         let partnerUid = extract("partnerUid") ?? ""
         let partnerName = extract("partnerName") ?? ""
+        let coupleId = extract("coupleId") ?? ""
 
         if !username.isEmpty || !displayName.isEmpty {
             defaults.set(dob.isEmpty ? "2000-01-01" : dob, forKey: "profile_dob")
@@ -217,6 +220,7 @@ public class AuthService: ObservableObject {
         if !partnerUid.isEmpty {
             defaults.set(partnerUid, forKey: "partner_uid")
             defaults.set(partnerName, forKey: "partner_name")
+            if !coupleId.isEmpty { defaults.set(coupleId, forKey: "couple_id"); defaults.set(coupleId, forKey: "pair_id") }
             defaults.set(true, forKey: "onboarding_complete")
             await MainActor.run { self.hasPartner = true }
         }
