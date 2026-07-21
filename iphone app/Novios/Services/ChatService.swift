@@ -41,7 +41,8 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     private static func parseIsoDate(_ str: String) -> Date? {
         var cleanStr = str
-        if !cleanStr.contains("Z") && !cleanStr.contains("+") && !cleanStr.contains("-", where: { $0.offset > 10 }) {
+        let hasTimezone = cleanStr.contains("Z") || cleanStr.contains("+") || (cleanStr.count > 10 && cleanStr.dropFirst(10).contains("-"))
+        if !hasTimezone {
             cleanStr += "Z"
         }
         let f1 = ISO8601DateFormatter()
