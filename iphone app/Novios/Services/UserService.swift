@@ -22,7 +22,31 @@ public class UserService: ObservableObject {
     public func searchUser(query: String) async -> [String: Any]? {
         let clean = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !clean.isEmpty else { return nil }
+
+        // Force refresh token first
+        if let token = FirebaseRESTService.shared.idToken {
+            if let exp = try? parseJWTExp(token), exp < Date().timeIntervalSince1970 {
+                _ = try? await FirebaseRESTService.shared.refreshIdToken()
+            }
+        }
+
         let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id
+        guard myUid != nil else { return nil }
+
+        // Verify auth works by fetching own user doc
+        let ownDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(myUid!)")
+        guard ownDoc != nil else {
+            // Try one more refresh
+            if let newToken = try? await FirebaseRESTService.shared.refreshIdToken() {
+                _ = newToken
+            } else {
+                return nil
+            }
+            // Retry own doc
+            guard (try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(myUid!)")) != nil else {
+                return nil
+            }
+        }
 
         // 1. Try direct usernames/{clean} lookup
         if let usernameDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(clean)"),
@@ -40,32 +64,9 @@ public class UserService: ObservableObject {
             return result
         }
 
-        // 2. Try listing usernames collection and match by document ID or email
-        if let allDocs = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames"),
-           let docs = allDocs["documents"] as? [[String: Any]] {
-            for doc in docs {
-                guard let f = doc["fields"] as? [String: Any] else { continue }
-                let docId = (doc["name"] as? String)?.split(separator: "/").last.map(String.init)?.lowercased() ?? ""
-                let emailVal = ((f["email"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-                guard docId == clean || emailVal == clean else { continue }
-                let uid = (f["uid"] as? [String: Any])?["stringValue"] as? String ?? ""
-                guard !uid.isEmpty, uid != myUid else { continue }
-                if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
-                   let userFields = userDoc["fields"] as? [String: Any] {
-                    var result = self.extractUserData(uid: uid, fields: userFields)
-                    result["_source"] = docId == clean ? "username_iter" : "email"
-                    return result
-                }
-                var result: [String: Any] = ["uid": uid, "username": docId, "displayName": docId]
-                result["_source"] = "username_iter_only"
-                return result
-            }
-        }
-
-        // 3. Final fallback: list ALL users and find by any matching field
-        if let usersList = try? await FirebaseRESTService.shared.firestoreGet(path: "users"),
-           let docs = usersList["documents"] as? [[String: Any]] {
-            for doc in docs {
+        // 2. List ALL users and find by any matching field (most reliable)
+        if let usersList = try? await FirebaseRESTService.shared.firestoreList(path: "users") {
+            for doc in usersList {
                 guard let f = doc["fields"] as? [String: Any],
                       let docName = doc["name"] as? String else { continue }
                 let uid = docName.split(separator: "/").last.map(String.init) ?? ""
@@ -86,7 +87,40 @@ public class UserService: ObservableObject {
             }
         }
 
+        // 3. Try listing usernames collection (fallback)
+        if let allDocs = try? await FirebaseRESTService.shared.firestoreList(path: "usernames") {
+            for doc in allDocs {
+                guard let f = doc["fields"] as? [String: Any] else { continue }
+                let docId = (doc["name"] as? String)?.split(separator: "/").last.map(String.init)?.lowercased() ?? ""
+                let emailVal = ((f["email"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
+                let match = docId == clean || emailVal == clean
+                guard match else { continue }
+                let uid = (f["uid"] as? [String: Any])?["stringValue"] as? String ?? ""
+                guard !uid.isEmpty, uid != myUid else { continue }
+                if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
+                   let userFields = userDoc["fields"] as? [String: Any] {
+                    var result = self.extractUserData(uid: uid, fields: userFields)
+                    result["_source"] = docId == clean ? "username_iter" : "email"
+                    return result
+                }
+                var result: [String: Any] = ["uid": uid, "username": docId, "displayName": docId]
+                result["_source"] = "username_iter_only"
+                return result
+            }
+        }
+
         return nil
+    }
+
+    private func parseJWTExp(_ token: String) -> TimeInterval? {
+        let parts = token.split(separator: ".")
+        guard parts.count >= 2 else { return nil }
+        var padded = String(parts[1])
+        while padded.count % 4 != 0 { padded += "=" }
+        guard let data = Data(base64Encoded: padded),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let exp = json["exp"] as? TimeInterval else { return nil }
+        return exp
     }
 
     private func extractUserData(uid: String, fields: [String: Any]) -> [String: Any] {
@@ -105,7 +139,7 @@ public class UserService: ObservableObject {
     // MARK: - Add Partner (matches Android exactly)
 
     public func addPartner(query: String) async -> AddPartnerResult {
-        guard let myUid = FirebaseRESTService.shared.localId else {
+        guard let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id else {
             return .error("Usuario no autenticado")
         }
 
