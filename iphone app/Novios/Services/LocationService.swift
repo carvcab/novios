@@ -21,6 +21,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     private var motionState = "static"
     private let defaults = UserDefaults.standard
     private let df = ISO8601DateFormatter()
+    private let rest = FirebaseRESTService.shared
 
     private override init() {
         super.init()
@@ -77,16 +78,12 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse:
-            if defaults.bool(forKey: "location_sharing_enabled") {
-                startSharing()
-            }
+            if defaults.bool(forKey: "location_sharing_enabled") { startSharing() }
         case .denied, .restricted:
             isSharing = false
             defaults.set(false, forKey: "location_sharing_enabled")
-        case .notDetermined:
-            break
-        @unknown default:
-            break
+        case .notDetermined: break
+        @unknown default: break
         }
     }
 
@@ -108,6 +105,45 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         print("[Location] Error: \(error.localizedDescription)")
     }
 
+    // MARK: - Firebase Write (with API key fallback)
+
+    private func firestoreSetWithFallback(path: String, fields: [String: Any]) async {
+        if (try? await rest.firestoreSet(path: path, fields: fields)) != nil { return }
+        let urlStr = "https://firestore.googleapis.com/v1/projects/\(rest.currentProjectID)/databases/(default)/documents/\(path)?key=\(rest.currentAPIKey)"
+        guard let url = URL(string: urlStr) else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "PATCH"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let body = try? JSONSerialization.data(withJSONObject: ["fields": encodeFields(fields)]) {
+            req.httpBody = body
+            _ = try? await URLSession.shared.data(for: req)
+        }
+    }
+
+    private func firestoreGetWithFallback(path: String) async -> [String: Any]? {
+        if let doc = try? await rest.firestoreGet(path: path) { return doc }
+        let urlStr = "https://firestore.googleapis.com/v1/projects/\(rest.currentProjectID)/databases/(default)/documents/\(path)?key=\(rest.currentAPIKey)"
+        guard let url = URL(string: urlStr),
+              let (data, _) = try? await URLSession.shared.data(from: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        return json
+    }
+
+    private func encodeFields(_ fields: [String: Any]) -> [String: Any] {
+        var result: [String: Any] = [:]
+        for (key, value) in fields { result[key] = firestoreValue(value) }
+        return result
+    }
+
+    private func firestoreValue(_ value: Any) -> [String: Any] {
+        if let s = value as? String { return ["stringValue": s] }
+        if let n = value as? Int { return ["integerValue": "\(n)"] }
+        if let n = value as? Double { return ["doubleValue": n] }
+        if let b = value as? Bool { return ["booleanValue": b] }
+        if let d = value as? Date { return ["timestampValue": df.string(from: d)] }
+        return ["stringValue": "\(value)"]
+    }
+
     // MARK: - Firebase Sync
 
     private func updateFirebasePosition(_ loc: CLLocation) {
@@ -123,7 +159,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         guard elapsed >= minInterval else { return }
         lastFirebaseUpdate = now
 
-        guard let uid = AuthService.shared.currentUser?.id ?? FirebaseRESTService.shared.localId else { return }
+        guard let uid = AuthService.shared.currentUser?.id ?? rest.localId else { return }
         let shareLocation = defaults.bool(forKey: "privacy_share_location")
         guard shareLocation else { return }
 
@@ -131,7 +167,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         let speed = shareSpeed ? (loc.speed >= 0 ? loc.speed * 3.6 : 0.0) : 0.0
 
         Task {
-            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [
+            await firestoreSetWithFallback(path: "users/\(uid)", fields: [
                 "latitude": loc.coordinate.latitude,
                 "longitude": loc.coordinate.longitude,
                 "speed": speed,
@@ -160,30 +196,28 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         let puid = defaults.string(forKey: "partner_uid") ?? ""
         guard !puid.isEmpty else { return }
         Task { @MainActor in
-            if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(puid)"),
+            if let doc = await firestoreGetWithFallback(path: "users/\(puid)"),
                let fields = doc["fields"] as? [String: Any] {
-                let extractDouble = { (key: String) -> Double? in
-                    if let map = fields[key] as? [String: Any] {
-                        return map["doubleValue"] as? Double ?? Double(map["stringValue"] as? String ?? "")
-                    }
+                let ed = { (k: String) -> Double? in
+                    if let dv = (fields[k] as? [String: Any])?["doubleValue"] as? Double { return dv }
+                    if let sv = (fields[k] as? [String: Any])?["stringValue"] as? String { return Double(sv) }
                     return nil
                 }
-                let newLat = extractDouble("latitude")
-                let newLng = extractDouble("longitude")
+                let newLat = ed("latitude")
+                let newLng = ed("longitude")
                 let online = ((fields["isOnline"] as? [String: Any])?["booleanValue"] as? Bool) ?? false
                 self.partnerLatitude = newLat
                 self.partnerLongitude = newLng
                 self.partnerOnline = online
                 if let myLat = self.lastLatitude, let myLng = self.lastLongitude,
                    let pLat = newLat, let pLng = newLng {
-                    let dist = self.haversine(lat1: myLat, lon1: myLng, lat2: pLat, lon2: pLng)
-                    self.distanceToPartner = dist / 1000.0
+                    self.distanceToPartner = self.haversine(lat1: myLat, lon1: myLng, lat2: pLat, lon2: pLng) / 1000.0
                 }
             }
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Distance
 
     private func haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double) -> Double {
         let R = 6371000.0
