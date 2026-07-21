@@ -14,6 +14,6 @@ public class UserService: ObservableObject {
         let defaults = UserDefaults.standard
         let uid = CoupleService.shared.partnerUid
         let name = CoupleService.shared.partnerName
-        partnerUser = UserModel(id: uid, email: "", displayName: name, username: name.lowercased(), partnerUid: AuthService.shared.currentUser?.id)
+        partnerUser = UserModel(id: uid, nombre: name, correo: "", parejaId: CoupleService.parejaId)
     }
 }

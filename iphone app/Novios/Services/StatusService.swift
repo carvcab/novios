@@ -68,14 +68,7 @@ public class StatusService: ObservableObject {
             await MainActor.run {
                 self.partnerStatus = status
                 self.isOnline = status["isOnline"] as? Bool ?? false
-                // Update partner location in UserService
-                if let lat = status["latitude"] as? Double, let lon = status["longitude"] as? Double {
-                    if var partner = UserService.shared.partnerUser {
-                        partner.latitude = lat
-                        partner.longitude = lon
-                        UserService.shared.partnerUser = partner
-                    }
-                }
+                // Location data is now in parejas/pareja_001/ubicacion/{uid}
             }
         }
     }

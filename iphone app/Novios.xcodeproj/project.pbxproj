@@ -36,6 +36,8 @@
 		9A005082C000000000000058 /* LocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A005092C000000000000059 /* LocationView.swift */; };
 		9A0050A2C00000000000005A /* CoupleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050B2C00000000000005B /* CoupleService.swift */; };
 		9A0050U2C00000000000006E /* CoupleModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C00000000000006F /* CoupleModel.swift */; };
+		9A0050W2C000000000000070 /* MemoriesAndLettersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050X2C000000000000071 /* MemoriesAndLettersView.swift */; };
+		9A0050Y2C000000000000072 /* DreamsAndGoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050Z2C000000000000073 /* DreamsAndGoalsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -71,6 +73,8 @@
 		9A005092C000000000000059 /* LocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Location/LocationView.swift; sourceTree = "<group>"; };
 		9A0050B2C00000000000005B /* CoupleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/CoupleService.swift; sourceTree = "<group>"; };
 		9A0050V2C00000000000006F /* CoupleModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/CoupleModel.swift; sourceTree = "<group>"; };
+		9A0050X2C000000000000071 /* MemoriesAndLettersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Main/MemoriesAndLettersView.swift; sourceTree = "<group>"; };
+		9A0050Z2C000000000000073 /* DreamsAndGoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Main/DreamsAndGoalsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -133,6 +137,9 @@
 				9A0050B2C00000000000005B /* CoupleService.swift */,
 
 				9A0050V2C00000000000006F /* CoupleModel.swift */,
+
+				9A0050X2C000000000000071 /* MemoriesAndLettersView.swift */,
+				9A0050Z2C000000000000073 /* DreamsAndGoalsView.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -221,6 +228,8 @@
 				9A005082C000000000000058 /* LocationView.swift in Sources */,
 				9A0050A2C00000000000005A /* CoupleService.swift in Sources */,
 				9A0050U2C00000000000006E /* CoupleModel.swift in Sources */,
+				9A0050W2C000000000000070 /* MemoriesAndLettersView.swift in Sources */,
+				9A0050Y2C000000000000072 /* DreamsAndGoalsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
