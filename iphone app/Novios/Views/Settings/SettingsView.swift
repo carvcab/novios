@@ -2,10 +2,8 @@ import SwiftUI
 
 public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var userService = UserService.shared
     @ObservedObject private var theme = ThemeManager.shared
-    @State private var showingAddPartner = false
-
+    @ObservedObject private var coupleService = CoupleService.shared
     @State private var isRedMode = false
 
     @State private var showDatePicker = false
@@ -70,8 +68,6 @@ public struct SettingsView: View {
             }
             .onAppear {
                 loadSettings()
-                userService.loadPartnerFromDefaults()
-                Task { await userService.fetchPartnerFromFirestore() }
                 Task { await loadSettingsFromFirestore() }
             }
             .alert("Permisos de ubicación", isPresented: $showLocationPermissionAlert) {
@@ -84,9 +80,6 @@ public struct SettingsView: View {
             } message: {
                 Text("Para compartir tu ubicación en tiempo real con tu pareja, Novios necesita acceso a la ubicación. Si ya denegaste el permiso, actívalo en los ajustes del teléfono seleccionando 'Permitir siempre'.")
             }
-            .sheet(isPresented: $showingAddPartner) {
-                AddPartnerView()
-            }
             .sheet(isPresented: $showDatePicker) {
                 DatePickerView(label: datePickerLabel, onSelect: datePickerHandler ?? { _ in }, color: datePickerColor)
             }
@@ -97,53 +90,40 @@ public struct SettingsView: View {
 
     private var partnerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionHeader(icon: "heart.fill", title: "Mi Pareja")
+            sectionHeader(icon: "heart.fill", title: "Nuestra Relación")
             GlassCard {
-                if userService.partnerUser != nil {
-                    HStack(spacing: 12) {
-                        Circle().fill(theme.primary.opacity(0.25)).frame(width: 48, height: 48)
-                            .overlay(Image(systemName: "person.fill").appFont(size: 20).foregroundColor(theme.primary))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(userService.partnerUser?.displayName ?? "Pareja")
-                                .appFont(size: 16, weight: .semibold)
-                            let uname = userService.partnerUser?.username ?? ""
-                            let email = userService.partnerUser?.email ?? ""
-                            let subtitle = !uname.isEmpty ? "@\(uname)" : (!email.isEmpty ? email : "Conectado")
-                            Text(subtitle)
-                                .appFont(size: 13).foregroundColor(theme.textSecondary)
-                        }
-                        Spacer()
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle().fill(theme.primary.opacity(0.2)).frame(width: 44, height: 44)
+                            .overlay(Text("D").appFont(size: 20, weight: .bold).foregroundColor(theme.primary))
+                        Circle().fill(theme.secondary.opacity(0.2)).frame(width: 44, height: 44)
+                            .overlay(Text("Y").appFont(size: 20, weight: .bold).foregroundColor(theme.secondary))
+                            .offset(x: 18)
+                    }.frame(width: 62, alignment: .leading)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(coupleService.coupleName)
+                            .appFont(size: 16, weight: .semibold)
+                        Text("💞 \(coupleService.members.count) miembros")
+                            .appFont(size: 12).foregroundColor(theme.textSecondary)
                     }
-                    Divider().padding(.vertical, 4)
-                    Button(role: .destructive) {
-                        showUnlinkConfirm = true
-                    } label: {
-                        Label("Desvincular pareja", systemImage: "link.slash")
-                            .appFont(size: 13, weight: .medium)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                    }
-                    .confirmationDialog("¿Desvincular pareja?", isPresented: $showUnlinkConfirm, titleVisibility: .visible) {
-                        Button("Desvincular", role: .destructive) { unlinkPartner() }
-                        Button("Cancelar", role: .cancel) {}
-                    } message: {
-                        Text("Se eliminará el vínculo con tu pareja. Podrás volver a vincularla más tarde.")
-                    }
-                } else {
-                    HStack(spacing: 12) {
-                        Image(systemName: "person.badge.plus").appFont(size: 24).foregroundColor(theme.primary)
-                        Text("Aún no has agregado a tu pareja")
-                            .appFont(size: 14).foregroundColor(theme.textSecondary)
-                        Spacer()
-                    }
-                    Button {
-                        showingAddPartner = true
-                    } label: {
-                        Text("Buscar y agregar pareja")
-                            .appFont(size: 14, weight: .semibold).foregroundColor(.white)
-                            .frame(maxWidth: .infinity).padding(.vertical, 12)
-                            .background(theme.primaryGradient).cornerRadius(14)
-                    }
+                    Spacer()
+                }
+
+                Divider().padding(.vertical, 6)
+
+                Button(role: .destructive) {
+                    showUnlinkConfirm = true
+                } label: {
+                    Label("Cerrar sesión", systemImage: "rectangle.portrait.and.arrow.right")
+                        .appFont(size: 13, weight: .medium)
+                        .frame(maxWidth: .infinity).padding(.vertical, 8)
+                }
+                .confirmationDialog("¿Cerrar sesión?", isPresented: $showUnlinkConfirm, titleVisibility: .visible) {
+                    Button("Cerrar sesión", role: .destructive) { AuthService.shared.signOut() }
+                    Button("Cancelar", role: .cancel) {}
+                } message: {
+                    Text("Se cerrará tu sesión actual.")
                 }
             }
         }

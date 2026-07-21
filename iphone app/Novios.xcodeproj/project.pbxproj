@@ -19,7 +19,7 @@
 		9A000112C00000000000011 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F92C00000000000003F9 /* AuthService.swift */; };
 		9A000132C00000000000013 /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FB2C00000000000003FB /* ChatService.swift */; };
 		9A000162C00000000000016 /* UserService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FE2C00000000000003FE /* UserService.swift */; };
-		9A000182C00000000000018 /* AddPartnerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004002C0000000000000400 /* AddPartnerView.swift */; };
+
 		9A0001C2C0000000000001C /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004042C0000000000000404 /* WelcomeView.swift */; };
 		9A0001D2C0000000000001D /* ChatBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004052C0000000000000405 /* ChatBubbleView.swift */; };
 		9A0001E2C0000000000001E /* MessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004062C0000000000000406 /* MessagesView.swift */; };
@@ -34,6 +34,7 @@
 		9A005042C000000000000054 /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A005052C000000000000055 /* LockScreenView.swift */; };
 		9A005062C000000000000056 /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A005072C000000000000057 /* AIService.swift */; };
 		9A005082C000000000000058 /* LocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A005092C000000000000059 /* LocationView.swift */; };
+		9A0050A2C00000000000005A /* CoupleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050B2C00000000000005B /* CoupleService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -67,6 +68,7 @@
 		9A005052C000000000000055 /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Security/LockScreenView.swift; sourceTree = "<group>"; };
 		9A005072C000000000000057 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AIService.swift; sourceTree = "<group>"; };
 		9A005092C000000000000059 /* LocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Location/LocationView.swift; sourceTree = "<group>"; };
+		9A0050B2C00000000000005B /* CoupleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/CoupleService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -125,6 +127,8 @@
 				9A005072C000000000000057 /* AIService.swift */,
 
 				9A005092C000000000000059 /* LocationView.swift */,
+
+				9A0050B2C00000000000005B /* CoupleService.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -198,8 +202,7 @@
 				9A000112C00000000000011 /* AuthService.swift in Sources */,
 				9A000132C00000000000013 /* ChatService.swift in Sources */,
 				9A000162C00000000000016 /* UserService.swift in Sources */,
-				9A000182C00000000000018 /* AddPartnerView.swift in Sources */,
-				9A0001C2C0000000000001C /* WelcomeView.swift in Sources */,
+	9A0001C2C0000000000001C /* WelcomeView.swift in Sources */,
 				9A0001D2C0000000000001D /* ChatBubbleView.swift in Sources */,
 				9A0001E2C0000000000001E /* MessagesView.swift in Sources */,
 				9A000272C00000000000027 /* MainTabView.swift in Sources */,
@@ -212,6 +215,7 @@
 				9A005042C000000000000054 /* LockScreenView.swift in Sources */,
 				9A005062C000000000000056 /* AIService.swift in Sources */,
 				9A005082C000000000000058 /* LocationView.swift in Sources */,
+				9A0050A2C00000000000005A /* CoupleService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

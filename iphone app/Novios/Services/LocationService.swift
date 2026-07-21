@@ -243,7 +243,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     }
 
     private func fetchPartnerLocation() {
-        let puid = defaults.string(forKey: "partner_uid") ?? ""
+        let puid = CoupleService.shared.partnerUID
         guard !puid.isEmpty else { return }
         Task { @MainActor in
             if let doc = await firestoreGetWithFallback(path: "users/\(puid)"),

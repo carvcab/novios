@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct MainTabView: View {
     @State private var selectedTab = 0
+    @ObservedObject private var coupleService = CoupleService.shared
 
     public init() {}
 
@@ -10,21 +11,21 @@ public struct MainTabView: View {
             MessagesView()
                 .tabItem {
                     Image(systemName: "message.fill")
-                    Text("Mensajes")
+                    Text("Chat")
                 }
                 .tag(0)
 
             LocationView()
                 .tabItem {
                     Image(systemName: "location.fill")
-                    Text("Ubicación")
+                    Text("Mapa")
                 }
                 .tag(1)
 
             ProfileView()
                 .tabItem {
-                    Image(systemName: "person.circle.fill")
-                    Text("Perfil")
+                    Image(systemName: "heart.fill")
+                    Text("Nosotros")
                 }
                 .tag(2)
         }
