@@ -30,11 +30,22 @@ public struct LocationView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        locationService.startSharing()
-                    } label: {
-                        Image(systemName: locationService.isSharing ? "location.fill" : "location.slash.fill")
-                            .foregroundColor(locationService.isSharing ? theme.primary : theme.textSecondary)
+                    HStack(spacing: 6) {
+                        if locationService.isSharing {
+                            Button {
+                                locationService.refreshPartnerNow()
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                                    .appFont(size: 14)
+                                    .foregroundColor(theme.primary)
+                            }
+                        }
+                        Button {
+                            locationService.startSharing()
+                        } label: {
+                            Image(systemName: locationService.isSharing ? "location.fill" : "location.slash.fill")
+                                .foregroundColor(locationService.isSharing ? theme.primary : theme.textSecondary)
+                        }
                     }
                 }
             }
@@ -190,6 +201,19 @@ public struct LocationView: View {
 
                         Divider().padding(.horizontal, 16)
 
+                        if locationService.partnerLatitude != nil {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .appFont(size: 10)
+                                    .foregroundColor(theme.textSecondary)
+                                Text("Actualizado hace \(lastUpdateText())")
+                                    .appFont(size: 11)
+                                    .foregroundColor(theme.textSecondary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 16)
+                        }
+
                         HStack(spacing: 12) {
                             Button {
                                 sendCheckIn(message: "Voy para casa 🏠")
@@ -342,6 +366,13 @@ public struct LocationView: View {
         }
     }
 }
+
+    private func lastUpdateText() -> String {
+        guard let d = locationService.partnerLastUpdate else { return "0s" }
+        let sec = Int(Date().timeIntervalSince(d))
+        if sec < 60 { return "\(sec)s" }
+        return "\(sec / 60)m \(sec % 60)s"
+    }
 
 // MARK: - Annotation Model
 

@@ -12,6 +12,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     @Published public var partnerLatitude: Double?
     @Published public var partnerLongitude: Double?
     @Published public var partnerOnline = false
+    @Published public var partnerLastUpdate: Date?
     @Published public var distanceToPartner: Double?
 
     private var locationManager: CLLocationManager?
@@ -71,6 +72,10 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
     public func requestPermission() {
         ensureManager().requestAlwaysAuthorization()
+    }
+
+    public func refreshPartnerNow() {
+        fetchPartnerLocation()
     }
 
     // MARK: - CLLocationManagerDelegate
@@ -152,9 +157,9 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
         let minInterval: TimeInterval
         switch motionState {
-        case "static": minInterval = 300
-        case "walking": minInterval = 120
-        default: minInterval = 60
+        case "static": minInterval = 120
+        case "walking": minInterval = 60
+        default: minInterval = 30
         }
         guard elapsed >= minInterval else { return }
         lastFirebaseUpdate = now
@@ -179,7 +184,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
     private func startFirebaseTimer() {
         firebaseTimer?.invalidate()
-        firebaseTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        firebaseTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
             guard let self = self, let loc = self.locationManager?.location else { return }
             self.updateFirebasePosition(loc)
         }
@@ -206,6 +211,9 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
                 let newLat = ed("latitude")
                 let newLng = ed("longitude")
                 let online = ((fields["isOnline"] as? [String: Any])?["booleanValue"] as? Bool) ?? false
+                if let tsStr = (fields["lastLocationUpdate"] as? [String: Any])?["stringValue"] as? String {
+                    self.partnerLastUpdate = self.df.date(from: tsStr)
+                }
                 self.partnerLatitude = newLat
                 self.partnerLongitude = newLng
                 self.partnerOnline = online
