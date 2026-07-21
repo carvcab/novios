@@ -88,7 +88,17 @@ public class AuthService: ObservableObject {
         let name = defaults.string(forKey: "auth_user_name") ?? "Usuario"
         currentUser = UserModel(id: uid, email: email, displayName: name, username: name.lowercased())
         isLoggedIn = true
-        isRestoringSession = false
+
+        // Validate token - try to access Firestore
+        Task {
+            if (try? await FirebaseRESTService.shared.firestoreGet(path: "usuarios/\(uid)")) == nil {
+                if (try? await FirebaseRESTService.shared.refreshIdToken()) == nil {
+                    await MainActor.run { self.signOut(); self.isRestoringSession = false }
+                    return
+                }
+            }
+            await MainActor.run { self.isRestoringSession = false }
+        }
     }
 
     private func saveSession(user: UserModel) {
