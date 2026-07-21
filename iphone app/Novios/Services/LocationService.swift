@@ -145,40 +145,11 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     // MARK: - Firebase Write (with API key fallback)
 
     private func firestoreSetWithFallback(path: String, fields: [String: Any]) async {
-        if (try? await rest.firestoreSet(path: path, fields: fields)) != nil { return }
-        let urlStr = "https://firestore.googleapis.com/v1/projects/\(rest.currentProjectID)/databases/(default)/documents/\(path)?key=\(rest.currentAPIKey)"
-        guard let url = URL(string: urlStr) else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "PATCH"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let body = try? JSONSerialization.data(withJSONObject: ["fields": encodeFields(fields)]) {
-            req.httpBody = body
-            _ = try? await URLSession.shared.data(for: req)
-        }
+        try? await rest.firestoreSet(path: path, fields: fields)
     }
 
     private func firestoreGetWithFallback(path: String) async -> [String: Any]? {
-        if let doc = try? await rest.firestoreGet(path: path) { return doc }
-        let urlStr = "https://firestore.googleapis.com/v1/projects/\(rest.currentProjectID)/databases/(default)/documents/\(path)?key=\(rest.currentAPIKey)"
-        guard let url = URL(string: urlStr),
-              let (data, _) = try? await URLSession.shared.data(from: url),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
-        return json
-    }
-
-    private func encodeFields(_ fields: [String: Any]) -> [String: Any] {
-        var result: [String: Any] = [:]
-        for (key, value) in fields { result[key] = firestoreValue(value) }
-        return result
-    }
-
-    private func firestoreValue(_ value: Any) -> [String: Any] {
-        if let s = value as? String { return ["stringValue": s] }
-        if let n = value as? Int { return ["integerValue": "\(n)"] }
-        if let n = value as? Double { return ["doubleValue": n] }
-        if let b = value as? Bool { return ["booleanValue": b] }
-        if let d = value as? Date { return ["timestampValue": df.string(from: d)] }
-        return ["stringValue": "\(value)"]
+        try? await rest.firestoreGet(path: path)
     }
 
     // MARK: - Firebase Sync
