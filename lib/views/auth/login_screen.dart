@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/local_storage.dart';
 import '../../services/auth_service.dart';
-import '../../permissions/permissions_screen.dart';
-import 'profile_setup_screen.dart';
-import 'add_partner_screen.dart';
 import '../home_navigation.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -20,9 +16,7 @@ class _LoginScreenState extends State<LoginScreen>
   late Animation<double> _fadeAnim;
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  final _nameCtrl = TextEditingController();
   bool _loading = false;
-  bool _isSignUp = false;
   String? _error;
 
   @override
@@ -38,76 +32,36 @@ class _LoginScreenState extends State<LoginScreen>
     _ctrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
-    _nameCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text.trim();
-    final name = _nameCtrl.text.trim();
 
-    if (email.isEmpty || pass.isEmpty || (_isSignUp && name.isEmpty)) {
-      setState(() => _error = 'Completa todos los campos');
+    if (email.isEmpty || pass.isEmpty) {
+      setState(() => _error = 'Ingresa tu correo y contraseña');
       return;
     }
 
     setState(() { _loading = true; _error = null; });
 
     try {
-      final auth = AuthService();
-      if (_isSignUp) {
-        await auth.signUpWithEmail(email, pass, name);
-      } else {
-        await auth.signInWithEmail(email, pass);
-      }
-
+      await AuthService().signInWithEmail(email, pass);
       if (!mounted) return;
-      if (auth.isLoggedIn) {
-        final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-        final email = FirebaseAuth.instance.currentUser?.email ?? '';
-        await LocalStorage().setString('user_id', uid);
-        await LocalStorage().setString('user_email', email);
-        await LocalStorage().setBool('setup_complete_$email', true);
-        final hasDob = LocalStorage().getString('dob') != null &&
-            LocalStorage().getString('dob')!.isNotEmpty;
-        final hasUsername = LocalStorage().getString('username') != null &&
-            LocalStorage().getString('username')!.isNotEmpty;
-        final hasPartner = LocalStorage().getString('partner_uid') != null &&
-            LocalStorage().getString('partner_uid')!.isNotEmpty;
-        final partnerSkipped = LocalStorage().getBool('partner_skipped') == true;
-        if (mounted) {
-          if (!hasDob || !hasUsername) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
-            );
-          } else if (!hasPartner && !partnerSkipped) {
-            await LocalStorage().setBool('partner_skipped', true);
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const HomeNavigation()),
-            );
-          } else {
-            final permissionsDone = LocalStorage().getBool('permissions_granted') == true;
-            if (permissionsDone) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const HomeNavigation()),
-              );
-            } else {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const PermissionsScreen()),
-              );
-            }
-          }
-        }
-      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeNavigation()),
+      );
+    } on FirebaseAuthException catch (e) {
+      String msg = 'Error al iniciar sesión';
+      if (e.code == 'user-not-found') { msg = 'Usuario no encontrado'; }
+      else if (e.code == 'wrong-password') { msg = 'Contraseña incorrecta'; }
+      else if (e.code == 'invalid-email') { msg = 'Correo inválido'; }
+      else if (e.code == 'invalid-credential') { msg = 'Credenciales inválidas'; }
+      if (mounted) setState(() => _error = msg);
     } catch (e) {
-      if (mounted) {
-        setState(() => _error = e.toString().split(']').last.trim());
-      }
+      if (mounted) setState(() => _error = 'Error de conexión');
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -135,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen>
                     Text('Solo para nosotros dos',
                       style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.5), letterSpacing: 2),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 48),
                     if (_error != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16),
@@ -153,10 +107,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                       ),
-                    if (_isSignUp)
-                      _buildField(_nameCtrl, 'Tu Nombre', Icons.person_outline, false),
-                    const SizedBox(height: 12),
-                    _buildField(_emailCtrl, 'Correo Electrónico', Icons.email_outlined, false),
+                    _buildField(_emailCtrl, 'Correo', Icons.email_outlined, false),
                     const SizedBox(height: 12),
                     _buildField(_passCtrl, 'Contraseña', Icons.lock_outline, true),
                     const SizedBox(height: 24),
@@ -175,20 +126,14 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                         child: _loading
                             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)))
-                            : Text(_isSignUp ? 'Registrarse' : 'Ingresar',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                            : const Text('Entrar',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => setState(() {
-                        _isSignUp = !_isSignUp;
-                        _error = null;
-                      }),
-                      child: Text(
-                        _isSignUp ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate',
-                        style: const TextStyle(color: Color(0xFFFF5C8A), fontSize: 13, fontWeight: FontWeight.w600),
-                      ),
+                    Text(
+                      'Diego  ♡  Yosmari',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13, letterSpacing: 2),
                     ),
                   ],
                 ),

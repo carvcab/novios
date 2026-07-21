@@ -7,7 +7,7 @@ import '../services/geofence_service.dart';
 import '../services/app_tracker.dart';
 import '../services/firebase_service.dart';
 import '../services/chat_notification_service.dart';
-import '../services/profile_service.dart';
+import '../services/couple_service.dart';
 import '../services/widget_service.dart';
 import '../widgets/confetti_overlay.dart';
 import 'home/home_tab.dart';
@@ -106,7 +106,7 @@ class _HomeNavigationState extends State<HomeNavigation> with WidgetsBindingObse
             children: [
               const Text('💞', style: TextStyle(fontSize: 16)),
               const SizedBox(width: 6),
-              Text(ProfileService().coupleDisplay.isNotEmpty ? ProfileService().coupleDisplay : 'EverUs',
+              Text(CoupleService().coupleDisplayName,
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
             ],
           ),

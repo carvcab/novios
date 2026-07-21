@@ -28,24 +28,24 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read, write: if isDiegoOrYosmari() && (uid == request.auth.uid || uid == 'Dd1X94n3gxg7leWtMtnLlxDVHcm2' || uid == 'joeBcVn2o1hfXfU68rWNOyAZIqt2');
+      allow read, write: if isDiegoOrYosmari();
       match /{document=**} {
         allow read, write: if isDiegoOrYosmari();
       }
     }
 
-    match /usernames/{username} {
-      allow read: if isDiegoOrYosmari();
-      allow write: if isDiegoOrYosmari();
-    }
-
-    match /pair_codes/{code} {
-      allow read: if isDiegoOrYosmari();
-      allow write: if isDiegoOrYosmari();
-    }
-
     match /_health/{document} {
       allow read, write: if true;
+    }
+
+    match /rooms/{roomId} {
+      allow read, write: if true;
+      match /callerCandidates/{candidateId} {
+        allow read, write: if true;
+      }
+      match /calleeCandidates/{candidateId} {
+        allow read, write: if true;
+      }
     }
 
     match /{document=**} {

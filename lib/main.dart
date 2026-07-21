@@ -4,19 +4,15 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'services/local_storage.dart';
 import 'services/firebase_service.dart';
 import 'services/theme_provider.dart';
 import 'services/widget_service.dart';
-import 'services/profile_service.dart';
-import 'services/user_service.dart';
+import 'services/geofence_service.dart';
+import 'services/couple_service.dart';
 import 'views/auth/login_screen.dart';
-import 'views/auth/profile_setup_screen.dart';
-import 'views/auth/add_partner_screen.dart';
 import 'views/home_navigation.dart';
-import 'permissions/permissions_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,20 +20,13 @@ void main() async {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(options: firebaseOptions);
     }
-    try {
-      await Firebase.initializeApp(name: 'backup', options: firebaseOptionsBackup);
-    } catch (e) {
-      debugPrint('Backup Firebase init skipped: $e');
-    }
   } catch (e) {
     debugPrint('Firebase init error: $e');
   }
   await LocalStorage().init().catchError((_) => false);
   try { await FirebaseService().init().catchError((_) {}); } catch (e) {}
   try { WidgetService().init().catchError((_) {}); } catch (e) {}
-  try { await ProfileService().init(); } catch (e) {}
-  try { await UserService().syncFromFirestore(); } catch (_) {}
-  try { UserService().startListening(); } catch (_) {}
+  try { await GeofenceService().init(); } catch (e) { debugPrint("Geofence init error: $e"); }
 
   FlutterError.onError = (details) {
     FlutterError.dumpErrorToConsole(details);
@@ -51,6 +40,7 @@ void main() async {
       MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ChangeNotifierProvider(create: (_) => CoupleService()),
         ],
         child: const EverUsApp(),
       ),
@@ -99,82 +89,19 @@ class AppGate extends StatefulWidget {
 class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   bool _ready = false;
+
   @override
   void initState() {
     super.initState();
-    UserService().addListener(_onAuthChanged);
     _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
     _ctrl.forward();
     _prepare();
   }
 
-  void _onAuthChanged() {
-    _checkFirestore();
-  }
-
-  Future<void> _checkFirestore() async {
-    final firebaseUser = FirebaseAuth.instance.currentUser;
-    if (firebaseUser == null || firebaseUser.isAnonymous) return;
-
-    try {
-      final uid = firebaseUser.uid;
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-
-      if (!mounted) return;
-
-      if (doc.exists) {
-        final data = doc.data()!;
-
-        final remoteName = data['name'] as String?;
-        if (remoteName != null && remoteName.isNotEmpty) {
-          await LocalStorage().setString('user_name', remoteName);
-        }
-
-        final bday = data['birthdayDate'];
-        if (bday != null) {
-          String bdayStr;
-          if (bday is Timestamp) {
-            final dt = bday.toDate();
-            bdayStr = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
-          } else {
-            bdayStr = bday.toString();
-          }
-          await LocalStorage().setString('birthday_date', bdayStr);
-          await LocalStorage().setString('dob', bdayStr);
-        }
-
-        final remoteUsername = data['username'] as String?;
-        if (remoteUsername != null && remoteUsername.isNotEmpty) {
-          await LocalStorage().setString('username', remoteUsername);
-        }
-
-        final remoteCoupleId = data['coupleId'] as String?;
-        if (remoteCoupleId != null && remoteCoupleId.isNotEmpty) {
-          await LocalStorage().setString('couple_id', remoteCoupleId);
-        }
-        final remotePartnerUid = data['partnerUid'] as String?;
-        if (remotePartnerUid != null && remotePartnerUid.isNotEmpty) {
-          await LocalStorage().setString('partner_uid', remotePartnerUid);
-        }
-        final remotePartnerName = data['partnerName'] as String?;
-        if (remotePartnerName != null && remotePartnerName.isNotEmpty) {
-          await LocalStorage().setString('partner_name', remotePartnerName);
-        }
-
-        final email = firebaseUser.email;
-        if (email != null) {
-          await LocalStorage().setBool('setup_complete_$email', true);
-        }
-        await LocalStorage().setBool('has_firestore_profile', true);
-      }
-
-      if (mounted) setState(() {});
-    } catch (_) {
-      if (mounted) setState(() {});
-    }
-  }
-
   Future<void> _prepare() async {
+    if (FirebaseAuth.instance.currentUser != null) {
+      await CoupleService().init();
+    }
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
     setState(() => _ready = true);
@@ -182,7 +109,6 @@ class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
 
   @override
   void dispose() {
-    UserService().removeListener(_onAuthChanged);
     _ctrl.dispose();
     super.dispose();
   }
@@ -217,33 +143,6 @@ class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
     final firebaseUser = FirebaseAuth.instance.currentUser;
     if (firebaseUser == null || firebaseUser.isAnonymous) {
       return const LoginScreen();
-    }
-
-    if (firebaseUser.email == null || firebaseUser.email!.isEmpty) {
-      return const LoginScreen();
-    }
-
-    final email = firebaseUser.email!;
-    final setupDone = LocalStorage().getBool('setup_complete_$email') == true;
-    final hasProfile = LocalStorage().getString('username') != null &&
-        LocalStorage().getString('username')!.isNotEmpty &&
-        LocalStorage().getString('dob') != null &&
-        LocalStorage().getString('dob')!.isNotEmpty;
-    final hasPartner = LocalStorage().getString('partner_uid') != null &&
-        LocalStorage().getString('partner_uid')!.isNotEmpty;
-    final partnerSkipped = LocalStorage().getBool('partner_skipped') == true;
-
-    if (!setupDone || !hasProfile) {
-      return const ProfileSetupScreen();
-    }
-
-    if (!hasPartner && !partnerSkipped) {
-      return const HomeNavigation();
-    }
-
-    final permissionsDone = LocalStorage().getBool('permissions_granted') == true;
-    if (permissionsDone != true) {
-      return const PermissionsScreen();
     }
 
     return const HomeNavigation();

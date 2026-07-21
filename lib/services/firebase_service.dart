@@ -13,6 +13,7 @@ import '../models/place_model.dart';
 import '../models/planner_model.dart';
 import '../models/zone_model.dart';
 import 'local_storage.dart';
+import 'couple_service.dart';
 
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
@@ -73,9 +74,14 @@ class FirebaseService {
   }
 
   void _recordFirestoreError(Object error) {
+    final errStr = error.toString();
+    // No contar errores de permiso como fallos de conexión
+    if (errStr.contains('permission-denied')) {
+      debugPrint("[FBHealth] Permission error (non-fatal): $error");
+      return;
+    }
     _consecutiveErrors++;
     debugPrint("[FBHealth] Error #$_consecutiveErrors: $error");
-    final errStr = error.toString();
     if (errStr.contains('RESOURCE_EXHAUSTED') || errStr.contains('Quota exceeded')) {
       if (!_usingBackup) {
         debugPrint("[FBHealth] QUOTA EXHAUSTED — switching to BACKUP project");
@@ -644,9 +650,16 @@ class FirebaseService {
         'latitude': lat,
         'longitude': lng,
         'lastLocationUpdate': DateTime.now().toIso8601String(),
+        'isOnline': true,
       };
       if (speed != null) {
         data['speed'] = speed;
+      }
+      final shareBattery = LocalStorage().getBool('privacy_share_battery', defaultValue: true);
+      if (shareBattery) {
+        try {
+          data['batteryLevel'] = LocalStorage().getInt('last_battery_level', defaultValue: -1);
+        } catch (_) {}
       }
       await _db.collection('users').doc(userId).set(data, SetOptions(merge: true));
     } catch (e) {
@@ -1177,44 +1190,33 @@ class FirebaseService {
 
   // --- Realtime Chat ---
   Future<void> sendMessage(MessageModel msg) async {
-    // Siempre guardar localmente como respaldo
     final localList = LocalStorage().getLocalList('messages');
     localList.add(msg.toMap());
     await LocalStorage().saveLocalList('messages', localList);
     FirebaseService.notifyListUpdated('messages');
 
-    if (!_firebaseAvailable) {
-      debugPrint("[sendMessage] Firebase NO disponible — mensaje solo LOCAL (senderId=${msg.senderId})");
-      return;
-    }
+    if (!_firebaseAvailable) return;
     try {
-      debugPrint("[sendMessage] Enviando a Firestore: couples/$_coupleId/messages/${msg.id}");
-      await _db.collection('couples').doc(_coupleId).collection('messages').doc(msg.id).set(msg.toMap());
-
-      // También enviar notificación al partner via su documento de usuario
+      await _db.collection('parejas').doc('pareja_001').collection('chat').doc(msg.id).set(msg.toMap());
       _sendMessageNotificationToPartner(msg);
     } catch (e) {
-      debugPrint("[sendMessage] Error en Firestore: $e — mensaje solo LOCAL");
+      debugPrint("[sendMessage] Error en Firestore: $e");
     }
   }
 
   Future<void> _sendMessageNotificationToPartner(MessageModel msg) async {
     try {
-      final partnerUid = LocalStorage().getString('partner_uid');
-      if (partnerUid == null || partnerUid.isEmpty) return;
+      final partnerUid = CoupleService().partnerUid;
+      if (partnerUid.isEmpty) return;
       String preview = msg.text;
-      if (msg.type == 'voice') {
-        preview = '🎤 Nota de voz';
-      } else if (msg.type == 'photo' || msg.type == 'image') {
-        preview = '🖼️ Foto';
-      } else if (msg.type == 'video') {
-        preview = '🎬 Video';
-      }
+      if (msg.type == 'voice') preview = '🎤 Nota de voz';
+      else if (msg.type == 'photo' || msg.type == 'image') preview = '🖼️ Foto';
+      else if (msg.type == 'video') preview = '🎬 Video';
       if (preview.length > 100) preview = '${preview.substring(0, 97)}...';
-      await _db.collection('users').doc(partnerUid).set({
+      await _db.collection('usuarios').doc(partnerUid).set({
         'lastNotification': {
           'app': 'EverUs Chat',
-          'title': LocalStorage().getUserName() ?? 'Tu pareja',
+          'title': CoupleService().currentName,
           'text': preview,
         },
         'lastNotificationTime': FieldValue.serverTimestamp(),
@@ -1223,7 +1225,6 @@ class FirebaseService {
   }
 
   Future<void> markMessageRead(String messageId) async {
-    // 1. Update locally
     final list = LocalStorage().getLocalList('messages');
     var updated = false;
     final nowStr = DateTime.now().toIso8601String();
@@ -1238,11 +1239,9 @@ class FirebaseService {
       await LocalStorage().saveLocalList('messages', list);
       notifyListUpdated('messages');
     }
-
-    // 2. Update Firestore
     if (!_firebaseAvailable) return;
     try {
-      await _db.collection('couples').doc(_coupleId).collection('messages').doc(messageId).update({
+      await _db.collection('parejas').doc('pareja_001').collection('chat').doc(messageId).update({
         'readTimestamp': nowStr,
       });
     } catch (e) {
@@ -1273,7 +1272,7 @@ class FirebaseService {
     }
     if (!_firebaseAvailable) return;
     try {
-      await _db.collection('couples').doc(_coupleId).collection('messages').doc(messageId).update({
+      await _db.collection('parejas').doc('pareja_001').collection('chat').doc(messageId).update({
         'reactions.$userId': remove ? FieldValue.delete() : emoji,
       });
     } catch (e) {
@@ -1285,8 +1284,8 @@ class FirebaseService {
     if (!_firebaseAvailable) return;
     try {
       final now = DateTime.now();
-      final snapshot = await _db.collection('couples').doc(_coupleId)
-          .collection('messages')
+      final snapshot = await _db.collection('parejas').doc('pareja_001')
+          .collection('chat')
           .where('isDisappearing', isEqualTo: true)
           .where('readTimestamp', isNotEqualTo: null)
           .get();
@@ -1377,7 +1376,7 @@ class FirebaseService {
       msgs.removeWhere((m) {
         if (m.shouldBeDeleted) {
           if (_firebaseAvailable) {
-            _db.collection('couples').doc(_coupleId).collection('messages').doc(m.id).delete().catchError((_) {});
+            _db.collection('parejas').doc('pareja_001').collection('chat').doc(m.id).delete().catchError((_) {});
           }
           return true;
         }
@@ -1392,7 +1391,7 @@ class FirebaseService {
 
     if (_firebaseAvailable) {
       try {
-        fsSub = _db.collection('couples').doc(_coupleId).collection('messages')
+        fsSub = _db.collection('parejas').doc('pareja_001').collection('chat')
             .orderBy('timestamp', descending: true)
             .limit(200)
             .snapshots()
@@ -1824,7 +1823,7 @@ class FirebaseService {
   Future<int> getMessageCount() async {
     if (!_firebaseAvailable) return 0;
     try {
-      final snap = await _db.collection('couples').doc(_coupleId).collection('messages').count().get();
+      final snap = await _db.collection('parejas').doc('pareja_001').collection('chat').count().get();
       return snap.count ?? 0;
     } catch (e) {
       return 0;

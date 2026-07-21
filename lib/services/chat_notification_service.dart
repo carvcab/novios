@@ -107,11 +107,6 @@ class ChatNotificationService {
   bool _isListening = false;
 
   void _startListening() {
-    final coupleId = FirebaseService().coupleId;
-    if (coupleId.isEmpty || coupleId == 'default_couple_id') {
-      debugPrint("[ChatNotif] Cannot start listeners: coupleId=$coupleId");
-      return;
-    }
     if (!FirebaseService().isFirebaseAvailable) {
       debugPrint("[ChatNotif] Cannot start listeners: Firebase unavailable");
       return;
@@ -121,14 +116,14 @@ class ChatNotificationService {
       return;
     }
     _retryTimer?.cancel();
-    debugPrint("[ChatNotif] Starting all listeners (coupleId=$coupleId)");
+    debugPrint("[ChatNotif] Starting all listeners");
 
     // 1. Message listener
     _msgSubscription?.cancel();
     _msgSubscription = FirebaseFirestore.instance
-        .collection('couples')
-        .doc(coupleId)
-        .collection('messages')
+        .collection('parejas')
+        .doc('pareja_001')
+        .collection('chat')
         .orderBy('timestamp', descending: true)
         .limit(1)
         .snapshots()
@@ -158,9 +153,9 @@ class ChatNotificationService {
     _gameSubscription?.cancel();
     _isInitialGameSnapshot = true;
     _gameSubscription = FirebaseFirestore.instance
-        .collection('couples')
-        .doc(coupleId)
-        .collection('games')
+        .collection('parejas')
+        .doc('pareja_001')
+        .collection('juegos')
         .snapshots()
         .listen((snapshot) {
       final userId = LocalStorage().getUserId() ?? 'local_user_id';
@@ -229,9 +224,9 @@ class ChatNotificationService {
     _activitySubscription?.cancel();
     _isInitialActivitySnapshot = true;
     _activitySubscription = FirebaseFirestore.instance
-        .collection('couples')
-        .doc(coupleId)
-        .collection('activities')
+        .collection('parejas')
+        .doc('pareja_001')
+        .collection('notificaciones')
         .snapshots()
         .listen((snapshot) {
       final userName = LocalStorage().getUserName() ?? 'Yo';
@@ -328,7 +323,7 @@ class ChatNotificationService {
       }
 
       _partnerNotifSub = FirebaseFirestore.instance
-          .collection('users').doc(partnerUid)
+          .collection('usuarios').doc(partnerUid)
           .snapshots()
           .listen((snap) {
         if (!snap.exists) return;

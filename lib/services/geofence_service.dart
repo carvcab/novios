@@ -8,6 +8,7 @@ import '../models/place_model.dart';
 import 'firebase_service.dart';
 import 'local_storage.dart';
 import 'widget_service.dart';
+import 'couple_service.dart';
 
 class GeofenceService {
   static final GeofenceService _instance = GeofenceService._();
@@ -40,13 +41,13 @@ class GeofenceService {
 
   void _listenPartnerLocation() async {
     _partnerSub2?.cancel();
-    if (!FirebaseService().isFirebaseAvailable) return;
-    final partnerId = await FirebaseService().getPartnerId();
-    if (partnerId == null) return;
-    _partnerSub2 = FirebaseService().streamUser(partnerId).listen((user) {
-      _partnerLat = user.latitude;
-      _partnerLng = user.longitude;
-      _partnerOnline = user.isOnline;
+    _partnerSub2 = CoupleService().streamPartnerUbicacion().listen((snap) {
+      if (!snap.exists) return;
+      final data = snap.data() as Map<String, dynamic>?;
+      if (data == null) return;
+      _partnerLat = data['lat'] as double?;
+      _partnerLng = data['lng'] as double?;
+      _partnerOnline = data['isOnline'] == true;
 
       double? dist;
       if (_lastPosition != null && _partnerLat != null && _partnerLng != null) {
@@ -56,7 +57,6 @@ class GeofenceService {
       WidgetService().updateDistance(dist, _partnerOnline);
     }, onError: (err) {
       debugPrint("[Geofence] Partner listener error: $err");
-      FirebaseService.recordError(err);
     });
   }
 
@@ -261,8 +261,7 @@ class GeofenceService {
 
     _lastFirebaseUpdate = now;
 
-    final userId = LocalStorage().getUserId();
-    if (userId == null || _lastPosition == null) return;
+    if (_lastPosition == null) return;
 
     final shareLocation = LocalStorage().getBool('privacy_share_location', defaultValue: true);
     if (!shareLocation) return;
@@ -271,16 +270,14 @@ class GeofenceService {
     final speedKmh = shareSpeed ? (_lastPosition!.speed * 3.6) : 0.0;
 
     try {
-      if (!FirebaseService().isFirebaseAvailable) return;
-      final firebase = FirebaseService();
-      await firebase.updateUserPosition(
-        userId,
-        _lastPosition!.latitude,
-        _lastPosition!.longitude,
+      await CoupleService().updateUbicacion(
+        lat: _lastPosition!.latitude,
+        lng: _lastPosition!.longitude,
         speed: speedKmh,
+        battery: LocalStorage().getInt('last_battery_level', defaultValue: -1),
       );
     } catch (e) {
-      FirebaseService.recordError(e);
+      debugPrint("[Geofence] Error updating location: $e");
     }
   }
 

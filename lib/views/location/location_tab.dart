@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:battery_plus/battery_plus.dart';
@@ -12,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/firebase_service.dart';
 import '../../services/geofence_service.dart';
 import '../../services/local_storage.dart';
+import '../../services/couple_service.dart';
 import '../../models/user_model.dart';
 import '../../models/place_model.dart';
 import '../../models/zone_model.dart';
@@ -154,20 +156,17 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
   }
 
   void _listenPartner() async {
-    final partnerId = await FirebaseService().getPartnerId();
-    if (partnerId == null) return;
-
-    _partnerSub = FirebaseService().streamUser(partnerId).listen((UserModel user) {
+    _partnerSub = CoupleService().streamPartnerUbicacion().listen((snap) {
       if (!mounted) return;
+      final data = snap.data() as Map<String, dynamic>?;
+      if (data == null) return;
       setState(() {
-        _partnerLat = user.latitude;
-        _partnerLng = user.longitude;
-        _partnerOnline = user.isOnline;
-        _partnerName = user.name.isNotEmpty ? user.name : (_partnerName);
-        _partnerScreen = user.currentScreen;
-        _partnerBattery = user.batteryLevel;
-        _partnerSpeed = user.speed;
-        _lastPartnerUpdate = user.lastLocationUpdate;
+        _partnerLat = data['lat'] as double?;
+        _partnerLng = data['lng'] as double?;
+        _partnerOnline = data['isOnline'] == true;
+        _partnerBattery = data['battery'] as int? ?? -1;
+        _partnerSpeed = (data['speed'] as num?)?.toDouble() ?? 0;
+        _lastPartnerUpdate = (data['timestamp'] as Timestamp?)?.toDate();
         if (_partnerLat != null && _partnerLng != null && _myLat != null && _myLng != null) {
           _distanceKm = GeofenceService().distanceTo(_partnerLat!, _partnerLng!);
         }
@@ -185,12 +184,8 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     try {
       final battery = Battery();
       final level = await battery.batteryLevel;
+      await LocalStorage().setInt('last_battery_level', level);
       if (mounted) setState(() => _myBattery = level);
-
-      final userId = LocalStorage().getUserId();
-      if (userId != null && _shareBattery) {
-        FirebaseService().updateBatteryLevel(userId, level);
-      }
     } catch (_) {}
   }
 
@@ -391,7 +386,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
 
     final mapUrl = isDark
         ? 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
-        : 'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
+        : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
     return FlutterMap(
       mapController: _mapController,

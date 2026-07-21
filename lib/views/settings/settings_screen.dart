@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../services/local_storage.dart';
 import '../../services/theme_provider.dart';
 import '../../services/audio_service.dart';
 import '../../services/ai_service.dart';
 import '../../services/local_ai_service.dart';
 import '../../services/firebase_service.dart';
-import '../../services/profile_service.dart';
-import '../../services/user_service.dart';
-import '../../models/user_model.dart';
-import 'package:geolocator/geolocator.dart';
+import '../../services/auth_service.dart';
 import '../../services/geofence_service.dart';
+import '../../models/user_model.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/entrance_animation.dart';
-import '../auth/add_partner_screen.dart';
+import '../auth/login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -164,69 +163,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _SectionHeader(title: "Mi Pareja", icon: Icons.favorite_rounded),
+                  _SectionHeader(title: "Nosotros", icon: Icons.favorite_rounded),
                   GlassCard(
                     child: Padding(
                       padding: const EdgeInsets.all(14),
-                      child: UserService().hasPartner
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                      child: Column(
+                        children: [
+                          Row(
                             children: [
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 24,
-                                    backgroundColor: primary.withValues(alpha: 0.2),
-                                    child: Icon(Icons.person_rounded, color: primary, size: 24),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('@${UserService().partnerUsername ?? ""}',
-                                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: theme.colorScheme.onSurface)),
-                                        Text(UserService().partnerName ?? 'Sin nombre',
-                                          style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: primary.withValues(alpha: 0.2),
+                                child: Icon(Icons.person_rounded, color: primary, size: 20),
                               ),
-                              const SizedBox(height: 16),
-                            ],
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.person_add_rounded, color: primary, size: 32),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text('Aún no has agregado a tu pareja',
-                                      style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.7))),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AddPartnerScreen()));
-                                  },
-                                  icon: const Icon(Icons.search_rounded, size: 18),
-                                  label: const Text('Buscar y agregar pareja'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: primary,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                  ),
-                                ),
+                              const SizedBox(width: 10),
+                              const Text('Diego', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                              const Spacer(),
+                              Text('♡', style: TextStyle(fontSize: 20, color: primary)),
+                              const Spacer(),
+                              const Text('Yosmari', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                              const SizedBox(width: 10),
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: primary.withValues(alpha: 0.2),
+                                child: Icon(Icons.person_rounded, color: primary, size: 20),
                               ),
                             ],
                           ),
+                          const SizedBox(height: 12),
+                          Text('Nuestra relación',
+                            style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                await AuthService().signOut();
+                                if (context.mounted) {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.logout_rounded, size: 18),
+                              label: const Text('Cerrar sesión'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: const BorderSide(color: Colors.red),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../models/user_model.dart';
 import '../../services/firebase_service.dart';
 import '../../services/local_storage.dart';
-import '../../services/storage_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/glass_card.dart';
 import '../letters/letters_tab.dart';
 import '../games/games_tab.dart';
@@ -98,85 +96,36 @@ class _ProfileTabState extends State<ProfileTab> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final userId = LocalStorage().getUserId() ?? 'local_user_id';
 
-    return StreamBuilder<UserModel>(
-      stream: FirebaseService().streamUser(userId),
-      builder: (context, snap) {
-        final user = snap.data ?? UserModel(
-          id: userId,
-          name: LocalStorage().getUserName() ?? 'Tu',
-          mood: 'Feliz',
-          moodReason: '',
-          emotionalWeather: 'Soleado',
-          themeName: 'default',
-          customPrimaryColor: '#FF69B4',
-          customSecondaryColor: '#FFC0CB',
-          lovePoints: 100,
-        );
-
-        final partnerName = LocalStorage().getPartnerName() ?? '';
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
-            children: [
-              const SizedBox(height: 8),
-              _ProfileHeader(name: user.name, partnerName: partnerName, cs: cs),
-              const SizedBox(height: 20),
-
-              // Streak card
-              Builder(
-                builder: (context) {
-                  final partnerUid = LocalStorage().getString('partner_uid');
-                  final isPaired = partnerUid != null && partnerUid.isNotEmpty;
-                  return GlassCard(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            isPaired ? Icons.local_fire_department_rounded : Icons.link_rounded,
-                            color: isPaired ? Colors.orange : cs.primary,
-                            size: 28,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              isPaired
-                                  ? 'Racha: $_streak días seguidos 🔥'
-                                  : 'Vincula tu cuenta en Ajustes para iniciar tu racha! 🧑‍🤝‍🧑',
-                              style: TextStyle(
-                                fontSize: isPaired ? 18 : 13,
-                                fontWeight: FontWeight.w600,
-                                color: cs.onSurface,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        children: [
+          const SizedBox(height: 8),
+          _ProfileHeader(cs: cs),
+          const SizedBox(height: 20),
+          GlassCard(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.local_fire_department_rounded, color: Colors.orange, size: 28),
+                  const SizedBox(width: 10),
+                  Text('Racha: $_streak días seguidos 🔥',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: cs.onSurface),
+                  ),
+                ],
               ),
-
-              const SizedBox(height: 20),
-
-              // Important dates
-              _buildImportantDates(cs),
-
-              const SizedBox(height: 24),
-
-              // Action cards grid
-              _buildActionGrid(cs),
-
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 20),
+          _buildImportantDates(cs),
+          const SizedBox(height: 24),
+          _buildActionGrid(cs),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 
@@ -543,25 +492,20 @@ class _ProfileTabState extends State<ProfileTab> {
   void _openPlanner() => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlannerTab()));
 }
 
-class _ProfileHeader extends StatefulWidget {
-  final String name;
-  final String partnerName;
+class _ProfileHeader extends StatelessWidget {
   final ColorScheme cs;
 
-  const _ProfileHeader({required this.name, required this.partnerName, required this.cs});
+  const _ProfileHeader({required this.cs});
 
-  @override
-  State<_ProfileHeader> createState() => _ProfileHeaderState();
-}
-
-class _ProfileHeaderState extends State<_ProfileHeader> {
   @override
   Widget build(BuildContext context) {
-    final customPhoto = LocalStorage().getString('custom_profile_photo');
-    final myPhotoUrl = customPhoto ?? FirebaseAuth.instance.currentUser?.photoURL;
+    final auth = AuthService();
+    final myName = auth.myName;
+    final partnerName = auth.partnerName;
+    final photoUrl = FirebaseAuth.instance.currentUser?.photoURL;
 
-    final myInitial = widget.name.isNotEmpty ? widget.name[0].toUpperCase() : '?';
-    final partnerInitial = widget.partnerName.isNotEmpty ? widget.partnerName[0].toUpperCase() : '?';
+    final myInitial = myName.isNotEmpty ? myName[0].toUpperCase() : '?';
+    final partnerInitial = partnerName.isNotEmpty ? partnerName[0].toUpperCase() : '?';
 
     return Column(
       children: [
@@ -578,7 +522,7 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                   height: 76,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: widget.cs.secondary.withValues(alpha: 0.2),
+                    color: cs.secondary.withValues(alpha: 0.2),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 2),
                     boxShadow: [
                       BoxShadow(
@@ -590,7 +534,7 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                   ),
                   child: ClipOval(
                     child: Center(
-                      child: Text(partnerInitial, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: widget.cs.secondary)),
+                      child: Text(partnerInitial, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: cs.secondary)),
                     ),
                   ),
                 ),
@@ -598,46 +542,29 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
               Positioned(
                 left: 10,
                 bottom: 5,
-                child: GestureDetector(
-                  onTap: () async {
-                    try {
-                      final result = await FilePicker.pickFiles(type: FileType.image);
-                      if (result == null || result.files.isEmpty) return;
-                      final filePath = result.files.first.path;
-                      if (filePath == null || filePath.isEmpty) return;
-                      final url = await StorageService().uploadPhoto(filePath);
-                      if (url != null) {
-                        await LocalStorage().setString('custom_profile_photo', url);
-                        if (mounted) setState(() {});
-                      }
-                    } catch (e) {
-                      debugPrint("Error picking profile photo: $e");
-                    }
-                  },
-                  child: Container(
-                    width: 86,
-                    height: 86,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: widget.cs.primary.withValues(alpha: 0.2),
-                      border: Border.all(color: Colors.white, width: 3),
-                      boxShadow: [
-                        BoxShadow(
-                          color: widget.cs.primary.withValues(alpha: 0.25),
-                          blurRadius: 15,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: ClipOval(
-                      child: myPhotoUrl != null && myPhotoUrl.isNotEmpty
-                          ? Image.network(myPhotoUrl, fit: BoxFit.cover, width: 86, height: 86, errorBuilder: (_, __, ___) => Center(
-                              child: Text(myInitial, style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: widget.cs.primary)),
-                            ))
-                          : Center(
-                              child: Text(myInitial, style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: widget.cs.primary)),
-                            ),
-                    ),
+                child: Container(
+                  width: 86,
+                  height: 86,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: cs.primary.withValues(alpha: 0.2),
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: cs.primary.withValues(alpha: 0.25),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: photoUrl != null && photoUrl.isNotEmpty
+                        ? Image.network(photoUrl, fit: BoxFit.cover, width: 86, height: 86, errorBuilder: (_, __, ___) => Center(
+                            child: Text(myInitial, style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: cs.primary)),
+                          ))
+                        : Center(
+                            child: Text(myInitial, style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: cs.primary)),
+                          ),
                   ),
                 ),
               ),
@@ -663,18 +590,21 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
           ),
         ),
         const SizedBox(height: 12),
-        Text(widget.name, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: widget.cs.onSurface)),
-        if (widget.partnerName.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.favorite_rounded, size: 14, color: widget.cs.primary),
-              const SizedBox(width: 4),
-              Text(widget.partnerName, style: TextStyle(fontSize: 14, color: widget.cs.onSurface.withValues(alpha: 0.7))),
-            ],
+        Center(
+          child: Text.rich(
+            TextSpan(
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: cs.onSurface),
+              children: [
+                TextSpan(text: myName),
+                WidgetSpan(child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Icon(Icons.favorite_rounded, size: 18, color: cs.primary),
+                )),
+                TextSpan(text: partnerName),
+              ],
+            ),
           ),
-        ],
+        ),
       ],
     );
   }

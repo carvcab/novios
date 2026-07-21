@@ -276,11 +276,10 @@ public struct SettingsView: View {
         guard let uid = AuthService.shared.currentUser?.id,
               let lat = locationService.lastLatitude,
               let lng = locationService.lastLongitude else { return }
-        let coupleId = defaults.string(forKey: "couple_id") ?? ""
-        guard !coupleId.isEmpty else { return }
+        let parejaId = CoupleService.parejaId
         let msgId = UUID().uuidString
         Task {
-            try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)/checkins/\(msgId)", fields: [
+            try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(parejaId)/checkins/\(msgId)", fields: [
                 "userId": uid,
                 "message": message,
                 "latitude": lat,
@@ -620,8 +619,8 @@ public struct SettingsView: View {
                 ])
 
                 // Save shared settings to couples document (syncs with partner)
-                if let coupleId = defaults.string(forKey: "couple_id"), !coupleId.isEmpty {
-                    try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)", fields: [
+                let coupleId = CoupleService.parejaId
+                try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)", fields: [
                         "anniversaryDate": anniversaryDate.flatMap { df.string(from: $0) } ?? "",
                         "metDate": metDate.flatMap { df.string(from: $0) } ?? "",
                         "datingDate": datingDate.flatMap { df.string(from: $0) } ?? "",
@@ -631,7 +630,6 @@ public struct SettingsView: View {
                         "isRedMode": theme.isRedMode,
                         "fontFamily": theme.fontFamily,
                     ])
-                }
             }
         }
 
@@ -687,8 +685,8 @@ public struct SettingsView: View {
     }
 
     private func loadCoupleSettings() async {
-        guard let coupleId = defaults.string(forKey: "couple_id"), !coupleId.isEmpty,
-              let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "parejas/\(coupleId)"),
+        let coupleId = CoupleService.parejaId
+        guard let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "parejas/\(coupleId)"),
               let fields = doc["fields"] as? [String: Any] else { return }
 
         let s = { (key: String) -> String? in (fields[key] as? [String: Any])?["stringValue"] as? String }
