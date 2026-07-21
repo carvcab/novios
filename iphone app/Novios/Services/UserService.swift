@@ -84,20 +84,9 @@ public class UserService: ObservableObject {
         }
         return result
     }
-                guard !uid.isEmpty, uid != myUid else { continue }
-                if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
-                   let userFields = userDoc["fields"] as? [String: Any] {
-                    var result = self.extractUserData(uid: uid, fields: userFields)
-                    result["_source"] = docId == clean ? "username_iter" : "email"
-                    return result
-                }
-                var result: [String: Any] = ["uid": uid, "username": docId, "displayName": docId]
-                result["_source"] = "username_iter_only"
-                return result
-            }
-        }
 
-        return nil
+    private func fstr(_ fields: [String: Any], _ key: String) -> String? {
+        (fields[key] as? [String: Any])?["stringValue"] as? String
     }
 
     // MARK: - Add Partner (matches Android exactly)
