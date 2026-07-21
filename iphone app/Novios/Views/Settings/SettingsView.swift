@@ -496,7 +496,7 @@ public struct SettingsView: View {
         deepseekKey = defaults.string(forKey: "deepseek_api_key") ?? ""
         shareLocation = defaults.bool(forKey: "share_location")
         shareHistory = defaults.bool(forKey: "privacy_share_history")
-        shareBattery = defaults.bool(forKey: "privacy_share_battery", defaultValue: true)
+        shareBattery = defaults.object(forKey: "privacy_share_battery") as? Bool ?? true
         shareSpeed = defaults.bool(forKey: "privacy_share_speed")
         anniversaryDate = dateFromDefaults("anniversary_date")
         metDate = dateFromDefaults("met_date")
