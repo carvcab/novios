@@ -149,145 +149,194 @@ public class FirebaseRESTService {
         return "https://firestore.googleapis.com/v1/projects/\(currentProjectID)/databases/(default)/documents/\(encoded)"
     }
 
-    public func firestoreGet(path: String) async throws -> [String: Any]? {
-        var headers: [String: String] = [:]
-        do {
-            headers = try await getAuthHeader()
-        } catch {
-            if let newToken = try? await refreshIdToken() {
-                let _ = newToken
-                headers = try await getAuthHeader()
-            } else {
-                throw FirebaseError.notAuthenticated
-            }
-        }
-        let url = URL(string: firestoreURL(path))!
+    private func apiKeyURL(_ path: String) -> String {
+        return "\(firestoreURL(path))?key=\(currentAPIKey)"
+    }
+
+    private func requestWithAPIKey(path: String, method: String = "GET", body: Data? = nil) async -> Data? {
+        guard let url = URL(string: apiKeyURL(path)) else { return nil }
         var req = URLRequest(url: url)
-        req.allHTTPHeaderFields = headers
+        req.httpMethod = method
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = body
+        guard let (data, resp) = try? await URLSession.shared.data(for: req),
+              let httpResp = resp as? HTTPURLResponse, httpResp.statusCode == 200 || httpResp.statusCode == 201 else { return nil }
+        return data
+    }
+
+    // Try auth first, then API key fallback
+    private func performWithFallback<T>(authCall: () async throws -> T, apiKeyCall: () async -> T?) async throws -> T {
         do {
-            let data = try await performRequest(req)
-            return try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            return try await authCall()
+        } catch FirebaseError.notAuthenticated {
+            if let result = await apiKeyCall() { return result }
+            throw FirebaseError.notAuthenticated
         } catch FirebaseError.serverError(let msg) where msg.contains("401") || msg.contains("403") || msg.contains("unauthenticated") || msg.contains("UNAUTHENTICATED") {
             if let newToken = try? await refreshIdToken() {
                 let _ = newToken
-                headers = try await getAuthHeader()
+                do {
+                    return try await authCall()
+                } catch {
+                    if let result = await apiKeyCall() { return result }
+                    throw error
+                }
+            }
+            if let result = await apiKeyCall() { return result }
+            throw FirebaseError.notAuthenticated
+        }
+    }
+
+    public func firestoreGet(path: String) async throws -> [String: Any]? {
+        return try await performWithFallback(
+            authCall: {
+                var headers = try await getAuthHeader()
+                let url = URL(string: firestoreURL(path))!
+                var req = URLRequest(url: url)
                 req.allHTTPHeaderFields = headers
                 let data = try await performRequest(req)
                 return try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            },
+            apiKeyCall: {
+                guard let data = await requestWithAPIKey(path: path),
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+                return json
             }
-            throw FirebaseError.notAuthenticated
-        }
+        )
     }
 
     public func firestoreSet(path: String, fields: [String: Any]) async throws {
-        var headers: [String: String] = [:]
-        do {
-            headers = try await getAuthHeader()
-        } catch {
-            if let newToken = try? await refreshIdToken() {
-                let _ = newToken
-                headers = try await getAuthHeader()
-            } else {
-                throw FirebaseError.notAuthenticated
-            }
-        }
-        let url = URL(string: firestoreURL(path))!
-        var req = URLRequest(url: url)
-        req.httpMethod = "PATCH"
-        req.allHTTPHeaderFields = headers
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["fields": encodeFields(fields)])
-        do {
-            _ = try await performRequest(req)
-        } catch FirebaseError.serverError(let msg) where msg.contains("401") || msg.contains("403") || msg.contains("unauthenticated") || msg.contains("UNAUTHENTICATED") {
-            if let newToken = try? await refreshIdToken() {
-                let _ = newToken
-                headers = try await getAuthHeader()
+        try await performWithFallback(
+            authCall: {
+                var headers = try await getAuthHeader()
+                let url = URL(string: firestoreURL(path))!
+                var req = URLRequest(url: url)
+                req.httpMethod = "PATCH"
                 req.allHTTPHeaderFields = headers
+                req.httpBody = try JSONSerialization.data(withJSONObject: ["fields": encodeFields(fields)])
                 _ = try await performRequest(req)
-            } else {
-                throw FirebaseError.notAuthenticated
+            },
+            apiKeyCall: {
+                let body = try? JSONSerialization.data(withJSONObject: ["fields": encodeFields(fields)])
+                guard let data = await requestWithAPIKey(path: path, method: "PATCH", body: body) else { return nil }
+                return () as Void?
             }
-        }
+        )
     }
 
     public func firestoreCreate(path: String, fields: [String: Any]) async throws -> String? {
-        let headers = try await getAuthHeader()
-        let url = URL(string: firestoreURL(path))!
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.allHTTPHeaderFields = headers
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["fields": encodeFields(fields)])
-        let data = try await performRequest(req)
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        return json?["name"] as? String
+        return try await performWithFallback(
+            authCall: {
+                var headers = try await getAuthHeader()
+                let url = URL(string: firestoreURL(path))!
+                var req = URLRequest(url: url)
+                req.httpMethod = "POST"
+                req.allHTTPHeaderFields = headers
+                req.httpBody = try JSONSerialization.data(withJSONObject: ["fields": encodeFields(fields)])
+                let data = try await performRequest(req)
+                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                return json?["name"] as? String
+            },
+            apiKeyCall: {
+                let body = try? JSONSerialization.data(withJSONObject: ["fields": encodeFields(fields)])
+                guard let data = await requestWithAPIKey(path: path, method: "POST", body: body),
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+                return json?["name"] as? String
+            }
+        )
     }
 
     public func firestoreQuery(path: String, field: String, op: String, value: Any) async throws -> [[String: Any]] {
-        var headers: [String: String] = [:]
-        do {
-            headers = try await getAuthHeader()
-        } catch {
-            if let newToken = try? await refreshIdToken() {
-                let _ = newToken
-                headers = try await getAuthHeader()
-            } else {
-                throw FirebaseError.notAuthenticated
-            }
-        }
-        let url = URL(string: "https://firestore.googleapis.com/v1/projects/\(currentProjectID)/databases/(default)/documents:runQuery")!
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.allHTTPHeaderFields = headers
-        let filter: [String: Any] = [
-            "fieldFilter": [
-                "field": ["fieldPath": field],
-                "op": op,
-                "value": firestoreValue(value)
-            ]
-        ]
-        let structuredQuery: [String: Any] = [
-            "structuredQuery": [
-                "from": [["collectionId": path]],
-                "where": filter,
-                "limit": 10
-            ]
-        ]
-        req.httpBody = try JSONSerialization.data(withJSONObject: structuredQuery)
-        do {
-            let data = try await performRequest(req)
-            let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] ?? []
-            return json.compactMap { $0["document"] as? [String: Any] }
-        } catch FirebaseError.serverError(let msg) where msg.contains("401") || msg.contains("403") || msg.contains("unauthenticated") || msg.contains("UNAUTHENTICATED") {
-            if let newToken = try? await refreshIdToken() {
-                let _ = newToken
-                headers = try await getAuthHeader()
+        return try await performWithFallback(
+            authCall: {
+                var headers = try await getAuthHeader()
+                let url = URL(string: "https://firestore.googleapis.com/v1/projects/\(currentProjectID)/databases/(default)/documents:runQuery")!
+                var req = URLRequest(url: url)
+                req.httpMethod = "POST"
                 req.allHTTPHeaderFields = headers
+                let filter: [String: Any] = [
+                    "fieldFilter": [
+                        "field": ["fieldPath": field],
+                        "op": op,
+                        "value": firestoreValue(value)
+                    ]
+                ]
+                let structuredQuery: [String: Any] = [
+                    "structuredQuery": [
+                        "from": [["collectionId": path]],
+                        "where": filter,
+                        "limit": 10
+                    ]
+                ]
+                req.httpBody = try JSONSerialization.data(withJSONObject: structuredQuery)
                 let data = try await performRequest(req)
                 let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] ?? []
                 return json.compactMap { $0["document"] as? [String: Any] }
+            },
+            apiKeyCall: {
+                let filter: [String: Any] = [
+                    "fieldFilter": [
+                        "field": ["fieldPath": field],
+                        "op": op,
+                        "value": self.firestoreValue(value)
+                    ]
+                ]
+                let structuredQuery: [String: Any] = [
+                    "structuredQuery": [
+                        "from": [["collectionId": path]],
+                        "where": filter,
+                        "limit": 10
+                    ]
+                ]
+                guard let body = try? JSONSerialization.data(withJSONObject: structuredQuery),
+                      let url = URL(string: "https://firestore.googleapis.com/v1/projects/\(currentProjectID)/databases/(default)/documents:runQuery?key=\(currentAPIKey)") else { return nil }
+                var req = URLRequest(url: url)
+                req.httpMethod = "POST"
+                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                req.httpBody = body
+                guard let (data, resp) = try? await URLSession.shared.data(for: req),
+                      let httpResp = resp as? HTTPURLResponse, httpResp.statusCode == 200,
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return nil }
+                return json.compactMap { $0["document"] as? [String: Any] }
             }
-            throw FirebaseError.notAuthenticated
-        }
+        )
     }
 
     public func firestoreList(path: String) async throws -> [[String: Any]] {
-        let headers = try await getAuthHeader()
-        let url = URL(string: firestoreURL(path))!
-        var req = URLRequest(url: url)
-        req.allHTTPHeaderFields = headers
-        let data = try await performRequest(req)
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let documents = json["documents"] as? [[String: Any]] else { return [] }
-        return documents
+        return try await performWithFallback(
+            authCall: {
+                var headers = try await getAuthHeader()
+                let url = URL(string: firestoreURL(path))!
+                var req = URLRequest(url: url)
+                req.allHTTPHeaderFields = headers
+                let data = try await performRequest(req)
+                guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let documents = json["documents"] as? [[String: Any]] else { return [] }
+                return documents
+            },
+            apiKeyCall: {
+                guard let data = await requestWithAPIKey(path: path),
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let documents = json["documents"] as? [[String: Any]] else { return nil }
+                return documents
+            }
+        )
     }
 
     public func firestoreDelete(path: String) async throws {
-        let headers = try await getAuthHeader()
-        let url = URL(string: firestoreURL(path))!
-        var req = URLRequest(url: url)
-        req.httpMethod = "DELETE"
-        req.allHTTPHeaderFields = headers
-        _ = try await performRequest(req)
+        try await performWithFallback(
+            authCall: {
+                var headers = try await getAuthHeader()
+                let url = URL(string: firestoreURL(path))!
+                var req = URLRequest(url: url)
+                req.httpMethod = "DELETE"
+                req.allHTTPHeaderFields = headers
+                _ = try await performRequest(req)
+            },
+            apiKeyCall: {
+                guard let data = await requestWithAPIKey(path: path, method: "DELETE") else { return nil }
+                return () as Void?
+            }
+        )
     }
 
     // Polling-based real-time updates (Firestore REST doesn't support streaming without gRPC)

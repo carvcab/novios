@@ -19,52 +19,21 @@ public class UserService: ObservableObject {
 
     // MARK: - Search User (matches Android exactly)
 
-    private var rest: FirebaseRESTService { FirebaseRESTService.shared }
-
     public func searchUser(query: String) async -> [String: Any]? {
         let clean = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !clean.isEmpty else { return nil }
+        let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id
 
-        let myUid = rest.localId ?? AuthService.shared.currentUser?.id
-
-        // Try to fetch usernames/{clean} directly with API key fallback
-        var unDoc: [String: Any]?
-        let path = "usernames/\(clean)"
-
-        // Method A: Authenticated request
-        unDoc = try? await rest.firestoreGet(path: path)
-
-        // Method B: If auth failed, try with API key directly (security rules allow public read)
-        if unDoc == nil {
-            let urlStr = "https://firestore.googleapis.com/v1/projects/\(rest.currentProjectID)/databases/(default)/documents/\(path)?key=\(rest.currentAPIKey)"
-            if let url = URL(string: urlStr),
-               let (data, _) = try? await URLSession.shared.data(from: url),
-               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                unDoc = json
-            }
-        }
-
-        if let unDoc = unDoc,
+        if let unDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(clean)"),
            let uf = unDoc["fields"] as? [String: Any],
            let uid = (uf["uid"] as? [String: Any])?["stringValue"] as? String,
            uid != myUid {
-            // Try to get user doc with auth first, then API key
-            var userDoc = try? await rest.firestoreGet(path: "users/\(uid)")
-            if userDoc == nil {
-                let urlStr = "https://firestore.googleapis.com/v1/projects/\(rest.currentProjectID)/databases/(default)/documents/users/\(uid)?key=\(rest.currentAPIKey)"
-                if let url = URL(string: urlStr),
-                   let (data, _) = try? await URLSession.shared.data(from: url),
-                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    userDoc = json
-                }
-            }
-            if let userDoc = userDoc,
+            if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                let userFields = userDoc["fields"] as? [String: Any] {
                 return extractUserData(uid: uid, fields: userFields)
             }
             return ["uid": uid, "username": clean, "displayName": clean, "name": clean]
         }
-
         return nil
     }
 
