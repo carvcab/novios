@@ -73,7 +73,7 @@ public struct MessagesView: View {
                     }
                 }
             }
-            .onAppear(perform: loadDates)
+            .onAppear { Task { await loadDates() } }
             .sheet(isPresented: $showSettings) {
                 SettingsView()
             }
@@ -268,23 +268,43 @@ public struct MessagesView: View {
         }
     }
 
-    private func loadDates() {
+    private func loadDates() async {
         let defaults = UserDefaults.standard
-        let dateKeys: [(String, String)] = [
-            ("anniversary_date", "Aniversario"),
-            ("met_date", "Conocimos"),
-            ("dating_date", "Primera cita"),
-            ("wedding_date", "Boda"),
-            ("invitation_date", "Invitación"),
+        let dateKeys: [(String, String, String)] = [
+            ("anniversary_date", "anniversaryDate", "Aniversario"),
+            ("met_date", "metDate", "Conocimos"),
+            ("dating_date", "datingDate", "Primera cita"),
+            ("wedding_date", "weddingDate", "Boda"),
+            ("invitation_date", "invitationDate", "Invitación"),
         ]
+        let formatter = ISO8601DateFormatter()
         let today = Calendar.current.startOfDay(for: Date())
+
+        // Try couples doc for partner-synced dates
+        var dates: [String: Date] = [:]
+        if let coupleId = defaults.string(forKey: "couple_id"), !coupleId.isEmpty,
+           let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(coupleId)"),
+           let fields = doc["fields"] as? [String: Any] {
+            for (_, fsKey, _) in dateKeys {
+                if let val = (fields[fsKey] as? [String: Any])?["stringValue"] as? String,
+                   let d = formatter.date(from: val) {
+                    dates[fsKey] = d
+                }
+            }
+        }
+
         var nearestLabel: String?
         var nearestDays: Int?
 
-        for (key, label) in dateKeys {
-            guard let iso = defaults.string(forKey: key), !iso.isEmpty,
-                  let date = ISO8601DateFormatter().date(from: iso) else { continue }
-            let day = Calendar.current.startOfDay(for: date)
+        for (udKey, fsKey, label) in dateKeys {
+            let date: Date?
+            if let iso = defaults.string(forKey: udKey), !iso.isEmpty {
+                date = formatter.date(from: iso)
+            } else {
+                date = dates[fsKey]
+            }
+            guard let d = date else { continue }
+            let day = Calendar.current.startOfDay(for: d)
             let diff = Calendar.current.dateComponents([.day], from: today, to: day).day ?? 0
             if diff >= 0 {
                 if nearestDays == nil || diff < nearestDays! {
@@ -293,8 +313,10 @@ public struct MessagesView: View {
                 }
             }
         }
-        nextDateLabel = nearestLabel
-        nextDateDays = nearestDays
+        await MainActor.run {
+            nextDateLabel = nearestLabel
+            nextDateDays = nearestDays
+        }
     }
 
     private func sendText() {

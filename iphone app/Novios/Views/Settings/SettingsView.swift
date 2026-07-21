@@ -495,20 +495,20 @@ public struct SettingsView: View {
         let b = { (key: String) -> Bool? in (fields[key] as? [String: Any])?["booleanValue"] as? Bool }
         let formatter = ISO8601DateFormatter()
 
-        if anniversaryDate == nil, let val = s("anniversaryDate"), let d = formatter.date(from: val) {
-            anniversaryDate = d
+        if let val = s("anniversaryDate"), let d = formatter.date(from: val) {
+            anniversaryDate = d; dateToDefaults("anniversary_date", date: d)
         }
-        if metDate == nil, let val = s("metDate"), let d = formatter.date(from: val) {
-            metDate = d
+        if let val = s("metDate"), let d = formatter.date(from: val) {
+            metDate = d; dateToDefaults("met_date", date: d)
         }
-        if datingDate == nil, let val = s("datingDate"), let d = formatter.date(from: val) {
-            datingDate = d
+        if let val = s("datingDate"), let d = formatter.date(from: val) {
+            datingDate = d; dateToDefaults("dating_date", date: d)
         }
-        if weddingDate == nil, let val = s("weddingDate"), let d = formatter.date(from: val) {
-            weddingDate = d
+        if let val = s("weddingDate"), let d = formatter.date(from: val) {
+            weddingDate = d; dateToDefaults("wedding_date", date: d)
         }
-        if invitationDate == nil, let val = s("invitationDate"), let d = formatter.date(from: val) {
-            invitationDate = d
+        if let val = s("invitationDate"), let d = formatter.date(from: val) {
+            invitationDate = d; dateToDefaults("invitation_date", date: d)
         }
 
         if let val = b("isDarkMode") { theme.isDarkMode = val; defaults.set(val, forKey: "is_dark_mode") }
