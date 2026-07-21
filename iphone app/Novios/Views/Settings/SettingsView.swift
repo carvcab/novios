@@ -32,6 +32,7 @@ public struct SettingsView: View {
 
     private let fonts = ["Inter", "Playfair Display", "Outfit", "Pacifico", "Poppins"]
     private let defaults = UserDefaults.standard
+    private let df = ISO8601DateFormatter()
 
     public init() {}
 
@@ -65,6 +66,7 @@ public struct SettingsView: View {
                 loadSettings()
                 userService.loadPartnerFromDefaults()
                 Task { await userService.fetchPartnerFromFirestore() }
+                Task { await loadSettingsFromFirestore() }
             }
             .sheet(isPresented: $showingAddPartner) {
                 AddPartnerView()
@@ -438,6 +440,7 @@ public struct SettingsView: View {
     }
 
     private func saveSettings() {
+        // Local save
         defaults.set(theme.isDarkMode, forKey: "is_dark_mode")
         defaults.set(theme.isRedMode, forKey: "is_red_mode")
         defaults.set(theme.fontFamily, forKey: "font_family")
@@ -448,6 +451,7 @@ public struct SettingsView: View {
         defaults.set(deepseekKey, forKey: "deepseek_api_key")
         defaults.set(shareLocation, forKey: "share_location")
         defaults.set(aiMode, forKey: "ai_mode")
+        defaults.set(modelDownloaded, forKey: "model_downloaded")
         dateToDefaults("anniversary_date", date: anniversaryDate)
         dateToDefaults("met_date", date: metDate)
         dateToDefaults("dating_date", date: datingDate)
@@ -456,24 +460,34 @@ public struct SettingsView: View {
 
         if let uid = AuthService.shared.currentUser?.id {
             Task {
+                // Save ALL settings to user document (syncs across devices)
                 try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [
                     "isDarkMode": theme.isDarkMode,
                     "isRedMode": theme.isRedMode,
                     "fontFamily": theme.fontFamily,
-                    "anniversaryDate": anniversaryDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
-                    "metDate": metDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
-                    "datingDate": datingDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
-                    "weddingDate": weddingDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
-                    "invitationDate": invitationDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
+                    "securityEnabled": securityEnabled,
+                    "pinCode": pinCode,
+                    "securityQuestion": securityQuestion,
+                    "securityAnswer": securityAnswer,
+                    "shareLocation": shareLocation,
+                    "aiMode": aiMode,
+                    "deepseekApiKey": deepseekKey,
+                    "modelDownloaded": modelDownloaded,
+                    "anniversaryDate": anniversaryDate.flatMap { df.string(from: $0) } ?? "",
+                    "metDate": metDate.flatMap { df.string(from: $0) } ?? "",
+                    "datingDate": datingDate.flatMap { df.string(from: $0) } ?? "",
+                    "weddingDate": weddingDate.flatMap { df.string(from: $0) } ?? "",
+                    "invitationDate": invitationDate.flatMap { df.string(from: $0) } ?? "",
                 ])
 
+                // Save shared settings to couples document (syncs with partner)
                 if let coupleId = defaults.string(forKey: "couple_id"), !coupleId.isEmpty {
                     try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(coupleId)", fields: [
-                        "anniversaryDate": anniversaryDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
-                        "metDate": metDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
-                        "datingDate": datingDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
-                        "weddingDate": weddingDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
-                        "invitationDate": invitationDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
+                        "anniversaryDate": anniversaryDate.flatMap { df.string(from: $0) } ?? "",
+                        "metDate": metDate.flatMap { df.string(from: $0) } ?? "",
+                        "datingDate": datingDate.flatMap { df.string(from: $0) } ?? "",
+                        "weddingDate": weddingDate.flatMap { df.string(from: $0) } ?? "",
+                        "invitationDate": invitationDate.flatMap { df.string(from: $0) } ?? "",
                         "isDarkMode": theme.isDarkMode,
                         "isRedMode": theme.isRedMode,
                         "fontFamily": theme.fontFamily,
@@ -484,6 +498,50 @@ public struct SettingsView: View {
 
         let impact = UIImpactFeedbackGenerator(style: .medium)
         impact.impactOccurred()
+    }
+
+    private func loadSettingsFromFirestore() async {
+        guard let uid = AuthService.shared.currentUser?.id else { return }
+        guard let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
+              let fields = doc["fields"] as? [String: Any] else { return }
+
+        let s = { (key: String) -> String? in (fields[key] as? [String: Any])?["stringValue"] as? String }
+        let b = { (key: String) -> Bool? in (fields[key] as? [String: Any])?["booleanValue"] as? Bool }
+
+        await MainActor.run {
+            if let val = b("isDarkMode") { theme.isDarkMode = val; defaults.set(val, forKey: "is_dark_mode") }
+            if let val = b("isRedMode") { theme.isRedMode = val; isRedMode = val; defaults.set(val, forKey: "is_red_mode") }
+            if let val = s("fontFamily"), !val.isEmpty { theme.fontFamily = val; defaults.set(val, forKey: "font_family") }
+            if let val = b("securityEnabled") { securityEnabled = val; defaults.set(val, forKey: "security_enabled") }
+            if let val = s("pinCode") { pinCode = val; defaults.set(val, forKey: "pin_code") }
+            if let val = s("securityQuestion") { securityQuestion = val; defaults.set(val, forKey: "security_question") }
+            if let val = s("securityAnswer") { securityAnswer = val; defaults.set(val, forKey: "security_answer") }
+            if let val = b("shareLocation") { shareLocation = val; defaults.set(val, forKey: "share_location") }
+            if let val = s("deepseekApiKey") { deepseekKey = val; defaults.set(val, forKey: "deepseek_api_key") }
+            if let val = s("aiMode") ?? s("ai_mode") { aiMode = Int(val) ?? 0; defaults.set(aiMode, forKey: "ai_mode") }
+            if let val = b("modelDownloaded") { modelDownloaded = val; defaults.set(val, forKey: "model_downloaded") }
+
+            let dateFields: [(String, String)] = [
+                ("anniversaryDate", "anniversary_date"),
+                ("metDate", "met_date"),
+                ("datingDate", "dating_date"),
+                ("weddingDate", "wedding_date"),
+                ("invitationDate", "invitation_date"),
+            ]
+            for (firestoreKey, defaultsKey) in dateFields {
+                if let val = s(firestoreKey), let d = df.date(from: val) ?? DateFormatter.yyyyMMdd.date(from: val) {
+                    switch defaultsKey {
+                    case "anniversary_date": anniversaryDate = d
+                    case "met_date": metDate = d
+                    case "dating_date": datingDate = d
+                    case "wedding_date": weddingDate = d
+                    case "invitation_date": invitationDate = d
+                    default: break
+                    }
+                    defaults.set(val, forKey: defaultsKey)
+                }
+            }
+        }
     }
 
     private func loadCoupleSettings() async {
