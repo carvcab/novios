@@ -39,7 +39,7 @@ public class UserService: ObservableObject {
             }
         }
 
-        // 2. Search by Username
+        // 2. Search by Username (direct usernames/{username} doc)
         if let usernameDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(clean)"),
            let unFields = usernameDoc["fields"] as? [String: Any],
            let uid = (unFields["uid"] as? [String: Any])?["stringValue"] as? String,
@@ -55,42 +55,29 @@ public class UserService: ObservableObject {
             return result
         }
 
-        // 3. Search by Email (iterate usernames collection)
-        if clean.contains("@") {
-            if let allDocs = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames"),
-               let docs = allDocs["documents"] as? [[String: Any]] {
-                for doc in docs {
-                    guard let f = doc["fields"] as? [String: Any] else { continue }
-                    let emailVal = ((f["email"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-                    guard emailVal == clean else { continue }
-                    let uid = (f["uid"] as? [String: Any])?["stringValue"] as? String ?? ""
-                    guard !uid.isEmpty, uid != myUid else { continue }
-                    if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
-                       let userFields = userDoc["fields"] as? [String: Any] {
-                        var result = extractUserData(uid: uid, fields: userFields)
-                        result["_source"] = "email"
-                        return result
-                    }
-                }
+        // 3. Structured query: users WHERE username == clean (matches Android SDK approach)
+        if let docs = try? await FirebaseRESTService.shared.firestoreQuery(path: "users", field: "username", op: "EQUAL", value: clean),
+           let first = docs.first,
+           let name = first["name"] as? String,
+           let fields = first["fields"] as? [String: Any] {
+            let uid = name.split(separator: "/").last.map(String.init) ?? ""
+            if !uid.isEmpty, uid != myUid {
+                var result = extractUserData(uid: uid, fields: fields)
+                result["_source"] = "username_query"
+                return result
             }
         }
 
-        // 4. Fallback: iterate all users
-        if let usersList = try? await FirebaseRESTService.shared.firestoreGet(path: "users"),
-           let docs = usersList["documents"] as? [[String: Any]] {
-            for doc in docs {
-                guard let f = doc["fields"] as? [String: Any],
-                      let name = doc["name"] as? String else { continue }
+        // 4. Structured query: users WHERE email == clean (matches Android exactly)
+        if clean.contains("@") {
+            if let docs = try? await FirebaseRESTService.shared.firestoreQuery(path: "users", field: "email", op: "EQUAL", value: clean),
+               let first = docs.first,
+               let name = first["name"] as? String,
+               let fields = first["fields"] as? [String: Any] {
                 let uid = name.split(separator: "/").last.map(String.init) ?? ""
-                guard uid != myUid else { continue }
-                let username = ((f["username"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-                let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String
-                    ?? (f["name"] as? [String: Any])?["stringValue"] as? String ?? ""
-                let email = ((f["email"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-
-                if username == clean || displayName.lowercased() == clean || email == clean {
-                    var result = extractUserData(uid: uid, fields: f)
-                    result["_source"] = "fallback"
+                if !uid.isEmpty, uid != myUid {
+                    var result = extractUserData(uid: uid, fields: fields)
+                    result["_source"] = "email"
                     return result
                 }
             }

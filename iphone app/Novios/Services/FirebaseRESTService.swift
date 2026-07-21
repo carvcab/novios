@@ -223,7 +223,17 @@ public class FirebaseRESTService {
     }
 
     public func firestoreQuery(path: String, field: String, op: String, value: Any) async throws -> [[String: Any]] {
-        let headers = try await getAuthHeader()
+        var headers: [String: String] = [:]
+        do {
+            headers = try await getAuthHeader()
+        } catch {
+            if let newToken = try? await refreshIdToken() {
+                let _ = newToken
+                headers = try await getAuthHeader()
+            } else {
+                throw FirebaseError.notAuthenticated
+            }
+        }
         let url = URL(string: "https://firestore.googleapis.com/v1/projects/\(currentProjectID)/databases/(default)/documents:runQuery")!
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -243,9 +253,21 @@ public class FirebaseRESTService {
             ]
         ]
         req.httpBody = try JSONSerialization.data(withJSONObject: structuredQuery)
-        let data = try await performRequest(req)
-        let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] ?? []
-        return json.compactMap { $0["document"] as? [String: Any] }
+        do {
+            let data = try await performRequest(req)
+            let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] ?? []
+            return json.compactMap { $0["document"] as? [String: Any] }
+        } catch FirebaseError.serverError(let msg) where msg.contains("401") || msg.contains("403") || msg.contains("unauthenticated") || msg.contains("UNAUTHENTICATED") {
+            if let newToken = try? await refreshIdToken() {
+                let _ = newToken
+                headers = try await getAuthHeader()
+                req.allHTTPHeaderFields = headers
+                let data = try await performRequest(req)
+                let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] ?? []
+                return json.compactMap { $0["document"] as? [String: Any] }
+            }
+            throw FirebaseError.notAuthenticated
+        }
     }
 
     public func firestoreList(path: String) async throws -> [[String: Any]] {

@@ -204,6 +204,17 @@ public class AuthService: ObservableObject {
             defaults.set(username.isEmpty ? displayName.lowercased() : username, forKey: "profile_username")
             if !displayName.isEmpty { defaults.set(displayName, forKey: "auth_user_name") }
             await MainActor.run { self.hasProfile = true }
+            // Ensure usernames/{username} document exists (Android always creates it)
+            let finalUsername = username.isEmpty ? displayName.lowercased() : username
+            if !finalUsername.isEmpty, let uid = FirebaseRESTService.shared.localId {
+                Task {
+                    if (try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(finalUsername)")) == nil {
+                        try? await FirebaseRESTService.shared.firestoreSet(path: "usernames/\(finalUsername)", fields: [
+                            "uid": uid, "email": currentUser?.email ?? ""
+                        ])
+                    }
+                }
+            }
         }
         if !partnerUid.isEmpty {
             defaults.set(partnerUid, forKey: "partner_uid")
