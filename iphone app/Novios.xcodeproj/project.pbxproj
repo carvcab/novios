@@ -29,6 +29,7 @@
 		9A0004E2C00000000000004E /* StatusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004362C0000000000000436 /* StatusService.swift */; };
 
 		C7D0452E86ED57769C9C771B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D4F7B3D3DCF5B29A3B30953 /* SettingsView.swift */; };
+		9A005012C000000000000051 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A005002C000000000000050 /* ProfileView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -57,6 +58,7 @@
 		9A004392C0000000000000439 /* GoogleService-Info (1).plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info (1).plist"; sourceTree = "<group>"; };
 
 		0D4F7B3D3DCF5B29A3B30953 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/SettingsView.swift; sourceTree = "<group>"; };
+		9A005002C000000000000050 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Profile/ProfileView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,6 +107,8 @@
 				9A004392C0000000000000439 /* GoogleService-Info (1).plist */,
 
 				0D4F7B3D3DCF5B29A3B30953 /* SettingsView.swift */,
+
+				9A005002C000000000000050 /* ProfileView.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -187,6 +191,7 @@
 				9A0004D2C00000000000004D /* FirebaseRESTService.swift in Sources */,
 				9A0004E2C00000000000004E /* StatusService.swift in Sources */,
 					C7D0452E86ED57769C9C771B /* SettingsView.swift in Sources */,
+				9A005012C000000000000051 /* ProfileView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
