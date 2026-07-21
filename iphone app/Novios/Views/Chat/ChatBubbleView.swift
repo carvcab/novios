@@ -193,11 +193,17 @@ public struct ChatBubbleView: View {
                   let fields = doc["fields"] as? [String: Any],
                   let b64 = (fields["data"] as? [String: Any])?["stringValue"] as? String,
                   let data = Data(base64Encoded: b64) else { return }
-            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("audio_play.m4a")
+            try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            try? AVAudioSession.sharedInstance().setActive(true)
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("audio_\(message.id).m4a")
             try? data.write(to: tempURL)
             if let player = try? AVAudioPlayer(contentsOf: tempURL) {
-                audioPlayer = player; player.play()
+                audioPlayer = player
+                player.numberOfLoops = 0
+                player.play()
                 await MainActor.run { isPlaying = true }
+                while player.isPlaying { try? await Task.sleep(nanoseconds: 100_000_000) }
+                await MainActor.run { isPlaying = false }
             }
         }
     }

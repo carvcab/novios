@@ -223,18 +223,39 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     public func sendVoiceNote(audioData: Data) {
         let msgId = UUID().uuidString
         sentIds.insert(msgId)
+        let compressed = Self.compressAudio(audioData)
 
         Task {
             try? await FirebaseRESTService.shared.firestoreSet(path: "pairs/\(coupleId)/audio/\(msgId)",
-                fields: ["data": audioData.base64EncodedString(), "timestamp": ISO8601DateFormatter().string(from: Date())])
+                fields: ["data": compressed.base64EncodedString(),
+                         "mimeType": "audio/m4a",
+                         "timestamp": ISO8601DateFormatter().string(from: Date())])
+            let msg = MessageModel(id: msgId, senderId: myUid, text: "Nota de voz", timestamp: Date(),
+                type: .voice, mediaUrl: "firestore://pairs/\(coupleId)/audio/\(msgId)")
+            await MainActor.run {
+                messages.append(msg)
+                didSendMessage.send()
+            }
+            sendToFirestore(msg: msg)
         }
+    }
 
-        let msg = MessageModel(id: msgId, senderId: myUid, text: "Nota de voz", timestamp: Date(),
-            type: .voice, mediaUrl: "firestore://pairs/\(coupleId)/audio/\(msgId)")
-        messages.append(msg)
-        didSendMessage.send()
-
-        sendToFirestore(msg: msg)
+    private static func compressAudio(_ data: Data) -> Data {
+        if data.count <= 750_000 { return data }
+        let tmp = FileManager.default.temporaryDirectory
+        let srcURL = tmp.appendingPathComponent("voice_src_\(UUID().uuidString).m4a")
+        let dstURL = tmp.appendingPathComponent("voice_dst_\(UUID().uuidString).m4a")
+        try? data.write(to: srcURL)
+        defer { try? FileManager.default.removeItem(at: srcURL); try? FileManager.default.removeItem(at: dstURL) }
+        let asset = AVAsset(url: srcURL)
+        guard let session = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetMediumQuality) else { return data }
+        session.outputFileType = .m4a
+        session.outputURL = dstURL
+        let semaphore = DispatchSemaphore(value: 0)
+        session.exportAsynchronously { semaphore.signal() }
+        _ = semaphore.wait(timeout: .now() + 10)
+        guard session.status == .completed, let compressed = try? Data(contentsOf: dstURL) else { return data }
+        return compressed.count < data.count ? compressed : data
     }
 
     public func markAsRead(messageId: String) {
@@ -269,7 +290,16 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     public func sendTouchAction() { sendMessage(text: "✨") }
 
     public func startRecording() {
-        guard AVAudioSession.sharedInstance().recordPermission == .granted else { return }
+        switch AVAudioSession.sharedInstance().recordPermission {
+        case .denied: return
+        case .undetermined:
+            AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                if granted { DispatchQueue.main.async { self.startRecording() } }
+            }
+            return
+        case .granted: break
+        @unknown default: return
+        }
         do {
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playAndRecord, mode: .default)
