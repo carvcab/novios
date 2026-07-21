@@ -16,26 +16,21 @@ public struct ChatBubbleView: View {
     private let reactions = ["❤️", "😘", "😂", "😮", "😢", "🔥", "💖", "👍", "👎"]
 
     public var body: some View {
-        VStack(spacing: 2) {
-            HStack(alignment: .bottom, spacing: 8) {
-                if isFromMe { Spacer(minLength: 50) }
-                if !isFromMe { partnerAvatar }
+        HStack(alignment: .bottom, spacing: 6) {
+            if isFromMe { Spacer(minLength: 55) }
+            if !isFromMe { partnerAvatar }
 
-                messageContent
-                    .padding(.horizontal, 14).padding(.vertical, 10)
-                    .background {
-                        if isFromMe { ThemeManager.shared.neonGlowGradient.opacity(0.92) }
-                        else { Color(.systemGray5) }
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .overlay(bubbleBorder)
-                    .shadow(color: bubbleShadowColor, radius: 8, y: 4)
-                    .frame(maxWidth: UIScreen.main.bounds.width * 0.7, alignment: isFromMe ? .trailing : .leading)
-                    .modifier(BubbleAppearModifier(isAppeared: $isAppeared, isFromMe: isFromMe))
+            messageContent
+                .padding(.horizontal, 13).padding(.vertical, 9)
+                .background(bubbleBackground)
+                .clipShape(bubbleShape)
+                .overlay(bubbleBorder)
+                .shadow(color: shadowColor, radius: 4, y: 2)
+                .frame(maxWidth: UIScreen.main.bounds.width * 0.72, alignment: isFromMe ? .trailing : .leading)
+                .modifier(BubbleAppearModifier(isAppeared: $isAppeared, isFromMe: isFromMe))
 
-                if !isFromMe { Spacer(minLength: 50) }
-                if isFromMe { Spacer(minLength: 40) }
-            }
+            if !isFromMe { Spacer(minLength: 55) }
+            if isFromMe { Spacer(minLength: 40) }
         }
         .padding(.vertical, 2)
         .contextMenu {
@@ -47,6 +42,26 @@ public struct ChatBubbleView: View {
         }
         .onAppear { loadMediaIfNeeded() }
         .task(id: message.id) { loadMediaIfNeeded() }
+    }
+
+    private var bubbleBackground: some View {
+        if isFromMe {
+            Color(red: 0.91, green: 0.27, blue: 0.49)
+        } else {
+            Color(.systemGray6)
+        }
+    }
+
+    private var bubbleShape: some View {
+        if isFromMe {
+            UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 18, topTrailing: 18, bottomTrailing: 4), style: .continuous)
+        } else {
+            UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 4, topTrailing: 18, bottomTrailing: 18), style: .continuous)
+        }
+    }
+
+    private var shadowColor: Color {
+        isFromMe ? Color(red: 0.91, green: 0.27, blue: 0.49).opacity(0.25) : .black.opacity(0.04)
     }
 
     private var partnerAvatar: some View {
@@ -69,7 +84,7 @@ public struct ChatBubbleView: View {
             } else {
                 Text(message.text ?? "")
                     .font(.system(size: 15, weight: isSpecialType ? .semibold : .regular))
-                    .foregroundColor(isFromMe ? .white : .primary).lineSpacing(4)
+                    .foregroundColor(isFromMe ? .white : Color(.darkGray)).lineSpacing(4)
             }
             if let reactions = message.reactions, !reactions.isEmpty {
                 reactionRow
@@ -134,18 +149,18 @@ public struct ChatBubbleView: View {
         HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .fill(isPlaying ? ThemeManager.shared.primaryPink.opacity(0.2) : Color.white.opacity(0.15))
+                    .fill(isPlaying ? (isFromMe ? Color.white.opacity(0.25) : ThemeManager.shared.primaryPink.opacity(0.15)) : Color.white.opacity(0.15))
                     .frame(width: 34, height: 34)
                 Image(systemName: isPlaying ? "stop.fill" : "play.fill")
                     .font(.system(size: 13))
-                    .foregroundColor(isFromMe ? .white : ThemeManager.shared.primaryPink)
+                    .foregroundColor(isFromMe ? .white : (isPlaying ? ThemeManager.shared.primaryPink : .gray))
             }
             .onTapGesture { togglePlay() }
             VStack(alignment: .leading, spacing: 1) {
-                Text("Nota de voz").font(.system(size: 12, weight: .semibold)).foregroundColor(isFromMe ? .white : .primary)
+                Text("Nota de voz").font(.system(size: 12, weight: .semibold)).foregroundColor(isFromMe ? .white : Color(.darkGray))
                 if isPlaying {
                     Text("Reproduciendo...").font(.system(size: 10))
-                        .foregroundColor(isFromMe ? .white.opacity(0.6) : .primary.opacity(0.4))
+                        .foregroundColor(isFromMe ? .white.opacity(0.7) : .gray)
                 }
             }
         }
@@ -171,12 +186,13 @@ public struct ChatBubbleView: View {
     }
 
     private var bubbleBorder: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .stroke(isFromMe ? Color.white.opacity(0.12) : Color.white.opacity(0.6), lineWidth: 0.6)
-    }
-
-    private var bubbleShadowColor: Color {
-        isFromMe ? ThemeManager.shared.primaryPink.opacity(0.12) : .black.opacity(0.04)
+        if isFromMe {
+            UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 18, topTrailing: 18, bottomTrailing: 4), style: .continuous)
+                .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+        } else {
+            UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 4, topTrailing: 18, bottomTrailing: 18), style: .continuous)
+                .stroke(Color(.systemGray4), lineWidth: 0.5)
+        }
     }
 
     private func togglePlay() {

@@ -138,15 +138,7 @@ public struct MessagesView: View {
                         .tint(ThemeManager.shared.primaryPink)
                         .onSubmit { sendText() }
 
-                    Button {
-                        chatService.isShowingDisappearing.toggle()
-                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    } label: {
-                        Image(systemName: "flame")
-                            .font(.system(size: 16))
-                            .foregroundColor(chatService.isShowingDisappearing ? .orange : .secondary.opacity(0.5))
-                            .opacity(chatService.isShowingDisappearing ? 1 : 0.5)
-                    }
+                    flameButton
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(.ultraThinMaterial.opacity(0.7))
@@ -172,6 +164,44 @@ public struct MessagesView: View {
         }
         .background(.ultraThinMaterial.opacity(0.6))
         .overlay(alignment: .top) { Divider().opacity(0.3) }
+    }
+
+    private var flameButton: some View {
+        Button {
+            chatService.isShowingDisappearing.toggle()
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        } label: {
+            VStack(spacing: 2) {
+                ZStack {
+                    if chatService.isShowingDisappearing {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(.orange)
+                            .shadow(color: .orange.opacity(0.6), radius: 4)
+                    }
+                    Image(systemName: chatService.isShowingDisappearing ? "flame.fill" : "flame")
+                        .font(.system(size: 16))
+                        .foregroundColor(chatService.isShowingDisappearing ? .orange : .secondary.opacity(0.35))
+                }
+                Text("EFÍMERO")
+                    .font(.system(size: 6, weight: .bold))
+                    .foregroundColor(chatService.isShowingDisappearing ? .orange : .secondary.opacity(0.25))
+                    .tracking(0.8)
+            }
+        }
+        .overlay(alignment: .top) {
+            if chatService.isShowingDisappearing {
+                Text("Los mensajes se autodestruyen")
+                    .font(.system(size: 8, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Color.orange)
+                    .clipShape(Capsule())
+                    .offset(y: -24)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.3), value: chatService.isShowingDisappearing)
     }
 
     private var recordingIndicator: some View {
