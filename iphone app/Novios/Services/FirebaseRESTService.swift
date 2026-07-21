@@ -238,9 +238,10 @@ public class FirebaseRESTService {
             },
             apiKeyCall: {
                 let body = try? JSONSerialization.data(withJSONObject: ["fields": encodeFields(fields)])
-                guard let data = await requestWithAPIKey(path: path, method: "POST", body: body),
-                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
-                return json?["name"] as? String
+                guard let data = await requestWithAPIKey(path: path, method: "POST", body: body) else { return nil }
+                let obj = try? JSONSerialization.jsonObject(with: data)
+                guard let dict = obj as? [String: Any], let name = dict["name"] as? String else { return nil }
+                return name
             }
         )
     }
