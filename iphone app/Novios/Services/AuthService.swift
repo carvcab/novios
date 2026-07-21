@@ -120,7 +120,7 @@ public class AuthService: ObservableObject {
             if !displayName.isEmpty { defaults.set(displayName, forKey: "auth_user_name") }
         }
 
-        let dateFields = ["anniversaryDate": "anniversary_date", "metDate": "met_date", "datingDate": "dating_date", "weddingDate": "wedding_date"]
+        let dateFields = ["anniversaryDate": "anniversary_date", "metDate": "met_date", "datingDate": "dating_date", "weddingDate": "wedding_date", "invitationDate": "invitation_date"]
         for (firestoreKey, defaultsKey) in dateFields {
             if let val = extract(firestoreKey), !val.isEmpty {
                 defaults.set(val, forKey: defaultsKey)
@@ -144,7 +144,6 @@ public class AuthService: ObservableObject {
     // MARK: - Session Restore
 
     private func loadSession() {
-        isRestoringSession = true
         FirebaseRESTService.shared.loadSavedConfig()
 
         guard defaults.bool(forKey: "auth_logged_in"),
@@ -160,32 +159,20 @@ public class AuthService: ObservableObject {
         isLoggedIn = true
 
         checkProfileAndPartner()
-        let restoreDeadline = DispatchTime.now() + 8
+        isRestoringSession = false
 
         Task {
-            var synced = false
             if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                let fields = doc["fields"] as? [String: Any] {
                 await syncFromFirestore(fields)
-                synced = true
             } else if let newToken = try? await FirebaseRESTService.shared.refreshIdToken() {
                 _ = newToken
                 if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                    let fields = doc["fields"] as? [String: Any] {
                     await syncFromFirestore(fields)
-                    synced = true
                 }
             }
-            await MainActor.run {
-                if synced { self.checkProfileAndPartner() }
-                self.isRestoringSession = false
-            }
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: restoreDeadline) {
-            if self.isRestoringSession {
-                self.isRestoringSession = false
-            }
+            await MainActor.run { self.checkProfileAndPartner() }
         }
     }
 
@@ -204,6 +191,11 @@ public class AuthService: ObservableObject {
             defaults.set(username.isEmpty ? displayName.lowercased() : username, forKey: "profile_username")
             if !displayName.isEmpty { defaults.set(displayName, forKey: "auth_user_name") }
             await MainActor.run { self.hasProfile = true }
+            let dateKeys = ["anniversaryDate", "metDate", "datingDate", "weddingDate", "invitationDate"]
+            let defaultsKeys = ["anniversary_date", "met_date", "dating_date", "wedding_date", "invitation_date"]
+            for (fk, dk) in zip(dateKeys, defaultsKeys) {
+                if let val = extract(fk), !val.isEmpty { defaults.set(val, forKey: dk) }
+            }
             // Ensure usernames/{username} document exists (Android always creates it)
             let finalUsername = username.isEmpty ? displayName.lowercased() : username
             if !finalUsername.isEmpty, let uid = FirebaseRESTService.shared.localId {

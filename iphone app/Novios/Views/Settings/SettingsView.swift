@@ -4,7 +4,6 @@ public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var userService = UserService.shared
     @State private var showingAddPartner = false
-    @State private var showUnlinkConfirm = false
 
     @State private var isDarkMode = false
     @State private var selectedFont = "Inter"
@@ -13,6 +12,7 @@ public struct SettingsView: View {
     @State private var metDate: Date?
     @State private var datingDate: Date?
     @State private var weddingDate: Date?
+    @State private var invitationDate: Date?
 
     @State private var shareLocation = false
     @State private var securityEnabled = false
@@ -41,7 +41,6 @@ public struct SettingsView: View {
                     securitySection
                     aiSection
                     saveButton
-                    accountSection
                 }
                 .padding(16)
             }
@@ -59,12 +58,6 @@ public struct SettingsView: View {
             .onAppear(perform: loadSettings)
             .sheet(isPresented: $showingAddPartner) {
                 AddPartnerView()
-            }
-            .alert("Desvincular pareja", isPresented: $showUnlinkConfirm) {
-                Button("Cancelar", role: .cancel) {}
-                Button("Desvincular", role: .destructive) { unlinkPartner() }
-            } message: {
-                Text("¿Seguro que quieres desvincular a tu pareja? Podrás vincular a otra persona después.")
             }
         }
     }
@@ -86,13 +79,6 @@ public struct SettingsView: View {
                                 .font(.system(size: 13)).foregroundColor(.secondary)
                         }
                         Spacer()
-                    }
-                    Divider().padding(.vertical, 4)
-                    Button {
-                        showUnlinkConfirm = true
-                    } label: {
-                        Label("Desvincular pareja", systemImage: "link.badge.plus")
-                            .font(.system(size: 14)).foregroundColor(.red)
                     }
                 } else {
                     HStack(spacing: 12) {
@@ -157,6 +143,9 @@ public struct SettingsView: View {
                 Divider().padding(.vertical, 6)
                 dateRow(icon: "person.fill", label: "Boda",
                     subtitle: "Cuando se casaron", date: $weddingDate, color: Color(red: 0.4, green: 0.73, blue: 0.42))
+                Divider().padding(.vertical, 6)
+                dateRow(icon: "envelope.badge.fill", label: "Invitación en Vivo",
+                    subtitle: "Invitación a la boda", date: $invitationDate, color: Color(red: 0.85, green: 0.4, blue: 0.65))
             }
         }
     }
@@ -327,44 +316,6 @@ public struct SettingsView: View {
         }
     }
 
-    // MARK: - Account
-
-    private var accountSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionHeader(icon: "person.fill", title: "Cuenta")
-            GlassCard {
-                Button {
-                    AuthService.shared.signOut()
-                    dismiss()
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                            .font(.system(size: 18)).foregroundColor(.red)
-                            .padding(10).background(Color.red.opacity(0.1)).cornerRadius(12)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Cerrar sesión").font(.system(size: 14, weight: .semibold)).foregroundColor(.primary)
-                            Text("Volver a la pantalla de inicio de sesión")
-                                .font(.system(size: 11)).foregroundColor(.secondary)
-                        }
-                        Spacer()
-                    }
-                }
-                Divider().padding(.vertical, 4)
-                HStack(spacing: 12) {
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 18)).foregroundColor(ThemeManager.shared.primaryPink)
-                        .padding(10).background(ThemeManager.shared.primaryPink.opacity(0.1)).cornerRadius(12)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Mi usuario").font(.system(size: 14, weight: .semibold))
-                        Text("@\(AuthService.shared.currentUser?.username ?? "sin usuario")")
-                            .font(.system(size: 12, weight: .bold)).foregroundColor(ThemeManager.shared.primaryPink)
-                    }
-                    Spacer()
-                }
-            }
-        }
-    }
-
     // MARK: - Helpers
 
     private func sectionHeader(icon: String, title: String) -> some View {
@@ -423,6 +374,7 @@ public struct SettingsView: View {
         metDate = dateFromDefaults("met_date")
         datingDate = dateFromDefaults("dating_date")
         weddingDate = dateFromDefaults("wedding_date")
+        invitationDate = dateFromDefaults("invitation_date")
         let savedMode = defaults.integer(forKey: "ai_mode")
         aiMode = savedMode
         modelDownloaded = defaults.bool(forKey: "model_downloaded")
@@ -442,6 +394,7 @@ public struct SettingsView: View {
         dateToDefaults("met_date", date: metDate)
         dateToDefaults("dating_date", date: datingDate)
         dateToDefaults("wedding_date", date: weddingDate)
+        dateToDefaults("invitation_date", date: invitationDate)
 
         if let uid = AuthService.shared.currentUser?.id {
             Task {
@@ -452,25 +405,13 @@ public struct SettingsView: View {
                     "metDate": metDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
                     "datingDate": datingDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
                     "weddingDate": weddingDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
+                    "invitationDate": invitationDate.flatMap { ISO8601DateFormatter().string(from: $0) } ?? "",
                 ])
             }
         }
 
         let impact = UIImpactFeedbackGenerator(style: .medium)
         impact.impactOccurred()
-    }
-
-    private func unlinkPartner() {
-        if let uid = AuthService.shared.currentUser?.id {
-            Task {
-                try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [
-                    "partnerUid": "", "partnerName": "", "coupleId": ""
-                ])
-            }
-        }
-        defaults.removeObject(forKey: "partner_uid")
-        defaults.removeObject(forKey: "partner_name")
-        userService.partnerUser = nil
     }
 
     private func dateFromDefaults(_ key: String) -> Date? {
