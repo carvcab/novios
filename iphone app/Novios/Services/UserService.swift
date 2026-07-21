@@ -38,7 +38,7 @@ public class UserService: ObservableObject {
         if unDoc == nil {
             let urlStr = "https://firestore.googleapis.com/v1/projects/\(rest.currentProjectID)/databases/(default)/documents/\(path)?key=\(rest.currentAPIKey)"
             if let url = URL(string: urlStr),
-               let data = try? await URLSession.shared.data(from: url).0,
+               let (data, _) = try? await URLSession.shared.data(from: url),
                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                 unDoc = json
             }
@@ -53,7 +53,7 @@ public class UserService: ObservableObject {
             if userDoc == nil {
                 let urlStr = "https://firestore.googleapis.com/v1/projects/\(rest.currentProjectID)/databases/(default)/documents/users/\(uid)?key=\(rest.currentAPIKey)"
                 if let url = URL(string: urlStr),
-                   let data = try? await URLSession.shared.data(from: url).0,
+                   let (data, _) = try? await URLSession.shared.data(from: url),
                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                     userDoc = json
                 }
