@@ -175,6 +175,25 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         }
     }
 
+    public func addReaction(to messageId: String, emoji: String) {
+        guard let idx = messages.firstIndex(where: { $0.id == messageId }) else { return }
+        var reactions = messages[idx].reactions ?? [:]
+        if reactions[myUid] == emoji { reactions.removeValue(forKey: myUid) }
+        else { reactions[myUid] = emoji }
+        messages[idx].reactions = reactions.isEmpty ? nil : reactions
+        Task {
+            try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)/chat/mensajes/\(messageId)", fields: ["reactions": reactions])
+        }
+    }
+
+    public func markAsRead(messageId: String) {
+        guard let idx = messages.firstIndex(where: { $0.id == messageId }) else { return }
+        messages[idx].readTimestamp = Date()
+        Task {
+            try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)/chat/mensajes/\(messageId)", fields: ["readTimestamp": ISO8601DateFormatter().string(from: Date())])
+        }
+    }
+
     public func sendImage(imageData: Data) {
         let msgId = UUID().uuidString
         sentIds.insert(msgId)
@@ -219,8 +238,32 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     public func clearReply() { replyToMessage = nil }
     public func sendKissAction() { sendMessage(text: "💋") }
     public func sendHugAction() { sendMessage(text: "🤗") }
-    public func startRecording() { /* audio recording setup */ }
-    public func stopRecording() -> Data? { return nil }
+    public func startRecording() {
+        switch AVAudioSession.sharedInstance().recordPermission {
+        case .denied: return
+        case .undetermined: AVAudioSession.sharedInstance().requestRecordPermission { granted in if granted { DispatchQueue.main.async { self.startRecording() } } }; return
+        case .granted: break
+        @unknown default: return
+        }
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playAndRecord, mode: .default)
+            try session.setActive(true)
+            let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("voice_\(Date().timeIntervalSince1970).m4a")
+            audioRecorder = try AVAudioRecorder(url: url, settings: [AVFormatIDKey: Int(kAudioFormatMPEG4AAC), AVSampleRateKey: 44100, AVNumberOfChannelsKey: 1, AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue])
+            audioRecorder?.delegate = self
+            audioRecorder?.record()
+            isRecording = true
+            recordingDuration = 0
+            recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in self?.recordingDuration = self?.audioRecorder?.currentTime ?? 0 }
+        } catch { print("[Chat] record error: \(error)") }
+    }
+    public func stopRecording() -> Data? {
+        recordingTimer?.invalidate(); audioRecorder?.stop(); isRecording = false
+        guard let url = audioRecorder?.url, let data = try? Data(contentsOf: url) else { return nil }
+        sendVoiceNote(audioData: data)
+        return data
+    }
 
     deinit { stopPolling() }
 }
