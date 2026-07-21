@@ -183,18 +183,41 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     public func sendImage(imageData: Data) {
         let msgId = UUID().uuidString
         sentIds.insert(msgId)
+        let compressed = Self.compressImage(imageData)
 
         Task {
             try? await FirebaseRESTService.shared.firestoreSet(path: "pairs/\(coupleId)/photos/\(msgId)",
-                fields: ["data": imageData.base64EncodedString(), "timestamp": ISO8601DateFormatter().string(from: Date())])
+                fields: ["data": compressed.base64EncodedString(),
+                         "mimeType": "image/jpeg",
+                         "timestamp": ISO8601DateFormatter().string(from: Date())])
+            let msg = MessageModel(id: msgId, senderId: myUid, text: "Foto", timestamp: Date(),
+                type: .image, mediaUrl: "firestore://pairs/\(coupleId)/photos/\(msgId)")
+            await MainActor.run {
+                messages.append(msg)
+                didSendMessage.send()
+            }
+            sendToFirestore(msg: msg)
         }
+    }
 
-        let msg = MessageModel(id: msgId, senderId: myUid, text: "Foto", timestamp: Date(),
-            type: .image, mediaUrl: "firestore://pairs/\(coupleId)/photos/\(msgId)")
-        messages.append(msg)
-        didSendMessage.send()
-
-        sendToFirestore(msg: msg)
+    private static func compressImage(_ data: Data) -> Data {
+        guard let image = UIImage(data: data) else { return data }
+        if data.count < 500_000 { return data }
+        let maxSize: CGFloat = 1024
+        var newSize = image.size
+        if newSize.width > maxSize || newSize.height > maxSize {
+            if newSize.width > newSize.height {
+                newSize = CGSize(width: maxSize, height: maxSize * newSize.height / newSize.width)
+            } else {
+                newSize = CGSize(width: maxSize * newSize.width / newSize.height, height: maxSize)
+            }
+        }
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        image.draw(in: CGRect(origin: .zero, size: newSize))
+        let resized = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        guard let resizedImg = resized else { return data }
+        return resizedImg.jpegData(compressionQuality: 0.6) ?? data
     }
 
     public func sendVoiceNote(audioData: Data) {

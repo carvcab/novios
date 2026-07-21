@@ -202,7 +202,7 @@ public struct ChatBubbleView: View {
         }
     }
 
-    private func loadMediaIfNeeded() {
+    private func loadMediaIfNeeded(retrying: Bool = false) {
         guard let url = message.mediaUrl, url.hasPrefix("firestore://") else { return }
         guard message.type == .image, loadedImage == nil, !isLoadingMedia else { return }
         isLoadingMedia = true
@@ -214,7 +214,13 @@ public struct ChatBubbleView: View {
                let data = Data(base64Encoded: b64),
                let image = UIImage(data: data) {
                 await MainActor.run { loadedImage = image; isLoadingMedia = false }
-            } else { await MainActor.run { isLoadingMedia = false } }
+            } else if !retrying {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                await MainActor.run { isLoadingMedia = false }
+                loadMediaIfNeeded(retrying: true)
+            } else {
+                await MainActor.run { isLoadingMedia = false }
+            }
         }
     }
 }
