@@ -35,6 +35,16 @@
 		9A005062C000000000000056 /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A005072C000000000000057 /* AIService.swift */; };
 		9A005082C000000000000058 /* LocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A005092C000000000000059 /* LocationView.swift */; };
 		9A0050A2C00000000000005A /* CoupleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050B2C00000000000005B /* CoupleService.swift */; };
+		9A0050C2C00000000000005C /* LetterModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050D2C00000000000005D /* LetterModel.swift */; };
+		9A0050E2C00000000000005E /* MemoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050F2C00000000000005F /* MemoryModel.swift */; };
+		9A0050G2C000000000000060 /* EventModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050H2C000000000000061 /* EventModel.swift */; };
+		9A0050I2C000000000000062 /* GoalModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050J2C000000000000063 /* GoalModel.swift */; };
+		9A0050K2C000000000000064 /* JournalModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050L2C000000000000065 /* JournalModel.swift */; };
+		9A0050M2C000000000000066 /* SongModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050N2C000000000000067 /* SongModel.swift */; };
+		9A0050O2C000000000000068 /* DateIdeaModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050P2C000000000000069 /* DateIdeaModel.swift */; };
+		9A0050Q2C00000000000006A /* TodoItemModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050R2C00000000000006B /* TodoItemModel.swift */; };
+		9A0050S2C00000000000006C /* CapsuleModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050T2C00000000000006D /* CapsuleModel.swift */; };
+		9A0050U2C00000000000006E /* CoupleModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C00000000000006F /* CoupleModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -69,6 +79,16 @@
 		9A005072C000000000000057 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AIService.swift; sourceTree = "<group>"; };
 		9A005092C000000000000059 /* LocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Location/LocationView.swift; sourceTree = "<group>"; };
 		9A0050B2C00000000000005B /* CoupleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/CoupleService.swift; sourceTree = "<group>"; };
+		9A0050D2C00000000000005D /* LetterModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/LetterModel.swift; sourceTree = "<group>"; };
+		9A0050F2C00000000000005F /* MemoryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/MemoryModel.swift; sourceTree = "<group>"; };
+		9A0050H2C000000000000061 /* EventModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/EventModel.swift; sourceTree = "<group>"; };
+		9A0050J2C000000000000063 /* GoalModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/GoalModel.swift; sourceTree = "<group>"; };
+		9A0050L2C000000000000065 /* JournalModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/JournalModel.swift; sourceTree = "<group>"; };
+		9A0050N2C000000000000067 /* SongModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/SongModel.swift; sourceTree = "<group>"; };
+		9A0050P2C000000000000069 /* DateIdeaModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/DateIdeaModel.swift; sourceTree = "<group>"; };
+		9A0050R2C00000000000006B /* TodoItemModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/TodoItemModel.swift; sourceTree = "<group>"; };
+		9A0050T2C00000000000006D /* CapsuleModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/CapsuleModel.swift; sourceTree = "<group>"; };
+		9A0050V2C00000000000006F /* CoupleModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/CoupleModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -129,6 +149,17 @@
 				9A005092C000000000000059 /* LocationView.swift */,
 
 				9A0050B2C00000000000005B /* CoupleService.swift */,
+
+				9A0050D2C00000000000005D /* LetterModel.swift */,
+				9A0050F2C00000000000005F /* MemoryModel.swift */,
+				9A0050H2C000000000000061 /* EventModel.swift */,
+				9A0050J2C000000000000063 /* GoalModel.swift */,
+				9A0050L2C000000000000065 /* JournalModel.swift */,
+				9A0050N2C000000000000067 /* SongModel.swift */,
+				9A0050P2C000000000000069 /* DateIdeaModel.swift */,
+				9A0050R2C00000000000006B /* TodoItemModel.swift */,
+				9A0050T2C00000000000006D /* CapsuleModel.swift */,
+				9A0050V2C00000000000006F /* CoupleModel.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -216,6 +247,16 @@
 				9A005062C000000000000056 /* AIService.swift in Sources */,
 				9A005082C000000000000058 /* LocationView.swift in Sources */,
 				9A0050A2C00000000000005A /* CoupleService.swift in Sources */,
+				9A0050C2C00000000000005C /* LetterModel.swift in Sources */,
+				9A0050E2C00000000000005E /* MemoryModel.swift in Sources */,
+				9A0050G2C000000000000060 /* EventModel.swift in Sources */,
+				9A0050I2C000000000000062 /* GoalModel.swift in Sources */,
+				9A0050K2C000000000000064 /* JournalModel.swift in Sources */,
+				9A0050M2C000000000000066 /* SongModel.swift in Sources */,
+				9A0050O2C000000000000068 /* DateIdeaModel.swift in Sources */,
+				9A0050Q2C00000000000006A /* TodoItemModel.swift in Sources */,
+				9A0050S2C00000000000006C /* CapsuleModel.swift in Sources */,
+				9A0050U2C00000000000006E /* CoupleModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
