@@ -233,8 +233,8 @@ public class FirebaseRESTService {
                 req.allHTTPHeaderFields = headers
                 req.httpBody = try JSONSerialization.data(withJSONObject: ["fields": encodeFields(fields)])
                 let data = try await performRequest(req)
-                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-                return json?["name"] as? String
+                guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+                return json["name"] as? String
             },
             apiKeyCall: {
                 let body = try? JSONSerialization.data(withJSONObject: ["fields": encodeFields(fields)])
