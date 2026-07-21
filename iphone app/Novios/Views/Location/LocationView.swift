@@ -328,7 +328,11 @@ public struct LocationView: View {
                 for doc in docs {
                     guard let f = doc["fields"] as? [String: Any] else { continue }
                     let s = { (k: String) -> String? in (f[k] as? [String: Any])?["stringValue"] as? String }
-                    let d = { (k: String) -> Double? in (f[k] as? [String: Any])?["doubleValue"] as? Double ?? (f[k] as? [String: Any])?["stringValue"].flatMap { Double($0) } }
+                    let d = { (k: String) -> Double? in
+                        if let dv = (f[k] as? [String: Any])?["doubleValue"] as? Double { return dv }
+                        if let sv = (f[k] as? [String: Any])?["stringValue"] as? String { return Double(sv) }
+                        return nil
+                    }
                     if let msg = s("message") {
                         items.append(["message": msg, "latitude": d("latitude") ?? 0, "longitude": d("longitude") ?? 0, "timestamp": s("timestamp") ?? ""])
                     }
