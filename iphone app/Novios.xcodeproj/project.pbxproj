@@ -30,6 +30,7 @@
 
 		C7D0452E86ED57769C9C771B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D4F7B3D3DCF5B29A3B30953 /* SettingsView.swift */; };
 		9A005012C000000000000051 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A005002C000000000000050 /* ProfileView.swift */; };
+		9A005032C000000000000053 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A005022C000000000000052 /* LocationService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -59,6 +60,7 @@
 
 		0D4F7B3D3DCF5B29A3B30953 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/SettingsView.swift; sourceTree = "<group>"; };
 		9A005002C000000000000050 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Profile/ProfileView.swift; sourceTree = "<group>"; };
+		9A005022C000000000000052 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LocationService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,6 +111,8 @@
 				0D4F7B3D3DCF5B29A3B30953 /* SettingsView.swift */,
 
 				9A005002C000000000000050 /* ProfileView.swift */,
+
+				9A005022C000000000000052 /* LocationService.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -192,6 +196,7 @@
 				9A0004E2C00000000000004E /* StatusService.swift in Sources */,
 					C7D0452E86ED57769C9C771B /* SettingsView.swift in Sources */,
 				9A005012C000000000000051 /* ProfileView.swift in Sources */,
+				9A005032C000000000000053 /* LocationService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

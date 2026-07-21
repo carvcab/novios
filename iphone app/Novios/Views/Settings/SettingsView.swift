@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -19,7 +20,11 @@ public struct SettingsView: View {
     @State private var weddingDate: Date?
     @State private var invitationDate: Date?
 
+    @ObservedObject private var locationService = LocationService.shared
     @State private var shareLocation = false
+    @State private var shareHistory = false
+    @State private var shareBattery = true
+    @State private var shareSpeed = false
     @State private var securityEnabled = false
     @State private var pinCode = ""
     @State private var securityQuestion = ""
@@ -29,6 +34,7 @@ public struct SettingsView: View {
     @State private var deepseekKey = ""
     @State private var isDownloadingModel = false
     @State private var modelDownloaded = false
+    @State private var showLocationPermissionAlert = false
 
     private let fonts = ["Inter", "Playfair Display", "Outfit", "Pacifico", "Poppins"]
     private let defaults = UserDefaults.standard
@@ -67,6 +73,16 @@ public struct SettingsView: View {
                 userService.loadPartnerFromDefaults()
                 Task { await userService.fetchPartnerFromFirestore() }
                 Task { await loadSettingsFromFirestore() }
+            }
+            .alert("Permisos de ubicación", isPresented: $showLocationPermissionAlert) {
+                Button("Cancelar", role: .cancel) {}
+                Button("Abrir Ajustes") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            } message: {
+                Text("Para compartir tu ubicación en tiempo real con tu pareja, Novios necesita acceso a la ubicación. Si ya denegaste el permiso, actívalo en los ajustes del teléfono seleccionando 'Permitir siempre'.")
             }
             .sheet(isPresented: $showingAddPartner) {
                 AddPartnerView()
@@ -191,19 +207,43 @@ public struct SettingsView: View {
         VStack(alignment: .leading, spacing: 8) {
             sectionHeader(icon: "location.fill", title: "Ubicación en Vivo")
             GlassCard {
-                Toggle(isOn: $shareLocation) {
+                Toggle(isOn: Binding(get: { locationService.isSharing }, set: { newVal in
+                    if newVal {
+                        let status = CLLocationManager().authorizationStatus
+                        if status == .denied || status == .restricted {
+                            showLocationPermissionAlert = true
+                            return
+                        }
+                        if status == .notDetermined {
+                            locationService.requestPermission()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                                if CLLocationManager().authorizationStatus == .authorizedAlways ||
+                                    CLLocationManager().authorizationStatus == .authorizedWhenInUse {
+                                    locationService.startSharing()
+                                    shareLocation = true
+                                }
+                            }
+                            return
+                        }
+                        locationService.startSharing()
+                        shareLocation = true
+                    } else {
+                        locationService.stopSharing()
+                        shareLocation = false
+                    }
+                })) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Compartir ubicación en tiempo real").appFont(size: 14, weight: .medium)
-                        Text("Tu pareja podrá ver donde estás").appFont(size: 11).foregroundColor(theme.textSecondary)
+                        Text("Tu pareja podrá ver donde estás como en Life360").appFont(size: 11).foregroundColor(theme.textSecondary)
                     }
                 }
                 .tint(theme.primary)
                 Divider().padding(.vertical, 4)
                 HStack(spacing: 6) {
-                    Image(systemName: shareLocation ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(shareLocation ? theme.pastelMint : .gray).appFont(size: 14)
-                    Text(shareLocation ? "Compartiendo ubicación" : "Ubicación no compartida")
-                        .appFont(size: 12, weight: .medium).foregroundColor(shareLocation ? theme.pastelMint : .gray)
+                    Image(systemName: locationService.isSharing ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(locationService.isSharing ? theme.pastelMint : .gray).appFont(size: 14)
+                    Text(locationService.isSharing ? "Compartiendo ubicación" : "Ubicación no compartida")
+                        .appFont(size: 12, weight: .medium).foregroundColor(locationService.isSharing ? theme.pastelMint : .gray)
                 }
                 HStack(spacing: 6) {
                     Image(systemName: "bell.fill").foregroundColor(theme.pastelBlue).appFont(size: 12)
@@ -213,11 +253,19 @@ public struct SettingsView: View {
                     Image(systemName: "clock.fill").foregroundColor(theme.pastelPeach).appFont(size: 12)
                     Text("Historial de ubicación 24h").appFont(size: 12).foregroundColor(theme.textSecondary)
                 }.padding(.top, 2)
-                if shareLocation {
+                if locationService.isSharing {
                     Divider().padding(.vertical, 6)
+                    if let dist = locationService.distanceToPartner {
+                        HStack(spacing: 6) {
+                            Image(systemName: "ruler").foregroundColor(theme.primary).appFont(size: 12)
+                            Text("A \(String(format: "%.1f", dist)) km de tu pareja")
+                                .appFont(size: 12, weight: .medium).foregroundColor(theme.primary)
+                        }.padding(.bottom, 6)
+                    }
                     HStack(spacing: 12) {
                         Button {
                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            sendCheckIn(message: "Voy para casa 🏠")
                         } label: {
                             Label("Voy a casa", systemImage: "house.fill")
                                 .appFont(size: 12, weight: .semibold).foregroundColor(.white)
@@ -229,6 +277,7 @@ public struct SettingsView: View {
                         }
                         Button {
                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            sendCheckIn(message: "Llegué bien! Estoy en mi destino ✅")
                         } label: {
                             Label("Llegué bien", systemImage: "checkmark.circle.fill")
                                 .appFont(size: 12, weight: .semibold).foregroundColor(.white)
@@ -241,6 +290,24 @@ public struct SettingsView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func sendCheckIn(message: String) {
+        guard let uid = AuthService.shared.currentUser?.id,
+              let lat = locationService.lastLatitude,
+              let lng = locationService.lastLongitude else { return }
+        let coupleId = defaults.string(forKey: "couple_id") ?? ""
+        guard !coupleId.isEmpty else { return }
+        let msgId = UUID().uuidString
+        Task {
+            try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(coupleId)/checkins/\(msgId)", fields: [
+                "userId": uid,
+                "message": message,
+                "latitude": lat,
+                "longitude": lng,
+                "timestamp": df.string(from: Date()),
+            ])
         }
     }
 
@@ -428,6 +495,9 @@ public struct SettingsView: View {
         securityAnswer = defaults.string(forKey: "security_answer") ?? ""
         deepseekKey = defaults.string(forKey: "deepseek_api_key") ?? ""
         shareLocation = defaults.bool(forKey: "share_location")
+        shareHistory = defaults.bool(forKey: "privacy_share_history")
+        shareBattery = defaults.bool(forKey: "privacy_share_battery", defaultValue: true)
+        shareSpeed = defaults.bool(forKey: "privacy_share_speed")
         anniversaryDate = dateFromDefaults("anniversary_date")
         metDate = dateFromDefaults("met_date")
         datingDate = dateFromDefaults("dating_date")
@@ -450,6 +520,9 @@ public struct SettingsView: View {
         defaults.set(securityAnswer, forKey: "security_answer")
         defaults.set(deepseekKey, forKey: "deepseek_api_key")
         defaults.set(shareLocation, forKey: "share_location")
+        defaults.set(shareHistory, forKey: "privacy_share_history")
+        defaults.set(shareBattery, forKey: "privacy_share_battery")
+        defaults.set(shareSpeed, forKey: "privacy_share_speed")
         defaults.set(aiMode, forKey: "ai_mode")
         defaults.set(modelDownloaded, forKey: "model_downloaded")
         dateToDefaults("anniversary_date", date: anniversaryDate)
@@ -470,6 +543,9 @@ public struct SettingsView: View {
                     "securityQuestion": securityQuestion,
                     "securityAnswer": securityAnswer,
                     "shareLocation": shareLocation,
+                    "shareHistory": shareHistory,
+                    "shareBattery": shareBattery,
+                    "shareSpeed": shareSpeed,
                     "aiMode": aiMode,
                     "deepseekApiKey": deepseekKey,
                     "modelDownloaded": modelDownloaded,
@@ -478,6 +554,12 @@ public struct SettingsView: View {
                     "datingDate": datingDate.flatMap { df.string(from: $0) } ?? "",
                     "weddingDate": weddingDate.flatMap { df.string(from: $0) } ?? "",
                     "invitationDate": invitationDate.flatMap { df.string(from: $0) } ?? "",
+                    "privacySettings": [
+                        "shareLocation": shareLocation,
+                        "shareHistory": shareHistory,
+                        "shareBattery": shareBattery,
+                        "shareSpeed": shareSpeed,
+                    ]
                 ])
 
                 // Save shared settings to couples document (syncs with partner)
@@ -517,6 +599,9 @@ public struct SettingsView: View {
             if let val = s("securityQuestion") { securityQuestion = val; defaults.set(val, forKey: "security_question") }
             if let val = s("securityAnswer") { securityAnswer = val; defaults.set(val, forKey: "security_answer") }
             if let val = b("shareLocation") { shareLocation = val; defaults.set(val, forKey: "share_location") }
+            if let val = b("shareHistory") { shareHistory = val; defaults.set(val, forKey: "privacy_share_history") }
+            if let val = b("shareBattery") { shareBattery = val; defaults.set(val, forKey: "privacy_share_battery") }
+            if let val = b("shareSpeed") { shareSpeed = val; defaults.set(val, forKey: "privacy_share_speed") }
             if let val = s("deepseekApiKey") { deepseekKey = val; defaults.set(val, forKey: "deepseek_api_key") }
             if let val = s("aiMode") ?? s("ai_mode") { aiMode = Int(val) ?? 0; defaults.set(aiMode, forKey: "ai_mode") }
             if let val = b("modelDownloaded") { modelDownloaded = val; defaults.set(val, forKey: "model_downloaded") }
