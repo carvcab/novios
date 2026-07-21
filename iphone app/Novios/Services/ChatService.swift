@@ -46,59 +46,98 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         guard !puid.isEmpty, puid != "partner" else { return }
 
         Task { @MainActor in
-            guard let docs = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(coupleId)/messages"),
-                  let documents = (docs["documents"] as? [[String: Any]]) else { return }
+            // Try to list messages subcollection
+            var documents: [[String: Any]] = []
+            if let docs = try? await FirebaseRESTService.shared.firestoreList(path: "couples/\(coupleId)/messages") {
+                documents = docs
+            } else if let docs = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(coupleId)/messages"),
+                      let arr = docs["documents"] as? [[String: Any]] {
+                documents = arr
+            } else {
+                // Fallback: try to read from the couples document itself
+                if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(coupleId)"),
+                   let fields = doc["fields"] as? [String: Any],
+                   let messagesJson = (fields["messages"] as? [String: Any])?["arrayValue"] as? [String: Any],
+                   let values = messagesJson["values"] as? [[String: Any]] {
+                    documents = values
+                } else if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(coupleId)"),
+                          let fields = doc["fields"] as? [String: Any],
+                          let msgsJson = (fields["messagesJson"] as? [String: Any])?["stringValue"] as? String,
+                          let data = msgsJson.data(using: .utf8),
+                          let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                    documents = arr
+                }
+            }
+
+            guard !documents.isEmpty else { return }
 
             for doc in documents {
-                guard let name = doc["name"] as? String,
-                      let fields = doc["fields"] as? [String: Any] else { continue }
-                let msgId = name.split(separator: "/").last.map(String.init) ?? UUID().uuidString
+                let fields: [String: Any]
+                let msgId: String
+                let createTime: String
 
-                let senderId = (fields["senderId"] as? [String: Any])?["stringValue"] as? String ?? ""
-                let text = (fields["text"] as? [String: Any])?["stringValue"] as? String ?? ""
-                let typeRaw = (fields["type"] as? [String: Any])?["stringValue"] as? String ?? "chat"
-                let timestamp = ISO8601DateFormatter().date(from: doc["createTime"] as? String ?? "") ?? Date()
-                let mediaUrl = (fields["mediaUrl"] as? [String: Any])?["stringValue"] as? String
-                let isDisappearing = (fields["isDisappearing"] as? [String: Any])?["booleanValue"] as? Bool ?? false
-                let disappearDuration = (fields["disappearDurationSeconds"] as? [String: Any])?["integerValue"] as? String
-                let readTsStr = (fields["readTimestamp"] as? [String: Any])?["stringValue"] as? String
+                if let f = doc["fields"] as? [String: Any], let name = doc["name"] as? String {
+                    // Standard Firestore document format
+                    fields = f
+                    msgId = name.split(separator: "/").last.map(String.init) ?? UUID().uuidString
+                    createTime = doc["createTime"] as? String ?? ""
+                } else if let id = doc["id"] as? String {
+                    // Inline message format (from JSON array)
+                    fields = doc
+                    msgId = id
+                    createTime = doc["timestamp"] as? String ?? ""
+                } else {
+                    continue
+                }
+
+                let extractStr = { (key: String) -> String? in
+                    if let v = fields[key] as? String { return v }
+                    return (fields[key] as? [String: Any])?["stringValue"] as? String
+                }
+                let extractBool = { (key: String) -> Bool in
+                    if let v = fields[key] as? Bool { return v }
+                    return (fields[key] as? [String: Any])?["booleanValue"] as? Bool ?? false
+                }
+
+                let senderId = extractStr("senderId") ?? ""
+                let text = extractStr("text") ?? ""
+                let typeRaw = extractStr("type") ?? "chat"
+                let timestamp = ISO8601DateFormatter().date(from: createTime)
+                    ?? extractStr("timestamp").flatMap { ISO8601DateFormatter().date(from: $0) }
+                    ?? Date()
+                let mediaUrl = extractStr("mediaUrl")
+                let isDisappearing = extractBool("isDisappearing")
+                let disappearDuration = extractStr("disappearDurationSeconds") ?? extractStr("disappearDuration")
+                let readTsStr = extractStr("readTimestamp")
                 let readTs = readTsStr.flatMap { ISO8601DateFormatter().date(from: $0) }
 
                 var reactions: [String: String]?
-                if let r = fields["reactions"] as? [String: Any],
-                   let mapFields = r["mapValue"] as? [String: Any],
-                   let fields2 = mapFields["fields"] as? [String: Any] {
+                if let r = fields["reactions"] as? [String: Any] {
                     reactions = [:]
-                    for (k, v) in fields2 {
-                        if let sv = (v as? [String: Any])?["stringValue"] as? String {
-                            reactions?[k] = sv
+                    if let mapFields = r["mapValue"] as? [String: Any],
+                       let fields2 = mapFields["fields"] as? [String: Any] {
+                        for (k, v) in fields2 {
+                            if let sv = (v as? [String: Any])?["stringValue"] as? String { reactions?[k] = sv }
+                        }
+                    } else {
+                        for (k, v) in r {
+                            if let sv = (v as? [String: Any])?["stringValue"] as? String { reactions?[k] = sv }
+                            else if let sv = v as? String { reactions?[k] = sv }
                         }
                     }
-                } else if let r = fields["reactions"] as? [String: Any] {
-                    reactions = [:]
-                    for (k, v) in r {
-                        if let sv = (v as? [String: Any])?["stringValue"] as? String {
-                            reactions?[k] = sv
-                        } else if let sv = v as? String {
-                            reactions?[k] = sv
-                        }
-                    }
+                    if reactions?.isEmpty == true { reactions = nil }
                 }
 
                 if let idx = messages.firstIndex(where: { $0.id == msgId }) {
-                    if messages[idx].readTimestamp != readTs {
-                        messages[idx].readTimestamp = readTs
-                    }
-                    if messages[idx].reactions != reactions {
-                        messages[idx].reactions = reactions
-                    }
+                    if messages[idx].readTimestamp != readTs { messages[idx].readTimestamp = readTs }
+                    if messages[idx].reactions != reactions { messages[idx].reactions = reactions }
                     continue
                 }
                 if sentIds.contains(msgId) { continue }
 
-                let replyToId = (fields["replyToId"] as? [String: Any])?["stringValue"] as? String
-                let replyToText = (fields["replyToText"] as? [String: Any])?["stringValue"] as? String
-                let replyToSenderId = (fields["replyToSenderId"] as? [String: Any])?["stringValue"] as? String
+                let replyToId = extractStr("replyToId")
+                let replyToText = extractStr("replyToText")
+                let replyToSenderId = extractStr("replyToSenderId")
 
                 let msgType: MessageType
                 switch typeRaw {
@@ -130,12 +169,13 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
         let path = "couples/\(coupleId)/messages/\(msg.id)"
         let df = ISO8601DateFormatter()
+        let now = df.string(from: msg.timestamp)
 
         var fields: [String: Any] = [
             "id": msg.id,
             "senderId": msg.senderId,
             "text": msg.text ?? "",
-            "timestamp": df.string(from: msg.timestamp),
+            "timestamp": now,
             "type": msg.type == .text ? "chat" : msg.type.rawValue,
             "isDisappearing": msg.isDisappearing,
             "disappearDurationSeconds": msg.disappearDurationSeconds,
@@ -151,7 +191,44 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         if let vnp = msg.voiceNotePath { fields["voiceNotePath"] = vnp }
 
         Task {
+            // 1. Save as subcollection document (primary method, works with SDK)
             try? await FirebaseRESTService.shared.firestoreSet(path: path, fields: fields)
+
+            // 2. Store full message in couples doc messagesJson array (reliable with REST API)
+            let msgDict: [String: Any] = [
+                "id": msg.id, "senderId": msg.senderId, "text": msg.text ?? "",
+                "timestamp": now, "type": msg.type == .text ? "chat" : msg.type.rawValue,
+                "isDisappearing": msg.isDisappearing,
+                "disappearDurationSeconds": msg.disappearDurationSeconds,
+            ]
+            if let msgJson = (try? JSONSerialization.data(withJSONObject: msgDict)).flatMap({ String(data: $0, encoding: .utf8) }) {
+                // Read existing messages, append new one, write back
+                if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(coupleId)"),
+                   let existingFields = doc["fields"] as? [String: Any],
+                   let existingJson = (existingFields["messagesJson"] as? [String: Any])?["stringValue"] as? String,
+                   let existingData = existingJson.data(using: .utf8),
+                   var existingArr = try? JSONSerialization.jsonObject(with: existingData) as? [[String: Any]] {
+                    existingArr.append(msgDict)
+                    if let updatedJson = (try? JSONSerialization.data(withJSONObject: existingArr)).flatMap({ String(data: $0, encoding: .utf8) }) {
+                        try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(coupleId)", fields: [
+                            "messagesJson": updatedJson,
+                            "lastMessageTime": now,
+                            "lastMessageId": msg.id,
+                        ])
+                    }
+                } else {
+                    // First message
+                    let arr = [msgDict]
+                    if let json = (try? JSONSerialization.data(withJSONObject: arr)).flatMap({ String(data: $0, encoding: .utf8) }) {
+                        try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(coupleId)", fields: [
+                            "messagesJson": json,
+                            "lastMessageTime": now,
+                            "lastMessageId": msg.id,
+                        ])
+                    }
+                }
+            }
+
             sendNotificationToPartner(msg: msg)
         }
     }
