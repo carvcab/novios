@@ -1,100 +1,37 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:battery_plus/battery_plus.dart';
 import 'local_storage.dart';
 import 'firebase_service.dart';
+import 'couple_service.dart';
 import '../models/user_model.dart';
 
-class StatusService with WidgetsBindingObserver {
+class StatusService {
   static final StatusService _instance = StatusService._internal();
   factory StatusService() => _instance;
   StatusService._internal();
 
-  String? _currentScreen;
-  bool _initialized = false;
-  final Battery _battery = Battery();
-  Timer? _presenceTimer;
+  final _statusCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get partnerStatusStream => _statusCtrl.stream;
+
+  StreamSubscription? _myDocSub;
+  StreamSubscription? _partnerDocSub;
   String? _currentListeningPartnerUid;
 
-  String? get currentScreen => _currentScreen;
-  bool get isOnline => _initialized;
-
-  final _statusCtrl = StreamController<Map<String, dynamic>>.broadcast();
-  
-  StreamSubscription<User?>? _authSub;
-  StreamSubscription<DocumentSnapshot>? _myDocSub;
-  StreamSubscription<DocumentSnapshot>? _partnerDocSub;
-  StreamSubscription<bool>? _healthSub;
-
   void init() {
-    if (_initialized) return;
-    _initialized = true;
-    WidgetsBinding.instance.addObserver(this);
-
-    // React to Firebase health changes
-    _healthSub = FirebaseService.healthStream.listen((available) {
-      if (available) {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          _saveUidForNative(user.uid);
-          _listenToPartner(user.uid);
-          _presenceTimer?.cancel();
-          _presenceTimer = Timer.periodic(const Duration(seconds: 120), (_) {
-            _updatePresence('online');
-          });
-        }
-      }
-    });
-
-    // Listen to Firebase Auth state changes reactively
-    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
-      if (user != null) {
-        if (!FirebaseService().isFirebaseAvailable) return;
-        // User logged in! Start presence and listen to partner
-        _saveUidForNative(user.uid);
-        _updatePresence('online');
-        _listenToPartner(user.uid);
-
-        _presenceTimer?.cancel();
-        _presenceTimer = Timer.periodic(const Duration(seconds: 120), (_) {
-          _updatePresence('online');
-        });
-      } else {
-        // User logged out! Clean up all listeners
-        _presenceTimer?.cancel();
-        _presenceTimer = null;
-        _myDocSub?.cancel();
-        _myDocSub = null;
-        _partnerDocSub?.cancel();
-        _partnerDocSub = null;
-        _currentListeningPartnerUid = null;
-      }
-    });
-  }
-
-  void _saveUidForNative(String uid) {
-    LocalStorage().setString('user_uid', uid).then((_) {
-      debugPrint("[StatusService] UID saved for native: $uid");
-    });
-  }
-
-  void setScreen(String screen) {
-    _currentScreen = screen;
-    _updatePresence('online', screen: screen);
-  }
-
-  void clearScreen() {
-    _currentScreen = null;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null && uid.isNotEmpty) {
+      _listenToPartner(uid);
+    }
   }
 
   void _syncUserToLocalStorage(UserModel user) {
-    if (user.id.isEmpty) return;
     final ls = LocalStorage();
-    ls.setString('user_id', user.id);
-    ls.setString('user_name', user.name);
-    if (user.partnerName != null) ls.setString('partner_name', user.partnerName!);
+    if (user.name.isNotEmpty) ls.setString('user_name', user.name);
+    if (user.partnerName != null && user.partnerName!.isNotEmpty) ls.setString('partner_name', user.partnerName!);
+    if (user.profilePhotoUrl != null) ls.setString('profile_photo', user.profilePhotoUrl!);
+    if (user.partnerProfilePhotoUrl != null) ls.setString('partner_profile_photo', user.partnerProfilePhotoUrl!);
     if (user.anniversaryDate != null) ls.setString('anniversary_date', user.anniversaryDate!.toIso8601String());
     if (user.metDate != null) ls.setString('met_date', user.metDate!.toIso8601String());
     if (user.datingDate != null) ls.setString('dating_date', user.datingDate!.toIso8601String());
@@ -104,44 +41,40 @@ class StatusService with WidgetsBindingObserver {
     ls.setString('mood', user.mood);
     ls.setString('mood_reason', user.moodReason);
     ls.setString('emotional_weather', user.emotionalWeather);
-    if (user.coupleId != null) ls.setString('couple_id', user.coupleId!);
-    if (user.partnerUid != null) ls.setString('partner_uid', user.partnerUid!);
+    ls.setString('couple_id', CoupleService.parejaId);
+    ls.setString('partner_uid', CoupleService().partnerUid);
+    ls.setString('partner_name', CoupleService().partnerName);
   }
 
   void _listenToPartner(String uid) {
     if (!FirebaseService().isFirebaseAvailable) return;
     _myDocSub?.cancel();
-    _myDocSub = FirebaseFirestore.instance.collection('users').doc(uid).snapshots().listen((snap) {
-      if (!snap.exists) return;
-      
-      final Map<String, dynamic>? data = snap.data();
-      if (data != null) {
-        final user = UserModel.fromMap(data);
-        _syncUserToLocalStorage(user);
+    _myDocSub = FirebaseFirestore.instance.collection('usuarios').doc(uid).snapshots().listen((snap) {
+      if (snap.exists && snap.data() != null) {
+        final data = snap.data()!;
+        final name = data['nombre'] as String? ?? (uid == CoupleService.diegoUid ? 'Diego' : 'Yosmari');
+        LocalStorage().setString('user_name', name);
       }
 
-      final partnerUid = data != null && data.containsKey('partnerUid') ? data['partnerUid'] as String? : null;
-      if (partnerUid == null || partnerUid.isEmpty) {
-        _partnerDocSub?.cancel();
-        _partnerDocSub = null;
-        _currentListeningPartnerUid = null;
-        return;
-      }
+      final partnerUid = CoupleService().partnerUid;
+      final partnerName = CoupleService().partnerName;
+      LocalStorage().setString('partner_uid', partnerUid);
+      LocalStorage().setString('partner_name', partnerName);
 
       if (_currentListeningPartnerUid != partnerUid) {
         _currentListeningPartnerUid = partnerUid;
         _partnerDocSub?.cancel();
-        _partnerDocSub = FirebaseFirestore.instance.collection('users').doc(partnerUid).snapshots().listen((pSnap) {
+        _partnerDocSub = FirebaseFirestore.instance.collection('usuarios').doc(partnerUid).snapshots().listen((pSnap) {
           if (!pSnap.exists) return;
           final Map<String, dynamic>? pData = pSnap.data();
           if (pData == null) return;
 
           final ls = LocalStorage();
-          if (pData.containsKey('name')) {
-            ls.setString('partner_name', pData['name'] as String);
-          }
-          if (pData.containsKey('profilePhotoUrl')) {
-            ls.setString('partner_profile_photo', pData['profilePhotoUrl'] as String? ?? '');
+          final pName = pData['nombre'] as String? ?? pData['name'] as String? ?? partnerName;
+          ls.setString('partner_name', pName);
+
+          if (pData.containsKey('foto')) {
+            ls.setString('partner_profile_photo', pData['foto'] as String? ?? '');
           }
 
           _statusCtrl.add({
@@ -170,59 +103,65 @@ class StatusService with WidgetsBindingObserver {
     });
   }
 
-  Stream<Map<String, dynamic>> get partnerStatusStream => _statusCtrl.stream;
+  void setScreen(String screenName) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+    if (!FirebaseService().isFirebaseAvailable) return;
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _updatePresence('online');
-    } else if (state == AppLifecycleState.paused) {
-      _updatePresence('online');
-    } else if (state == AppLifecycleState.inactive) {
-      _updatePresence('online');
-    } else if (state == AppLifecycleState.detached) {
-      _updatePresence('offline');
-    }
+    FirebaseFirestore.instance.collection('usuarios').doc(uid).set({
+      'currentScreen': screenName,
+      'lastSeenDate': FieldValue.serverTimestamp(),
+      'isOnline': true,
+    }, SetOptions(merge: true)).catchError((e) {
+      debugPrint("Error updating screen: $e");
+    });
   }
 
-  Future<void> _updatePresence(String status, {String? screen}) async {
+  void setOffline() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
     if (!FirebaseService().isFirebaseAvailable) return;
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    try {
-      int batteryLevel = -1;
-      bool isCharging = false;
-      try {
-        batteryLevel = await _battery.batteryLevel;
-        final state = await _battery.batteryState;
-        isCharging = state == BatteryState.charging;
-      } catch (_) {}
 
-      final data = <String, dynamic>{
-        'isOnline': status == 'online',
-        'currentScreen': screen ?? _currentScreen ?? '',
-        'lastSeenDate': FieldValue.serverTimestamp(),
-        'batteryLevel': batteryLevel,
-        'isCharging': isCharging,
-      };
-      if (status == 'offline') {
-        data['phoneState'] = 'apagado';
-      }
+    FirebaseFirestore.instance.collection('usuarios').doc(uid).set({
+      'isOnline': false,
+      'currentScreen': '',
+      'lastSeenDate': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)).catchError((e) {
+      debugPrint("Error set offline: $e");
+    });
+  }
 
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set(data, SetOptions(merge: true));
-    } catch (e) {
-      FirebaseService.recordError(e);
-    }
+  void updateLocation(double lat, double lon) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+    if (!FirebaseService().isFirebaseAvailable) return;
+
+    FirebaseFirestore.instance.collection('usuarios').doc(uid).set({
+      'latitude': lat,
+      'longitude': lon,
+      'lastLocationUpdate': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)).catchError((e) {
+      debugPrint("Error update location: $e");
+    });
+  }
+
+  void updateAppUsage(String packageName, String appLabel) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+    if (!FirebaseService().isFirebaseAvailable) return;
+
+    FirebaseFirestore.instance.collection('usuarios').doc(uid).set({
+      'currentApp': packageName,
+      'currentAppLabel': appLabel,
+      'lastAppUpdate': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)).catchError((e) {
+      debugPrint("Error update app usage: $e");
+    });
   }
 
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _authSub?.cancel();
-    _healthSub?.cancel();
     _myDocSub?.cancel();
     _partnerDocSub?.cancel();
-    _presenceTimer?.cancel();
-    _updatePresence('offline');
     _statusCtrl.close();
   }
 }

@@ -26,6 +26,11 @@ class AuthService {
         email: email,
         password: password,
       );
+      final uid = userCredential.user?.uid;
+      if (uid != CoupleService.diegoUid && uid != CoupleService.yosmariUid) {
+        await _auth.signOut();
+        throw Exception("Esta cuenta no está autorizada.");
+      }
       await _afterSignIn(userCredential.user);
       return userCredential;
     } catch (e) {
@@ -38,6 +43,8 @@ class AuthService {
     if (user == null) return;
     final uid = user.uid;
     final storage = LocalStorage();
+    final nowStr = DateTime.now().toIso8601String();
+
     storage.setString('user_id', uid);
     storage.setString('user_name', myName);
     storage.setString('partner_name', partnerName);
@@ -48,8 +55,13 @@ class AuthService {
     try {
       await FirebaseFirestore.instance.collection('usuarios').doc(uid).set({
         'nombre': myName,
-        'correo': user.email,
-        'ultimaConexion': DateTime.now().toIso8601String(),
+        'correo': user.email ?? (isDiego ? CoupleService.diegoEmail : CoupleService.yosmariEmail),
+        'foto': '',
+        'PIN': '',
+        'ultimaConexion': nowStr,
+        'ultimoAcceso': nowStr,
+        'tokenFCM': '',
+        'configuracionPersonal': '{}',
         'parejaId': CoupleService.parejaId,
       }, SetOptions(merge: true));
     } catch (e) {

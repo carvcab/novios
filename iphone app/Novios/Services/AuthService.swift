@@ -13,47 +13,49 @@ public class AuthService: ObservableObject {
 
     private let defaults = UserDefaults.standard
 
-    public let fixedAccounts: [(uid: String, email: String, name: String)] = [
-        ("joeBcVn2o1hfXfU68rWNOyAZIqt2", "diego@novios.app", "Diego"),
-        ("Dd1X94n3gxg7leWtMtnLlxDVHcm2", "yosmari@novios.app", "Yosmari")
-    ]
+    public static let diegoUid = "joeBcVn2o1hfXfU68rWNOyAZIqt2"
+    public static let yosmariUid = "Dd1X94n3gxg7leWtMtnLlxDVHcm2"
 
     private init() {
         FirebaseRESTService.shared.loadSavedConfig()
         loadSession()
     }
 
-    // MARK: - Sign In (only fixed accounts)
+    // MARK: - Sign In (Diego or Yosmari)
 
     public func signIn(email: String, password: String) async -> Bool {
         await MainActor.run { isLoading = true; authError = nil }
         do {
             let result = try await FirebaseRESTService.shared.signIn(email: email, password: password)
-            guard let account = fixedAccounts.first(where: { $0.uid == result.localId }) else {
+            let uid = result.localId
+            guard uid == Self.diegoUid || uid == Self.yosmariUid else {
                 await MainActor.run { isLoading = false; authError = "Esta cuenta no está autorizada."; isLoggedIn = false }
                 return false
             }
-            let user = UserModel(id: result.localId, email: email, displayName: account.name, username: account.name.lowercased())
+            
+            let name = uid == Self.diegoUid ? "Diego" : "Yosmari"
+            let user = UserModel(
+                id: uid,
+                nombre: name,
+                correo: email,
+                foto: "",
+                PIN: "",
+                ultimaConexion: Date(),
+                ultimoAcceso: Date(),
+                tokenFCM: "",
+                configuracionPersonal: "{}",
+                parejaId: "pareja_001"
+            )
+
             await MainActor.run {
                 self.currentUser = user
                 self.isLoggedIn = true
                 self.isLoading = false
                 saveSession(user: user)
             }
-            let df = ISO8601DateFormatter()
-            let now = df.string(from: Date())
-            try? await FirebaseRESTService.shared.firestoreSet(path: "usuarios/\(result.localId)", fields: [
-                "nombre": account.name,
-                "correo": email,
-                "foto": "",
-                "PIN": "",
-                "ultimaConexion": now,
-                "ultimoAcceso": now,
-                "tokenFCM": "",
-                "configuracionPersonal": "",
-                "parejaId": "pareja_001",
-            ])
-            try? await CoupleService.shared.ensureParejaDocExists()
+
+            try await ensureUserAndCoupleCreated(uid: uid, name: name, email: email)
+            await CoupleService.shared.loadCouple()
             return true
         } catch {
             await MainActor.run { isLoading = false; authError = "Correo o contraseña incorrectos." }
@@ -75,36 +77,59 @@ public class AuthService: ObservableObject {
         }
     }
 
-    // MARK: - Session Restore
+    // MARK: - Session Restore & Initialization
 
     private func loadSession() {
         FirebaseRESTService.shared.loadSavedConfig()
         guard defaults.bool(forKey: "auth_logged_in"),
-              let uid = defaults.string(forKey: "auth_user_id") else {
+              let uid = defaults.string(forKey: "auth_user_id"),
+              (uid == Self.diegoUid || uid == Self.yosmariUid) else {
             isRestoringSession = false
             return
         }
         let email = defaults.string(forKey: "auth_user_email") ?? ""
-        let name = defaults.string(forKey: "auth_user_name") ?? "Usuario"
-        currentUser = UserModel(id: uid, email: email, displayName: name, username: name.lowercased())
+        let name = defaults.string(forKey: "auth_user_name") ?? (uid == Self.diegoUid ? "Diego" : "Yosmari")
+        currentUser = UserModel(id: uid, nombre: name, correo: email, parejaId: "pareja_001")
         isLoggedIn = true
 
-        // Validate token - try to access Firestore
         Task {
-            if (try? await FirebaseRESTService.shared.firestoreGet(path: "usuarios/\(uid)")) == nil {
-                if (try? await FirebaseRESTService.shared.refreshIdToken()) == nil {
-                    await MainActor.run { self.signOut(); self.isRestoringSession = false }
-                    return
-                }
-            }
+            _ = try? await FirebaseRESTService.shared.refreshIdToken()
+            try? await ensureUserAndCoupleCreated(uid: uid, name: name, email: email)
+            await CoupleService.shared.loadCouple()
             await MainActor.run { self.isRestoringSession = false }
         }
     }
 
+    public func ensureUserAndCoupleCreated(uid: String, name: String, email: String) async throws {
+        let df = ISO8601DateFormatter()
+        let now = df.string(from: Date())
+
+        // 1. Create/Update user document in usuarios/{uid}
+        try await FirebaseRESTService.shared.firestoreSet(path: "usuarios/\(uid)", fields: [
+            "nombre": name,
+            "correo": email,
+            "foto": "",
+            "PIN": "",
+            "ultimaConexion": now,
+            "ultimoAcceso": now,
+            "tokenFCM": "",
+            "configuracionPersonal": "{}",
+            "parejaId": "pareja_001"
+        ])
+
+        // 2. Create/Update couple document in parejas/pareja_001
+        try await FirebaseRESTService.shared.firestoreSet(path: "parejas/pareja_001", fields: [
+            "nombre": "Diego 💞 Yosmari",
+            "fechaRelacion": now,
+            "miembros": [Self.diegoUid, Self.yosmariUid],
+            "creado": now
+        ])
+    }
+
     private func saveSession(user: UserModel) {
         defaults.set(user.id, forKey: "auth_user_id")
-        defaults.set(user.email, forKey: "auth_user_email")
-        defaults.set(user.displayName, forKey: "auth_user_name")
+        defaults.set(user.correo, forKey: "auth_user_email")
+        defaults.set(user.nombre, forKey: "auth_user_name")
         defaults.set(true, forKey: "auth_logged_in")
     }
 }

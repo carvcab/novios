@@ -61,7 +61,6 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         defaults.set(true, forKey: "location_sharing_enabled")
         startFirebaseTimer()
         startPartnerPolling()
-        // Immediately mark online
         if let loc = mgr.location {
             updateFirebasePosition(loc)
         } else {
@@ -143,7 +142,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         print("[Location] Error: \(error.localizedDescription)")
     }
 
-    // MARK: - Firebase Write (with API key fallback)
+    // MARK: - Firebase Write
 
     private func firestoreSetWithFallback(path: String, fields: [String: Any]) async {
         try? await rest.firestoreSet(path: path, fields: fields)
@@ -161,29 +160,28 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
         let minInterval: TimeInterval
         switch motionState {
-        case "static": minInterval = 120
-        case "walking": minInterval = 60
-        default: minInterval = 30
+        case "static": minInterval = 10
+        case "walking": minInterval = 5
+        default: minInterval = 3
         }
         guard elapsed >= minInterval else { return }
         lastFirebaseUpdate = now
 
         guard let uid = AuthService.shared.currentUser?.id ?? rest.localId else { return }
-        let shareLocation = defaults.bool(forKey: "privacy_share_location")
-        guard shareLocation else { return }
 
-        let shareSpeed = defaults.bool(forKey: "privacy_share_speed")
-        let speed = shareSpeed ? (loc.speed >= 0 ? loc.speed * 3.6 : 0.0) : 0.0
-        let shareBattery = defaults.bool(forKey: "privacy_share_battery")
-        let battery = shareBattery ? (UIDevice.current.batteryLevel >= 0 ? Int(UIDevice.current.batteryLevel * 100) : -1) : -1
+        let speed = (loc.speed >= 0 ? loc.speed * 3.6 : 0.0)
+        let battery = (UIDevice.current.batteryLevel >= 0 ? Int(UIDevice.current.batteryLevel * 100) : -1)
 
         Task {
             let path = "parejas/\(CoupleService.parejaId)/ubicacion/\(uid)"
             await firestoreSetWithFallback(path: path, fields: [
                 "latitude": loc.coordinate.latitude,
                 "longitude": loc.coordinate.longitude,
+                "lat": loc.coordinate.latitude,
+                "lng": loc.coordinate.longitude,
                 "speed": speed,
                 "batteryLevel": battery,
+                "battery": battery,
                 "lastLocationUpdate": df.string(from: now),
                 "isOnline": true,
             ])
@@ -203,7 +201,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
     private func startFirebaseTimer() {
         firebaseTimer?.invalidate()
-        firebaseTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
+        firebaseTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             guard let self = self, let loc = self.locationManager?.location else { return }
             self.updateFirebasePosition(loc)
         }
@@ -211,7 +209,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
     private func startPartnerPolling() {
         partnerPollTimer?.invalidate()
-        partnerPollTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+        partnerPollTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
             self?.fetchPartnerLocation()
         }
     }
@@ -226,10 +224,11 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
                 let ed = { (k: String) -> Double? in
                     if let dv = (fields[k] as? [String: Any])?["doubleValue"] as? Double { return dv }
                     if let sv = (fields[k] as? [String: Any])?["stringValue"] as? String { return Double(sv) }
+                    if let iv = (fields[k] as? [String: Any])?["integerValue"] as? String { return Double(iv) }
                     return nil
                 }
-                let newLat = ed("latitude")
-                let newLng = ed("longitude")
+                let newLat = ed("latitude") ?? ed("lat")
+                let newLng = ed("longitude") ?? ed("lng")
                 let online = ((fields["isOnline"] as? [String: Any])?["booleanValue"] as? Bool) ?? false
                 if let tsStr = (fields["lastLocationUpdate"] as? [String: Any])?["stringValue"] as? String {
                     self.partnerLastUpdate = self.df.date(from: tsStr)
@@ -237,7 +236,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
                 let partnerSpeed = ed("speed")
                 let partnerBattery = { () -> Int? in
                     if let v = (fields["batteryLevel"] as? [String: Any])?["integerValue"] as? String { return Int(v) }
-                    if let v = (fields["batteryLevel"] as? [String: Any])?["doubleValue"] as? Double { return Int(v) }
+                    if let v = (fields["battery"] as? [String: Any])?["integerValue"] as? String { return Int(v) }
                     return nil
                 }()
                 self.partnerLatitude = newLat
@@ -252,8 +251,6 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
             }
         }
     }
-
-    // MARK: - Distance
 
     private func haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double) -> Double {
         let R = 6371000.0

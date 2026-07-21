@@ -11,23 +11,37 @@ public struct MainTabView: View {
             MessagesView()
                 .tabItem {
                     Image(systemName: "message.fill")
-                    Text("Chat")
+                    Text("Nuestro Chat")
                 }
                 .tag(0)
 
             LocationView()
                 .tabItem {
                     Image(systemName: "location.fill")
-                    Text("Mapa")
+                    Text("Nuestro Mapa")
                 }
                 .tag(1)
 
-            ProfileView()
+            MemoriesAndLettersView()
                 .tabItem {
                     Image(systemName: "heart.fill")
-                    Text("Nosotros")
+                    Text("Recuerdos")
                 }
                 .tag(2)
+
+            DreamsAndGoalsView()
+                .tabItem {
+                    Image(systemName: "star.fill")
+                    Text("Sueños")
+                }
+                .tag(3)
+
+            ProfileView()
+                .tabItem {
+                    Image(systemName: "person.2.fill")
+                    Text("Nosotros")
+                }
+                .tag(4)
         }
         .tint(ThemeManager.shared.primary)
     }

@@ -100,6 +100,8 @@ class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
 
   Future<void> _prepare() async {
     if (FirebaseAuth.instance.currentUser != null) {
+      await CoupleService().ensureParejaDocExists();
+      await CoupleService().migrateOldData();
       await CoupleService().init();
     }
     await Future.delayed(const Duration(milliseconds: 800));

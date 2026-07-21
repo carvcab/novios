@@ -2,99 +2,82 @@ import Foundation
 import CoreLocation
 
 public struct UserModel: Identifiable, Codable, Equatable {
-    public var id: String
-    public var email: String
-    public var displayName: String
-    public var username: String
-    public var avatarUrl: String?
-    public var pairCode: String
-    public var partnerUid: String?
-    public var anniversaryDate: Date?
-    public var mood: String
-    public var moodMessage: String?
-    public var batteryLevel: Double
-    public var isCharging: Bool
-    public var isOnline: Bool
-    public var latitude: Double?
-    public var longitude: Double?
-    public var lastLocationUpdate: Date?
-    public var createdAt: Date
-    public var birthdayDate: Date?
-    public var skippedPartner: Bool
-    
+    public var id: String // UID
+    public var nombre: String
+    public var correo: String
+    public var foto: String
+    public var PIN: String
+    public var ultimaConexion: Date?
+    public var ultimoAcceso: Date?
+    public var tokenFCM: String
+    public var configuracionPersonal: String
+    public var parejaId: String
+
     public init(
         id: String,
-        email: String,
-        displayName: String,
-        username: String,
-        avatarUrl: String? = nil,
-        pairCode: String = "",
-        partnerUid: String? = nil,
-        anniversaryDate: Date? = nil,
-        birthdayDate: Date? = nil,
-        mood: String = "❤️",
-        moodMessage: String? = nil,
-        batteryLevel: Double = 1.0,
-        isCharging: Bool = false,
-        isOnline: Bool = false,
-        latitude: Double? = nil,
-        longitude: Double? = nil,
-        lastLocationUpdate: Date? = nil,
-        createdAt: Date = Date(),
-        skippedPartner: Bool = false
+        nombre: String = "",
+        correo: String = "",
+        foto: String = "",
+        PIN: String = "",
+        ultimaConexion: Date? = Date(),
+        ultimoAcceso: Date? = Date(),
+        tokenFCM: String = "",
+        configuracionPersonal: String = "{}",
+        parejaId: String = "pareja_001"
     ) {
         self.id = id
-        self.email = email
-        self.displayName = displayName
-        self.username = username
-        self.avatarUrl = avatarUrl
-        self.pairCode = pairCode
-        self.partnerUid = partnerUid
-        self.anniversaryDate = anniversaryDate
-        self.birthdayDate = birthdayDate
-        self.mood = mood
-        self.moodMessage = moodMessage
-        self.batteryLevel = batteryLevel
-        self.isCharging = isCharging
-        self.isOnline = isOnline
-        self.latitude = latitude
-        self.longitude = longitude
-        self.lastLocationUpdate = lastLocationUpdate
-        self.createdAt = createdAt
-        self.skippedPartner = skippedPartner
+        self.nombre = nombre
+        self.correo = correo
+        self.foto = foto
+        self.PIN = PIN
+        self.ultimaConexion = ultimaConexion
+        self.ultimoAcceso = ultimoAcceso
+        self.tokenFCM = tokenFCM
+        self.configuracionPersonal = configuracionPersonal
+        self.parejaId = parejaId
     }
 
-    public var coordinate: CLLocationCoordinate2D? {
-        guard let lat = latitude, let lon = longitude else { return nil }
-        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
-    }
+    // Helper compatibility getters for UI display
+    public var displayName: String { nombre.isEmpty ? (id == "joeBcVn2o1hfXfU68rWNOyAZIqt2" ? "Diego" : "Yosmari") : nombre }
+    public var email: String { correo }
 
-    public var isPaired: Bool {
-        return partnerUid != nil && !(partnerUid?.isEmpty ?? true)
-    }
-
-    public func dictionaryRepresentation() -> [String: Any] {
-        var dict: [String: Any] = [
-            "uid": id,
-            "email": email,
-            "displayName": displayName,
-            "username": username,
-            "pairCode": pairCode,
-            "mood": mood,
-            "batteryLevel": batteryLevel,
-            "isCharging": isCharging,
-            "isOnline": isOnline,
-            "skippedPartner": skippedPartner,
-            "createdAt": createdAt.timeIntervalSince1970
+    public func firestoreDictionary() -> [String: Any] {
+        let df = ISO8601DateFormatter()
+        return [
+            "nombre": nombre,
+            "correo": correo,
+            "foto": foto,
+            "PIN": PIN,
+            "ultimaConexion": df.string(from: ultimaConexion ?? Date()),
+            "ultimoAcceso": df.string(from: ultimoAcceso ?? Date()),
+            "tokenFCM": tokenFCM,
+            "configuracionPersonal": configuracionPersonal,
+            "parejaId": parejaId
         ]
-        if let avatarUrl = avatarUrl { dict["avatarUrl"] = avatarUrl }
-        if let partnerUid = partnerUid { dict["partnerUid"] = partnerUid }
-        if let anniversaryDate = anniversaryDate { dict["anniversaryDate"] = anniversaryDate.timeIntervalSince1970 }
-        if let birthdayDate = birthdayDate { dict["birthdayDate"] = birthdayDate.timeIntervalSince1970 }
-        if let moodMessage = moodMessage { dict["moodMessage"] = moodMessage }
-        if let latitude = latitude { dict["latitude"] = latitude }
-        if let longitude = longitude { dict["longitude"] = longitude }
-        if let lastLocationUpdate = lastLocationUpdate { dict["lastLocationUpdate"] = lastLocationUpdate.timeIntervalSince1970 }
-        return dict
+    }
+
+    public static func fromFirestore(_ id: String, fields: [String: Any]) -> UserModel {
+        let df = ISO8601DateFormatter()
+        let s = { (k: String) -> String in
+            if let v = fields[k] as? String { return v }
+            return ((fields[k] as? [String: Any])?["stringValue"] as? String) ?? ""
+        }
+        let dateVal = { (k: String) -> Date? in
+            let str = s(k)
+            return str.isEmpty ? nil : df.date(from: str)
+        }
+
+        return UserModel(
+            id: id,
+            nombre: s("nombre"),
+            correo: s("correo"),
+            foto: s("foto"),
+            PIN: s("PIN"),
+            ultimaConexion: dateVal("ultimaConexion"),
+            ultimoAcceso: dateVal("ultimoAcceso"),
+            tokenFCM: s("tokenFCM"),
+            configuracionPersonal: s("configuracionPersonal"),
+            parejaId: s("parejaId").isEmpty ? "pareja_001" : s("parejaId")
+        )
     }
 }

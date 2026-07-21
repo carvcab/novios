@@ -234,8 +234,9 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final userName = LocalStorage().getUserName() ?? 'Yosmar';
-    final partnerName = LocalStorage().getPartnerName();
+    final isDiego = AuthService().isDiego;
+    final userName = isDiego ? 'Diego' : 'Yosmari';
+    final partnerName = isDiego ? 'Yosmari' : 'Diego';
     final isOnline = _partnerStatus['isOnline'] == true;
     final partnerScreen = _partnerStatus['currentScreen'] as String? ?? '';
 
@@ -275,7 +276,7 @@ class _HomeTabState extends State<HomeTab> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 20),
 
-          Text(partnerName != null ? '$userName  &  $partnerName' : userName,
+          Text('$userName  💞  $partnerName',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: cs.onSurface, letterSpacing: 1)),
           const SizedBox(height: 4),
           Text(_formatTime(),

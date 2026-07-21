@@ -4,13 +4,11 @@ public class FirebaseRESTService {
     public static let shared = FirebaseRESTService()
 
     private let primaryAPIKey = "AIzaSyASvpCiEJzuuCg31pVw7qDxnp26LKrJhJA"
+    private let secondaryAPIKey = "AIzaSyAgZLZSshhuHpUi62b9UZsLOchjM9G-xWc"
     private let primaryProjectID = "novios-everus"
-    private let backupAPIKey = "AIzaSyASvpCiEJzuuCg31pVw7qDxnp26LKrJhJA"
-    private let backupProjectID = "novios-everus"
 
     public private(set) var currentAPIKey: String
     public private(set) var currentProjectID: String
-    public private(set) var isUsingBackup = false
     public private(set) var idToken: String?
     public private(set) var localId: String?
     public private(set) var refreshToken: String?
@@ -18,33 +16,12 @@ public class FirebaseRESTService {
     private let session = URLSession.shared
 
     private init() {
-        let defaults = UserDefaults.standard
-        if defaults.bool(forKey: "firebase_use_backup") {
-            currentAPIKey = backupAPIKey
-            currentProjectID = backupProjectID
-            isUsingBackup = true
-        } else {
-            currentAPIKey = primaryAPIKey
-            currentProjectID = primaryProjectID
-        }
-    }
-
-    public func switchToBackup() {
-        currentAPIKey = backupAPIKey
-        currentProjectID = backupProjectID
-        isUsingBackup = true
-        UserDefaults.standard.set(true, forKey: "firebase_use_backup")
-    }
-
-    public func switchToPrimary() {
         currentAPIKey = primaryAPIKey
         currentProjectID = primaryProjectID
-        isUsingBackup = false
-        UserDefaults.standard.removeObject(forKey: "firebase_use_backup")
+        loadSavedConfig()
     }
 
     public func loadSavedConfig() {
-        switchToPrimary()
         idToken = UserDefaults.standard.string(forKey: "fb_id_token")
         localId = UserDefaults.standard.string(forKey: "fb_local_id")
         refreshToken = UserDefaults.standard.string(forKey: "fb_refresh_token")
@@ -52,31 +29,16 @@ public class FirebaseRESTService {
 
     // MARK: - Firebase Auth REST API
 
-    public func signUp(email: String, password: String, displayName: String) async throws -> (localId: String, idToken: String, refreshToken: String) {
-        let url = URL(string: "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=\(currentAPIKey)")!
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONSerialization.data(withJSONObject: [
-            "email": email,
-            "password": password,
-            "displayName": displayName,
-            "returnSecureToken": true
-        ])
-        let data = try await performRequest(req)
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let idToken = json["idToken"] as? String,
-              let localId = json["localId"] as? String,
-              let refreshTkn = json["refreshToken"] as? String else {
-            throw FirebaseError.invalidResponse
+    public func signIn(email: String, password: String) async throws -> (localId: String, idToken: String, refreshToken: String) {
+        do {
+            return try await performSignIn(email: email, password: password, apiKey: primaryAPIKey)
+        } catch {
+            return try await performSignIn(email: email, password: password, apiKey: secondaryAPIKey)
         }
-        self.idToken = idToken; self.localId = localId; self.refreshToken = refreshTkn
-        saveTokens()
-        return (localId, idToken, refreshTkn)
     }
 
-    public func signIn(email: String, password: String) async throws -> (localId: String, idToken: String, refreshToken: String) {
-        let url = URL(string: "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=\(currentAPIKey)")!
+    private func performSignIn(email: String, password: String, apiKey: String) async throws -> (localId: String, idToken: String, refreshToken: String) {
+        let url = URL(string: "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=\(apiKey)")!
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -92,19 +54,21 @@ public class FirebaseRESTService {
               let refreshTkn = json["refreshToken"] as? String else {
             throw FirebaseError.invalidResponse
         }
+        self.currentAPIKey = apiKey
         self.idToken = idToken; self.localId = localId; self.refreshToken = refreshTkn
         saveTokens()
         return (localId, idToken, refreshTkn)
     }
 
     public func refreshIdToken() async throws -> String {
+        guard let refreshToken = refreshToken, !refreshToken.isEmpty else { throw FirebaseError.notAuthenticated }
         let url = URL(string: "https://securetoken.googleapis.com/v1/token?key=\(currentAPIKey)")!
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: [
             "grant_type": "refresh_token",
-            "refresh_token": refreshToken ?? ""
+            "refresh_token": refreshToken
         ])
         let data = try await performRequest(req)
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -112,32 +76,19 @@ public class FirebaseRESTService {
               let newRefreshToken = json["refresh_token"] as? String else {
             throw FirebaseError.invalidResponse
         }
-        idToken = newIdToken; refreshToken = newRefreshToken
+        idToken = newIdToken; self.refreshToken = newRefreshToken
         saveTokens()
         return newIdToken
-    }
-
-    public func getUserData() async throws -> [String: Any]? {
-        guard let idToken = idToken else { return nil }
-        let url = URL(string: "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=\(currentAPIKey)")!
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["idToken": idToken])
-        let data = try await performRequest(req)
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let users = json["users"] as? [[String: Any]],
-              let user = users.first else { return nil }
-        return user
     }
 
     // MARK: - Firestore REST API
 
     private func getAuthHeader() async throws -> [String: String] {
-        if idToken == nil { throw FirebaseError.notAuthenticated }
-        var token = idToken!
+        if idToken == nil { _ = try await refreshIdToken() }
+        guard let token = idToken else { throw FirebaseError.notAuthenticated }
         if let exp = try? parseJWTExp(token), exp < Date().timeIntervalSince1970 {
-            token = try await refreshIdToken()
+            let refreshed = try await refreshIdToken()
+            return ["Authorization": "Bearer \(refreshed)", "Content-Type": "application/json"]
         }
         return ["Authorization": "Bearer \(token)", "Content-Type": "application/json"]
     }
@@ -149,9 +100,8 @@ public class FirebaseRESTService {
         return "https://firestore.googleapis.com/v1/projects/\(currentProjectID)/databases/(default)/documents/\(encoded)"
     }
 
-    // Ensure valid auth token before Firestore call
     private func ensureAuth() async throws {
-        if idToken == nil { throw FirebaseError.notAuthenticated }
+        if idToken == nil { _ = try await refreshIdToken() }
         if let exp = try? parseJWTExp(idToken!), exp < Date().timeIntervalSince1970 {
             _ = try await refreshIdToken()
         }
@@ -178,7 +128,14 @@ public class FirebaseRESTService {
     public func firestoreSet(path: String, fields: [String: Any]) async throws {
         try await ensureAuth()
         var headers = try await getAuthHeader()
-        let url = URL(string: firestoreURL(path))!
+        
+        var urlString = firestoreURL(path)
+        if !fields.isEmpty {
+            let masks = fields.keys.map { "updateMask.fieldPaths=\($0.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? $0)" }.joined(separator: "&")
+            urlString += "?\(masks)"
+        }
+        
+        let url = URL(string: urlString)!
         var req = URLRequest(url: url)
         req.httpMethod = "PATCH"
         req.allHTTPHeaderFields = headers
@@ -193,43 +150,26 @@ public class FirebaseRESTService {
         }
     }
 
-    public func firestoreCreate(path: String, fields: [String: Any]) async throws -> String? {
-        try await ensureAuth()
-        var headers = try await getAuthHeader()
-        let url = URL(string: firestoreURL(path))!
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.allHTTPHeaderFields = headers
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["fields": encodeFields(fields)])
-        let data = try await performRequest(req)
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
-        return json["name"] as? String
-    }
-
-    public func firestoreQuery(path: String, field: String, op: String, value: Any) async throws -> [[String: Any]] {
-        try await ensureAuth()
-        var headers = try await getAuthHeader()
-        let url = URL(string: "https://firestore.googleapis.com/v1/projects/\(currentProjectID)/databases/(default)/documents:runQuery")!
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.allHTTPHeaderFields = headers
-        let filter: [String: Any] = ["fieldFilter": ["field": ["fieldPath": field], "op": op, "value": firestoreValue(value)]]
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["structuredQuery": ["from": [["collectionId": path]], "where": filter, "limit": 10]])
-        let data = try await performRequest(req)
-        let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] ?? []
-        return json.compactMap { $0["document"] as? [String: Any] }
-    }
-
     public func firestoreList(path: String) async throws -> [[String: Any]] {
         try await ensureAuth()
         var headers = try await getAuthHeader()
         let url = URL(string: firestoreURL(path))!
         var req = URLRequest(url: url)
         req.allHTTPHeaderFields = headers
-        let data = try await performRequest(req)
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let documents = json["documents"] as? [[String: Any]] else { return [] }
-        return documents
+        do {
+            let data = try await performRequest(req)
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let documents = json["documents"] as? [[String: Any]] else { return [] }
+            return documents
+        } catch FirebaseError.serverError(let msg) where msg.contains("401") || msg.contains("403") || msg.contains("unauthenticated") || msg.contains("UNAUTHENTICATED") {
+            _ = try await refreshIdToken()
+            headers = try await getAuthHeader()
+            req.allHTTPHeaderFields = headers
+            let data = try await performRequest(req)
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let documents = json["documents"] as? [[String: Any]] else { return [] }
+            return documents
+        }
     }
 
     public func firestoreDelete(path: String) async throws {
@@ -239,18 +179,14 @@ public class FirebaseRESTService {
         var req = URLRequest(url: url)
         req.httpMethod = "DELETE"
         req.allHTTPHeaderFields = headers
-        _ = try await performRequest(req)
-    }
-
-    // Polling-based real-time updates (Firestore REST doesn't support streaming without gRPC)
-    public func startPolling(path: String, interval: TimeInterval = 2, onChange: @escaping ([String: Any]?) -> Void) -> Timer {
-        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
-            Task {
-                guard let data = try? await self.firestoreGet(path: path) else { return }
-                await MainActor.run { onChange(data) }
-            }
+        do {
+            _ = try await performRequest(req)
+        } catch FirebaseError.serverError(let msg) where msg.contains("401") || msg.contains("403") || msg.contains("unauthenticated") || msg.contains("UNAUTHENTICATED") {
+            _ = try await refreshIdToken()
+            headers = try await getAuthHeader()
+            req.allHTTPHeaderFields = headers
+            _ = try await performRequest(req)
         }
-        return timer
     }
 
     // MARK: - Helpers
@@ -262,9 +198,6 @@ public class FirebaseRESTService {
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let error = json["error"] as? [String: Any],
            let message = error["message"] as? String {
-            if message.contains("QUOTA") || message.contains("quota") || message.contains("RESOURCE_EXHAUSTED") {
-                handleQuotaExceeded()
-            }
             if message.contains("EMAIL_EXISTS") { throw FirebaseError.emailExists }
             if message.contains("INVALID_LOGIN") || message.contains("INVALID_PASSWORD") || message.contains("EMAIL_NOT_FOUND") {
                 throw FirebaseError.invalidCredentials
@@ -272,10 +205,6 @@ public class FirebaseRESTService {
             throw FirebaseError.serverError(message)
         }
         throw FirebaseError.httpError(httpResp.statusCode)
-    }
-
-    private func handleQuotaExceeded() {
-        print("Firebase REST quota warning")
     }
 
     private func saveTokens() {

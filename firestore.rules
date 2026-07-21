@@ -1,6 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
     function isDiegoOrYosmari() {
       return request.auth != null && (
         request.auth.uid == 'joeBcVn2o1hfXfU68rWNOyAZIqt2' ||
@@ -8,46 +9,22 @@ service cloud.firestore {
       );
     }
 
+    // Colección de Usuarios Privados
     match /usuarios/{uid} {
-      allow read: if isDiegoOrYosmari();
-      allow write: if request.auth.uid == uid;
+      allow read, write: if isDiegoOrYosmari();
     }
 
+    // Colección Principal Compartida de Parejas y todas sus Subcolecciones
+    // Subcolecciones: chat, cartas, album, recuerdos, ubicacion, lugares, calendario, eventos, metas, logros, estadisticas, capsula, notificaciones, configuracion, diario, musica, juegos, citas, rutas, todo
     match /parejas/{parejaId} {
       allow read, write: if isDiegoOrYosmari();
+      
       match /{document=**} {
         allow read, write: if isDiegoOrYosmari();
       }
     }
 
-    match /couples/{coupleId} {
-      allow read, write: if isDiegoOrYosmari();
-      match /{document=**} {
-        allow read, write: if isDiegoOrYosmari();
-      }
-    }
-
-    match /users/{uid} {
-      allow read, write: if isDiegoOrYosmari();
-      match /{document=**} {
-        allow read, write: if isDiegoOrYosmari();
-      }
-    }
-
-    match /_health/{document} {
-      allow read, write: if true;
-    }
-
-    match /rooms/{roomId} {
-      allow read, write: if true;
-      match /callerCandidates/{candidateId} {
-        allow read, write: if true;
-      }
-      match /calleeCandidates/{candidateId} {
-        allow read, write: if true;
-      }
-    }
-
+    // Bloquear cualquier otra ruta
     match /{document=**} {
       allow read, write: if false;
     }

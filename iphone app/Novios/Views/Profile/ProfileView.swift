@@ -8,16 +8,23 @@ public struct ProfileView: View {
 
     @State private var showSettings = false
     @State private var showPhotoPicker = false
-    @State private var showEditBirthday = false
-    @State private var birthdayDate: Date?
     @State private var profileImage: UIImage?
-    @State private var profilePhotoFirestoreUrl: String?
 
-    private let defaults = UserDefaults.standard
-    private let dateFormatter: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
-    }()
-    private let df = ISO8601DateFormatter()
+    @State private var activeSheet: ActiveSheet?
+
+    enum ActiveSheet: Identifiable {
+        case memories
+        case dreams
+        case settings
+
+        var id: Int {
+            switch self {
+            case .memories: return 1
+            case .dreams: return 2
+            case .settings: return 3
+            }
+        }
+    }
 
     public init() {}
 
@@ -25,57 +32,90 @@ public struct ProfileView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Couple header
+                    // Couple Header
                     VStack(spacing: 8) {
                         Text(couple.coupleName)
                             .appFont(size: 26, weight: .bold)
                             .foregroundColor(.primary)
                             .multilineTextAlignment(.center)
-                        HStack(spacing: 4) {
+                        
+                        HStack(spacing: 6) {
                             Circle().fill(Color.green).frame(width: 8, height: 8)
-                            Text("En línea")
-                                .appFont(size: 13)
+                            Text("Diego 💞 Yosmari (Sincronizado)")
+                                .appFont(size: 13, weight: .medium)
                                 .foregroundColor(theme.textSecondary)
                         }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(20)
                     }
                     .padding(.top, 20)
 
-                    // Photos
+                    // Photos Avatar Stack
                     HStack(spacing: -12) {
-                        profileCircle(for: couple.currentUid == CoupleService.diegoUid ? "Diego" : "Yosmari",
-                                      photo: nil, color: theme.primary)
-                        profileCircle(for: couple.currentUid == CoupleService.diegoUid ? "Yosmari" : "Diego",
-                                      photo: nil, color: theme.secondary)
+                        profileCircle(for: "Diego", color: theme.primary)
+                        profileCircle(for: "Yosmari", color: theme.secondary)
                     }
                     .padding(.bottom, 8)
 
-                    // Quick access cards
+                    // Exclusive Couple Grid
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                        navCard(icon: "message.fill", title: "Nuestro Chat", color: theme.primary) { }
-                        navCard(icon: "photo.fill", title: "Nuestro Álbum", color: theme.pastelPeach) { }
-                        navCard(icon: "heart.fill", title: "Nuestra Historia", color: .red) { }
-                        navCard(icon: "location.fill", title: "Nuestro Mapa", color: theme.pastelBlue) { }
-                        navCard(icon: "calendar", title: "Calendario", color: theme.pastelMint) { }
-                        navCard(icon: "music.note", title: "Música", color: theme.pastelLavender) { }
-                        navCard(icon: "gamecontroller.fill", title: "Juegos", color: .orange) { }
-                        navCard(icon: "moon.stars.fill", title: "Sueños", color: .purple) { }
+                        navCard(icon: "heart.fill", title: "Nuestra Historia", color: .red) {
+                            activeSheet = .memories
+                        }
+                        navCard(icon: "photo.stack.fill", title: "Nuestros Recuerdos", color: theme.pastelPeach) {
+                            activeSheet = .memories
+                        }
+                        navCard(icon: "star.fill", title: "Nuestros Sueños", color: .purple) {
+                            activeSheet = .dreams
+                        }
+                        navCard(icon: "calendar", title: "Nuestros Eventos", color: theme.pastelMint) {
+                            activeSheet = .dreams
+                        }
+                        navCard(icon: "envelope.fill", title: "Nuestras Cartas", color: theme.primary) {
+                            activeSheet = .memories
+                        }
+                        navCard(icon: "book.fill", title: "Nuestro Diario", color: theme.pastelLavender) {
+                            activeSheet = .memories
+                        }
                     }
                     .padding(.horizontal, 4)
 
-                    // Settings button
+                    // Relationship Stats Box
+                    VStack(spacing: 12) {
+                        Text("Nuestra Relación Privada")
+                            .appFont(size: 16, weight: .bold)
+                            .foregroundColor(.primary)
+
+                        HStack(spacing: 20) {
+                            statItem(number: "\(couple.cartas.count)", label: "Cartas")
+                            statItem(number: "\(couple.recuerdos.count)", label: "Recuerdos")
+                            statItem(number: "\(couple.logros.count)", label: "Metas")
+                            statItem(number: "\(couple.eventos.count)", label: "Eventos")
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(20)
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(theme.primary.opacity(0.15)))
+
+                    // Settings Button
                     Button {
-                        showSettings = true
+                        activeSheet = .settings
                     } label: {
                         HStack {
                             Image(systemName: "gearshape.fill")
-                            Text("Configuración")
+                            Text("Configuración de Pareja")
                         }
                         .appFont(size: 15, weight: .semibold)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(theme.primaryGradient)
-                        .cornerRadius(14)
+                        .cornerRadius(16)
+                        .shadow(color: theme.primary.opacity(0.25), radius: 8, y: 3)
                     }
                     .padding(.horizontal, 4)
                 }
@@ -85,8 +125,15 @@ public struct ProfileView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
         }
-        .fullScreenCover(isPresented: $showSettings) {
-            SettingsView()
+        .sheet(item: $activeSheet) { item in
+            switch item {
+            case .memories:
+                MemoriesAndLettersView()
+            case .dreams:
+                DreamsAndGoalsView()
+            case .settings:
+                SettingsView()
+            }
         }
         .sheet(isPresented: $showPhotoPicker) {
             PhotoPicker { image in
@@ -104,7 +151,7 @@ public struct ProfileView: View {
         }
     }
 
-    private func profileCircle(for name: String, photo: UIImage?, color: Color) -> some View {
+    private func profileCircle(for name: String, color: Color) -> some View {
         Button { showPhotoPicker = true } label: {
             ZStack {
                 if let img = profileImage, name == (couple.currentUid == CoupleService.diegoUid ? "Diego" : "Yosmari") {
@@ -116,6 +163,17 @@ public struct ProfileView: View {
                 }
                 Circle().stroke(.white, lineWidth: 3).frame(width: 80, height: 80)
             }
+        }
+    }
+
+    private func statItem(number: String, label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(number)
+                .appFont(size: 18, weight: .bold)
+                .foregroundColor(theme.primary)
+            Text(label)
+                .appFont(size: 11)
+                .foregroundColor(theme.textSecondary)
         }
     }
 
@@ -131,29 +189,6 @@ public struct ProfileView: View {
             .background(color.opacity(0.05))
             .cornerRadius(16)
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(color.opacity(0.15)))
-        }
-    }
-}
-
-struct PhotoPicker: UIViewControllerRepresentable {
-    let onImagePicked: (UIImage) -> Void
-    func makeUIViewController(context: Context) -> PHPickerViewController {
-        var config = PHPickerConfiguration(); config.filter = .images; config.selectionLimit = 1
-        let picker = PHPickerViewController(configuration: config)
-        picker.delegate = context.coordinator
-        return picker
-    }
-    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-    class Coordinator: NSObject, PHPickerViewControllerDelegate {
-        let parent: PhotoPicker
-        init(_ parent: PhotoPicker) { self.parent = parent }
-        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-            picker.dismiss(animated: true)
-            guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
-            provider.loadObject(ofClass: UIImage.self) { image, _ in
-                if let uiImage = image as? UIImage { DispatchQueue.main.async { self.parent.onImagePicked(uiImage) } }
-            }
         }
     }
 }
