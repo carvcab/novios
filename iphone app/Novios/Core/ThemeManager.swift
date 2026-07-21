@@ -110,6 +110,9 @@ public class ThemeManager: ObservableObject {
     // MARK: - Compatibility
     public var primaryPink: Color { primary }
 
+    public var pastelRoseAccent: Color { primary }
+    public var pastelLavenderAccent: Color { secondary }
+
     // MARK: - Font
 
     public func font(size: CGFloat, weight: Font.Weight = .regular) -> Font {
@@ -124,5 +127,12 @@ public class ThemeManager: ObservableObject {
         case "Poppins": return .custom("Helvetica", size: size).weight(weight)
         default: return .system(size: size, weight: weight)
         }
+    }
+}
+
+// MARK: - View extension for theme fonts
+extension View {
+    func appFont(size: CGFloat, weight: Font.Weight = .regular) -> some View {
+        font(ThemeManager.shared.font(size: size, weight: weight))
     }
 }

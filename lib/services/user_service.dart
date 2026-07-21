@@ -301,41 +301,7 @@ class UserService extends ChangeNotifier {
   }
 
   Future<void> removePartner() async {
-    final myUid = FirebaseAuth.instance.currentUser?.uid;
-    final pUid = partnerUid ?? LocalStorage().getString('partner_uid');
-    if (myUid == null) return;
-
-    final db = FirebaseFirestore.instance;
-
-    try {
-      // 1. Remove relationship from my doc
-      await db.collection('users').doc(myUid).set({
-        'partnerUid': FieldValue.delete(),
-        'partnerUsername': FieldValue.delete(),
-        'partnerDisplayName': FieldValue.delete(),
-      }, SetOptions(merge: true));
-
-      // 2. Remove relationship from partner doc
-      if (pUid != null && pUid.isNotEmpty) {
-        await db.collection('users').doc(pUid).set({
-          'partnerUid': FieldValue.delete(),
-          'partnerUsername': FieldValue.delete(),
-          'partnerDisplayName': FieldValue.delete(),
-        }, SetOptions(merge: true));
-
-        // 3. Deactivate the couple document so self-heal won't re-link
-        final ids = [myUid, pUid]..sort();
-        final coupleId = ids.join('_');
-        await db.collection('couples').doc(coupleId).set({
-          'active': false,
-          'unlinkedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-      }
-    } catch (e) {
-      debugPrint("[UserService] removePartner error: $e");
-    }
-
-    await _clearPartnerState();
+    // Deshabilitado permanentemente
   }
 
   Future<void> _clearPartnerState() async {
@@ -442,7 +408,6 @@ class UserService extends ChangeNotifier {
   }
 
   Future<void> clear() async {
-    await removePartner();
     await LocalStorage().remove('username');
     await LocalStorage().remove('dob');
     await LocalStorage().remove('partner_skipped');

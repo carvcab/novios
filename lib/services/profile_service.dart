@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'local_storage.dart';
-import 'auth_service.dart';
 import 'user_service.dart';
 
 class ProfileService {
@@ -30,7 +29,4 @@ class ProfileService {
   Future<void> init() async {
   }
 
-  Future<void> logout() async {
-    await AuthService().signOut();
-  }
 }

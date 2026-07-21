@@ -33,14 +33,37 @@ class _MessagesTabState extends State<MessagesTab>
   final Set<String> _markedAsReadIds = {};
   final Map<String, GlobalKey> _messageKeys = {};
   final ScrollController _scrollCtrl = ScrollController();
+  List<MessageModel> _cachedMessages = [];
 
   late Stream<List<MessageModel>> _messagesStream;
   MessageModel? _replyToMsg;
 
   void _scrollToMessage(String messageId) {
     final key = _messageKeys[messageId];
-    if (key?.currentContext == null) return;
-    Scrollable.ensureVisible(key!.currentContext!, alignment: 0.3, duration: const Duration(milliseconds: 300));
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(key!.currentContext!, alignment: 0.3, duration: const Duration(milliseconds: 300));
+      return;
+    }
+
+    final index = _cachedMessages.indexWhere((m) => m.id == messageId);
+    if (index == -1) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollCtrl.hasClients || _cachedMessages.isEmpty) return;
+      final itemCount = _cachedMessages.length;
+      if (itemCount <= 1) return;
+      final fraction = index / (itemCount - 1);
+      final maxScroll = _scrollCtrl.position.maxScrollExtent;
+      final minScroll = _scrollCtrl.position.minScrollExtent;
+      final target = minScroll + (maxScroll - minScroll) * fraction;
+      _scrollCtrl.animateTo(target, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut).then((_) {
+        if (!mounted) return;
+        final retryKey = _messageKeys[messageId];
+        if (retryKey?.currentContext != null) {
+          Scrollable.ensureVisible(retryKey!.currentContext!, alignment: 0.3, duration: const Duration(milliseconds: 200));
+        }
+      });
+    });
   }
 
   @override
@@ -312,6 +335,7 @@ class _MessagesTabState extends State<MessagesTab>
               }
 
               final list = snap.data ?? [];
+              _cachedMessages = list;
 
               if (snap.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -376,7 +400,7 @@ class _MessagesTabState extends State<MessagesTab>
                     itemBuilder: (context, index) {
                       final msg = list[index];
                       final isMe = _isMyMessage(msg.senderId);
-                      _messageKeys[msg.id] = GlobalKey();
+                      _messageKeys.putIfAbsent(msg.id, () => GlobalKey());
                       return _ChatBubble(
                         key: _messageKeys[msg.id],
                         msg: msg,
@@ -781,22 +805,32 @@ class _ReplyPreview extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+        padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
         decoration: BoxDecoration(
-          color: cs.surface.withValues(alpha: 0.5),
+          color: cs.primary.withValues(alpha: 0.08),
           border: Border(
-            left: BorderSide(color: cs.primary, width: 2.5),
+            left: BorderSide(color: cs.primary, width: 3),
           ),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              isFromMe ? 'Tú' : 'Ella/Él',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: cs.primary),
+            Row(
+              children: [
+                Icon(isFromMe ? Icons.person_rounded : Icons.favorite_rounded,
+                  size: 11, color: cs.primary),
+                const SizedBox(width: 4),
+                Text(
+                  isFromMe ? 'Tú' : 'Tu pareja',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: cs.primary),
+                ),
+                const Spacer(),
+                Icon(Icons.reply_rounded, size: 11, color: cs.primary.withValues(alpha: 0.4)),
+              ],
             ),
+            const SizedBox(height: 2),
             Text(
               text,
               style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.7)),
