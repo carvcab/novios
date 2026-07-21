@@ -63,8 +63,8 @@ public struct MessagesView: View {
                         showSettings = true
                     } label: {
                         Image(systemName: "gearshape.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(ThemeManager.shared.pastelRose.opacity(0.6))
+                            .appFont(size: 18)
+                            .foregroundColor(ThemeManager.shared.primary.opacity(0.6))
                     }
                 }
             }
@@ -89,7 +89,7 @@ public struct MessagesView: View {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         chatService.sendMessage(text: e)
                     } label: {
-                        Text(e).font(.system(size: 18))
+                        Text(e).appFont(size: 18)
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(.ultraThinMaterial)
                             .background(ThemeManager.shared.pastelWarmBg.opacity(0.2))
@@ -123,8 +123,8 @@ public struct MessagesView: View {
                                 .overlay(Circle().fill(Color.red).frame(width: 10, height: 10))
                         } else {
                         Image(systemName: "mic.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(ThemeManager.shared.pastelRose.opacity(0.6))
+                            .appFont(size: 18)
+                            .foregroundColor(ThemeManager.shared.primary.opacity(0.6))
                             .frame(width: 36, height: 36)
                             .background(.ultraThinMaterial)
                             .background(ThemeManager.shared.pastelWarmBg.opacity(0.2))
@@ -139,14 +139,14 @@ public struct MessagesView: View {
                         showImagePicker = true
                     } label: {
                         Image(systemName: "photo.on.rectangle")
-                            .font(.system(size: 16))
-                            .foregroundColor(ThemeManager.shared.pastelRose.opacity(0.7))
+                            .appFont(size: 16)
+                            .foregroundColor(ThemeManager.shared.primary.opacity(0.7))
                     }
 
                     TextField("Escribe un mensaje...", text: $textInput)
-                        .font(.system(size: 15))
+                        .appFont(size: 15)
                         .foregroundColor(.primary)
-                        .tint(ThemeManager.shared.pastelRose)
+                        .tint(ThemeManager.shared.primary)
                         .onSubmit { sendText() }
 
                     flameButton
@@ -161,9 +161,9 @@ public struct MessagesView: View {
                     sendText()
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 30))
+                        .appFont(size: 30)
                         .foregroundColor(textInput.trimmingCharacters(in: .whitespaces).isEmpty
-                            ? ThemeManager.shared.textSecondary.opacity(0.2) : ThemeManager.shared.pastelRose)
+                            ? ThemeManager.shared.textSecondary.opacity(0.2) : ThemeManager.shared.primary)
                 }
                 .disabled(textInput.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -187,16 +187,16 @@ public struct MessagesView: View {
                 ZStack {
                     if chatService.isShowingDisappearing {
                         Image(systemName: "flame.fill")
-                            .font(.system(size: 16))
+                            .appFont(size: 16)
                             .foregroundColor(Color(red: 0.95, green: 0.6, blue: 0.3))
                             .shadow(color: Color(red: 0.95, green: 0.6, blue: 0.3).opacity(0.4), radius: 4)
                     }
                     Image(systemName: chatService.isShowingDisappearing ? "flame.fill" : "flame")
-                        .font(.system(size: 16))
+                        .appFont(size: 16)
                         .foregroundColor(chatService.isShowingDisappearing ? Color(red: 0.95, green: 0.6, blue: 0.3) : ThemeManager.shared.textSecondary.opacity(0.3))
                 }
                 Text("EFÍMERO")
-                    .font(.system(size: 6, weight: .bold))
+                    .appFont(size: 6, weight: .bold)
                     .foregroundColor(chatService.isShowingDisappearing ? Color(red: 0.95, green: 0.6, blue: 0.3) : ThemeManager.shared.textSecondary.opacity(0.2))
                     .tracking(0.8)
             }
@@ -204,7 +204,7 @@ public struct MessagesView: View {
         .overlay(alignment: .top) {
             if chatService.isShowingDisappearing {
                 Text("Los mensajes se autodestruyen")
-                    .font(.system(size: 8, weight: .medium))
+                    .appFont(size: 8, weight: .medium)
                     .foregroundColor(.white)
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Color(red: 0.95, green: 0.6, blue: 0.3))
@@ -220,21 +220,20 @@ public struct MessagesView: View {
         HStack(spacing: 10) {
             Circle().fill(Color.red).frame(width: 8, height: 8)
             Text("Grabando...")
-                .font(.system(size: 12, weight: .medium))
+                .appFont(size: 12, weight: .medium)
                 .foregroundColor(.red)
             Text(String(format: "%.1fs", chatService.recordingDuration))
-                .font(.system(size: 12, weight: .medium))
+                .appFont(size: 12, weight: .medium)
                 .foregroundColor(.secondary)
                 .monospacedDigit()
             Spacer()
             Button {
                 _ = chatService.stopRecording()
             } label: {
-                Text("Enviar").font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                Text("Enviar").appFont(size: 12, weight: .semibold).foregroundColor(.white)
                     .padding(.horizontal, 14).padding(.vertical, 6)
                     .background(
-                        LinearGradient(colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
-                            startPoint: .leading, endPoint: .trailing)
+                        ThemeManager.shared.primaryGradient
                     ).clipShape(Capsule())
             }
         }

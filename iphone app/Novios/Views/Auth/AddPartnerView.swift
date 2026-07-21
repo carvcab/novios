@@ -20,20 +20,20 @@ public struct AddPartnerView: View {
                     Spacer().frame(height: 20)
 
                     Image(systemName: "heart.fill")
-                        .font(.system(size: 48))
-                        .foregroundColor(ThemeManager.shared.pastelRose)
+                        .appFont(size: 48)
+                        .foregroundColor(ThemeManager.shared.primary)
 
                     Text("Vincular Pareja")
-                        .font(.system(size: 24, weight: .bold))
+                        .appFont(size: 24, weight: .bold)
                         .foregroundColor(.primary)
                     Text("Busca a tu pareja por su nombre de usuario o correo")
-                        .font(.system(size: 13))
+                        .appFont(size: 13)
                         .foregroundColor(ThemeManager.shared.textSecondary)
                         .multilineTextAlignment(.center)
 
                     if let err = errorMessage {
                         Text(err)
-                            .font(.system(size: 13)).foregroundColor(.red)
+                            .appFont(size: 13).foregroundColor(.red)
                             .padding(12).frame(maxWidth: .infinity)
                             .background(.ultraThinMaterial).background(Color.red.opacity(0.06))
                             .cornerRadius(12)
@@ -46,7 +46,7 @@ public struct AddPartnerView: View {
                         TextField("", text: $searchText, prompt: Text("Nombre de usuario o correo de tu pareja").foregroundColor(ThemeManager.shared.textSecondary.opacity(0.5)))
                             .foregroundColor(.primary).autocapitalization(.none).disableAutocorrection(true)
                         if isSearching {
-                            ProgressView().tint(ThemeManager.shared.pastelRose)
+                            ProgressView().tint(ThemeManager.shared.primary)
                         } else if foundUser != nil {
                             Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                         }
@@ -56,7 +56,7 @@ public struct AddPartnerView: View {
                     .background(ThemeManager.shared.pastelWarmBg.opacity(0.3))
                     .cornerRadius(16)
                     .overlay(RoundedRectangle(cornerRadius: 16).stroke(
-                        foundUser != nil ? ThemeManager.shared.pastelRose.opacity(0.6) : .white.opacity(0.3),
+                        foundUser != nil ? ThemeManager.shared.primary.opacity(0.6) : .white.opacity(0.3),
                         lineWidth: 0.8
                     ))
                     .onChange(of: searchText) { newValue in
@@ -72,19 +72,19 @@ public struct AddPartnerView: View {
 
                     if let found = foundUser {
                         VStack(spacing: 16) {
-                            Circle()
-                                .fill(ThemeManager.shared.pastelPink.opacity(0.2))
+                        Circle()
+                            .fill(ThemeManager.shared.pastelPink.opacity(0.2))
                                 .frame(width: 68, height: 68)
-                                .overlay(Image(systemName: "person.fill").font(.system(size: 28))
-                                    .foregroundColor(ThemeManager.shared.pastelRose))
+                                .overlay(Image(systemName: "person.fill").appFont(size: 28)
+                                    .foregroundColor(ThemeManager.shared.primary)
 
                             Text(found["displayName"] as? String ?? "Usuario Encontrado")
-                                .font(.system(size: 18, weight: .bold)).foregroundColor(.primary)
+                                .appFont(size: 18, weight: .bold).foregroundColor(.primary)
 
                             if let uname = found["username"] as? String, !uname.isEmpty {
                                 Text("@\(uname)")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(ThemeManager.shared.pastelRose)
+                                    .appFont(size: 12, weight: .medium)
+                                    .foregroundColor(ThemeManager.shared.primary)
                                     .padding(.horizontal, 10).padding(.vertical, 3)
                                     .background(ThemeManager.shared.pastelPink.opacity(0.15)).cornerRadius(8)
                             }
@@ -112,25 +112,19 @@ public struct AddPartnerView: View {
                                 if isAdding {
                                     ProgressView().tint(.white)
                                         .frame(maxWidth: .infinity).frame(height: 50)
-                                        .background(
-                                            LinearGradient(colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
-                                                startPoint: .leading, endPoint: .trailing)
-                                        )
+                                        .background(ThemeManager.shared.primaryGradient)
                                         .cornerRadius(14)
                                 } else {
                                     HStack(spacing: 8) {
-                                        Image(systemName: "heart.fill").font(.system(size: 16))
+                                        Image(systemName: "heart.fill").appFont(size: 16)
                                         Text("Vincular Pareja Ahora")
-                                            .font(.system(size: 15, weight: .bold))
+                                            .appFont(size: 15, weight: .bold)
                                     }
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity).frame(height: 50)
-                                    .background(
-                                        LinearGradient(colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
-                                            startPoint: .leading, endPoint: .trailing)
-                                    )
+                                    .background(ThemeManager.shared.primaryGradient)
                                     .cornerRadius(14)
-                                    .shadow(color: ThemeManager.shared.pastelRose.opacity(0.2), radius: 8, y: 3)
+                                    .shadow(color: ThemeManager.shared.primary.opacity(0.2), radius: 8, y: 3)
                                 }
                             }
                             .disabled(isAdding)
@@ -153,7 +147,7 @@ public struct AddPartnerView: View {
                         onComplete?()
                     } label: {
                         Text("Vincular más tarde")
-                            .font(.system(size: 14))
+                            .appFont(size: 14)
                             .foregroundColor(ThemeManager.shared.textSecondary)
                     }
                     .padding(.bottom, 28)

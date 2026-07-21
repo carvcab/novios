@@ -33,10 +33,10 @@ public struct GradientButton: View {
                 } else {
                     if let icon = icon {
                         Image(systemName: icon)
-                            .font(.system(size: 17, weight: .bold))
+                            .appFont(size: 17, weight: .bold)
                     }
                     Text(title)
-                        .font(.system(size: 16, weight: .bold))
+                        .appFont(size: 16, weight: .bold)
                 }
             }
             .foregroundColor(.white)
@@ -44,16 +44,12 @@ public struct GradientButton: View {
             .frame(height: 54)
             .background(
                 ZStack {
-                    LinearGradient(
-                        colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
+                    ThemeManager.shared.primaryGradient
                     Color.white.opacity(0.1)
                 }
             )
             .cornerRadius(18)
-            .shadow(color: ThemeManager.shared.pastelRose.opacity(0.3), radius: 10, x: 0, y: 4)
+            .shadow(color: ThemeManager.shared.primary.opacity(0.3), radius: 10, x: 0, y: 4)
             .scaleEffect(isPressed ? 0.97 : 1.0)
         }
         .disabled(isLoading)

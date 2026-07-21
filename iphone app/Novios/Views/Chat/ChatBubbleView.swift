@@ -92,7 +92,7 @@ public struct ChatBubbleView: View {
         Circle()
             .fill(ThemeManager.shared.primaryPink.opacity(0.1))
             .frame(width: 28, height: 28)
-            .overlay(Image(systemName: "person.fill").font(.system(size: 11)).foregroundColor(ThemeManager.shared.primaryPink.opacity(0.5)))
+            .overlay(Image(systemName: "person.fill").appFont(size: 11).foregroundColor(ThemeManager.shared.primaryPink.opacity(0.5)))
             .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 0.5))
     }
 
@@ -107,7 +107,7 @@ public struct ChatBubbleView: View {
                 mediaContent
             } else {
                 Text(message.text ?? "")
-                    .font(.system(size: 15, weight: isSpecialType ? .semibold : .regular))
+                    .appFont(size: 15, weight: isSpecialType ? .semibold : .regular)
                     .foregroundColor(isFromMe ? Color(red: 0.35, green: 0.15, blue: 0.2) : Color(.darkGray)).lineSpacing(4)
             }
             if let reactions = message.reactions, !reactions.isEmpty {
@@ -127,9 +127,9 @@ public struct ChatBubbleView: View {
             Capsule().fill(ThemeManager.shared.primaryPink).frame(width: 3)
             VStack(alignment: .leading, spacing: 1) {
                 Text(message.replyToSenderId == nil ? "" : "En respuesta")
-                    .font(.system(size: 8, weight: .semibold))
+                    .appFont(size: 8, weight: .semibold)
                     .foregroundColor(isFromMe ? .white.opacity(0.6) : ThemeManager.shared.primaryPink.opacity(0.8))
-                Text(text).font(.system(size: 11))
+                Text(text).appFont(size: 11)
                     .foregroundColor(isFromMe ? .white.opacity(0.5) : .primary.opacity(0.5)).lineLimit(2)
             }
         }
@@ -149,11 +149,11 @@ public struct ChatBubbleView: View {
     private var timestampRow: some View {
         HStack(spacing: 4) {
             Text(message.timestamp, style: .time)
-                .font(.system(size: 10, weight: .light))
+                .appFont(size: 10, weight: .light)
                 .foregroundColor(isFromMe ? .white.opacity(0.65) : .primary.opacity(0.45))
             if isFromMe {
                 Image(systemName: message.readTimestamp != nil ? "heart.fill" : "heart")
-                    .font(.system(size: 8))
+                    .appFont(size: 8)
                     .foregroundColor(message.readTimestamp != nil ? Color(red: 1, green: 0.85, blue: 0.95) : .white.opacity(0.4))
             }
         }
@@ -162,7 +162,7 @@ public struct ChatBubbleView: View {
     private var reactionRow: some View {
         HStack(spacing: 3) {
             ForEach(Array(Set(message.reactions!.values)), id: \.self) { emoji in
-                Text(emoji).font(.system(size: 14))
+                Text(emoji).appFont(size: 14)
                     .padding(.horizontal, 5).padding(.vertical, 2)
                     .background(isFromMe ? Color.white.opacity(0.15) : Color(.systemGray5).opacity(0.5))
                     .clipShape(Capsule())
@@ -177,14 +177,14 @@ public struct ChatBubbleView: View {
                     .fill(isPlaying ? (isFromMe ? Color.white.opacity(0.25) : ThemeManager.shared.primaryPink.opacity(0.15)) : Color.white.opacity(0.15))
                     .frame(width: 34, height: 34)
                 Image(systemName: isPlaying ? "stop.fill" : "play.fill")
-                    .font(.system(size: 13))
+                    .appFont(size: 13)
                     .foregroundColor(isFromMe ? .white : (isPlaying ? ThemeManager.shared.primaryPink : .gray))
             }
             .onTapGesture { togglePlay() }
             VStack(alignment: .leading, spacing: 1) {
-                Text("Nota de voz").font(.system(size: 12, weight: .semibold)).foregroundColor(isFromMe ? .white : Color(.darkGray))
+                Text("Nota de voz").appFont(size: 12, weight: .semibold).foregroundColor(isFromMe ? .white : Color(.darkGray))
                 if isPlaying {
-                    Text("Reproduciendo...").font(.system(size: 10))
+                    Text("Reproduciendo...").appFont(size: 10)
                         .foregroundColor(isFromMe ? .white.opacity(0.7) : .gray)
                 }
             }
@@ -201,7 +201,7 @@ public struct ChatBubbleView: View {
             } else if isLoadingMedia {
                 ProgressView().frame(width: 180, height: 180)
             } else {
-                Image(systemName: "photo.fill").font(.system(size: 28))
+                Image(systemName: "photo.fill").appFont(size: 28)
                     .foregroundColor(isFromMe ? .white.opacity(0.5) : .secondary.opacity(0.3))
                     .frame(width: 180, height: 150)
                     .background(isFromMe ? Color.white.opacity(0.1) : Color(.systemGray6))

@@ -21,8 +21,8 @@ public struct CustomTextField: View {
     public var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(ThemeManager.shared.pastelRose)
-                .font(.system(size: 18))
+                .foregroundColor(ThemeManager.shared.primary)
+                .appFont(size: 18)
 
             if isSecure {
                 SecureField("", text: $text, prompt: Text(placeholder).foregroundColor(ThemeManager.shared.textSecondary.opacity(0.5)))

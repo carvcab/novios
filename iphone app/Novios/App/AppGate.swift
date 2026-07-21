@@ -9,9 +9,9 @@ public struct AppGate: View {
                 ZStack {
                     LiquidBackgroundView()
                     VStack(spacing: 16) {
-                        ProgressView().tint(ThemeManager.shared.pastelRose)
+                        ProgressView().tint(ThemeManager.shared.primary)
                         Text("Cargando tu cuenta...")
-                            .font(.system(size: 14, weight: .medium))
+                            .appFont(size: 14, weight: .medium)
                             .foregroundColor(ThemeManager.shared.textSecondary)
                     }
                 }

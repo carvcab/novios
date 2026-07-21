@@ -17,16 +17,16 @@ public struct WelcomeView: View {
                     Spacer().frame(height: 50)
 
                     Image(systemName: "heart.fill")
-                        .font(.system(size: 50))
-                        .foregroundColor(ThemeManager.shared.pastelRose)
+                        .appFont(size: 50)
+                        .foregroundColor(ThemeManager.shared.primary)
 
                     Text("Novios")
-                        .font(.system(size: 30, weight: .medium))
-                        .foregroundColor(ThemeManager.shared.pastelRose)
+                        .appFont(size: 30, weight: .medium)
+                        .foregroundColor(ThemeManager.shared.primary)
                         .tracking(6)
 
                     Text("Solo para nosotros dos")
-                        .font(.system(size: 14))
+                        .appFont(size: 14)
                         .foregroundColor(ThemeManager.shared.textSecondary)
                         .tracking(2)
 
@@ -34,7 +34,7 @@ public struct WelcomeView: View {
 
                     if let err = errorMessage {
                         Text(err)
-                            .font(.system(size: 13))
+                            .appFont(size: 13)
                             .foregroundColor(.red)
                             .padding(12)
                             .frame(maxWidth: .infinity)
@@ -79,23 +79,17 @@ public struct WelcomeView: View {
                             ProgressView().tint(.white)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 52)
-                                .background(
-                                    LinearGradient(colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
-                                        startPoint: .leading, endPoint: .trailing)
-                                )
+                                .background(ThemeManager.shared.primaryGradient)
                                 .cornerRadius(16)
                         } else {
                             Text(isSignUp ? "Registrarse" : "Ingresar")
-                                .font(.system(size: 16, weight: .semibold))
+                                .appFont(size: 16, weight: .semibold)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 52)
-                                .background(
-                                    LinearGradient(colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
-                                        startPoint: .leading, endPoint: .trailing)
-                                )
+                                .background(ThemeManager.shared.primaryGradient)
                                 .cornerRadius(16)
-                                .shadow(color: ThemeManager.shared.pastelRose.opacity(0.25), radius: 8, y: 3)
+                                .shadow(color: ThemeManager.shared.primary.opacity(0.25), radius: 8, y: 3)
                         }
                     }
                     .disabled(authService.isLoading)
@@ -104,8 +98,8 @@ public struct WelcomeView: View {
                         withAnimation { isSignUp.toggle(); errorMessage = nil }
                     } label: {
                         Text(isSignUp ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(ThemeManager.shared.pastelRose)
+                            .appFont(size: 13, weight: .semibold)
+                            .foregroundColor(ThemeManager.shared.primary)
                     }
 
                     Spacer()
@@ -118,8 +112,8 @@ public struct WelcomeView: View {
     private func glassField(placeholder: String, text: Binding<String>, icon: String, keyboardType: UIKeyboardType = .default, isSecure: Bool = false) -> some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .foregroundColor(ThemeManager.shared.pastelRose)
-                .font(.system(size: 16))
+                .foregroundColor(ThemeManager.shared.primary)
+                .appFont(size: 16)
             if isSecure {
                 SecureField("", text: text, prompt: Text(placeholder).foregroundColor(ThemeManager.shared.textSecondary.opacity(0.5)))
                     .foregroundColor(.primary)
