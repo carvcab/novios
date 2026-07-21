@@ -34,6 +34,7 @@ public struct SettingsView: View {
     @State private var isDownloadingModel = false
     @State private var modelDownloaded = false
     @State private var showLocationPermissionAlert = false
+    @State private var showUnlinkConfirm = false
 
     private let fonts = ["Inter", "Playfair Display", "Outfit", "Pacifico", "Poppins"]
     private let defaults = UserDefaults.standard
@@ -112,6 +113,21 @@ public struct SettingsView: View {
                                 .appFont(size: 13).foregroundColor(theme.textSecondary)
                         }
                         Spacer()
+                    }
+                    Divider().padding(.vertical, 4)
+                    Button(role: .destructive) {
+                        showUnlinkConfirm = true
+                    } label: {
+                        Label("Desvincular pareja", systemImage: "link.slash")
+                            .appFont(size: 13, weight: .medium)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                    }
+                    .confirmationDialog("¿Desvincular pareja?", isPresented: $showUnlinkConfirm, titleVisibility: .visible) {
+                        Button("Desvincular", role: .destructive) { unlinkPartner() }
+                        Button("Cancelar", role: .cancel) {}
+                    } message: {
+                        Text("Se eliminará el vínculo con tu pareja. Podrás volver a vincularla más tarde.")
                     }
                 } else {
                     HStack(spacing: 12) {
@@ -274,6 +290,41 @@ public struct SettingsView: View {
                 }
             }
         }
+    }
+
+    private func unlinkPartner() {
+        guard let uid = AuthService.shared.currentUser?.id else { return }
+        let partnerUid = defaults.string(forKey: "partner_uid") ?? ""
+        let coupleId = defaults.string(forKey: "couple_id") ?? ""
+
+        Task {
+            // Remove partner data from my user doc
+            try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [
+                "partnerUid": "", "partnerName": "", "partnerUsername": "", "partnerDisplayName": "", "coupleId": ""
+            ])
+            // Remove my data from partner's user doc
+            if !partnerUid.isEmpty {
+                try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(partnerUid)", fields: [
+                    "partnerUid": "", "partnerName": "", "partnerUsername": "", "partnerDisplayName": "", "coupleId": ""
+                ])
+            }
+            // Clear couple document
+            if !coupleId.isEmpty {
+                try? await FirebaseRESTService.shared.firestoreDelete(path: "couples/\(coupleId)")
+            }
+        }
+
+        // Clear local defaults
+        defaults.removeObject(forKey: "partner_uid")
+        defaults.removeObject(forKey: "partner_name")
+        defaults.removeObject(forKey: "partner_username")
+        defaults.removeObject(forKey: "partner_display_name")
+        defaults.removeObject(forKey: "couple_id")
+        defaults.removeObject(forKey: "pair_id")
+
+        userService.partnerUser = nil
+        authService.hasPartner = false
+        UserService.shared.partnerUser = nil
     }
 
     private func sendCheckIn(message: String) {
