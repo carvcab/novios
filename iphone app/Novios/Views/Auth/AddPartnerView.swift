@@ -11,83 +11,82 @@ public struct AddPartnerView: View {
 
     public var onComplete: (() -> Void)?
 
-    private let debounceQueue = DispatchQueue(label: "search.debounce")
-
     public var body: some View {
         ZStack {
-            Color(red: 0.035, green: 0.035, blue: 0.043).ignoresSafeArea()
+            LiquidBackgroundView()
 
             ScrollView {
                 VStack(spacing: 24) {
                     Spacer().frame(height: 20)
 
                     Image(systemName: "heart.fill")
-                        .font(.system(size: 52))
-                        .foregroundColor(Color(red: 1.0, green: 0.36, blue: 0.54))
+                        .font(.system(size: 48))
+                        .foregroundColor(ThemeManager.shared.pastelRose)
 
                     Text("Vincular Pareja")
-                        .font(.system(size: 26, weight: .bold)).foregroundColor(.white)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.primary)
                     Text("Busca a tu pareja por su nombre de usuario o correo")
-                        .font(.system(size: 13)).foregroundColor(.white.opacity(0.5))
+                        .font(.system(size: 13))
+                        .foregroundColor(ThemeManager.shared.textSecondary)
                         .multilineTextAlignment(.center)
 
                     if let err = errorMessage {
                         Text(err)
                             .font(.system(size: 13)).foregroundColor(.red)
                             .padding(12).frame(maxWidth: .infinity)
-                            .background(.red.opacity(0.15)).cornerRadius(12)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(.red.opacity(0.3)))
+                            .background(.ultraThinMaterial).background(Color.red.opacity(0.06))
+                            .cornerRadius(12)
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.2)))
                     }
 
-                    // Search field
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
-                            .foregroundColor(.white.opacity(0.4))
-                        TextField("", text: $searchText, prompt: Text("Nombre de usuario o correo de tu pareja").foregroundColor(.white.opacity(0.4)))
-                            .foregroundColor(.white).autocapitalization(.none).disableAutocorrection(true)
+                            .foregroundColor(ThemeManager.shared.textSecondary)
+                        TextField("", text: $searchText, prompt: Text("Nombre de usuario o correo de tu pareja").foregroundColor(ThemeManager.shared.textSecondary.opacity(0.5)))
+                            .foregroundColor(.primary).autocapitalization(.none).disableAutocorrection(true)
                         if isSearching {
-                            ProgressView().tint(Color(red: 1.0, green: 0.36, blue: 0.54))
+                            ProgressView().tint(ThemeManager.shared.pastelRose)
                         } else if foundUser != nil {
                             Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                         }
                     }
                     .padding(.horizontal, 16).padding(.vertical, 14)
-                    .background(Color(red: 0.11, green: 0.11, blue: 0.12))
+                    .background(.ultraThinMaterial)
+                    .background(ThemeManager.shared.pastelWarmBg.opacity(0.3))
                     .cornerRadius(16)
                     .overlay(RoundedRectangle(cornerRadius: 16).stroke(
-                        foundUser != nil ? Color(red: 1.0, green: 0.36, blue: 0.54).opacity(0.6) : .white.opacity(0.1)
+                        foundUser != nil ? ThemeManager.shared.pastelRose.opacity(0.6) : .white.opacity(0.3),
+                        lineWidth: 0.8
                     ))
                     .onChange(of: searchText) { newValue in
                         let trimmed = newValue.trimmingCharacters(in: .whitespaces)
                         if trimmed.count >= 3 {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                if self.searchText == newValue {
-                                    performSearch()
-                                }
+                                if self.searchText == newValue { performSearch() }
                             }
                         } else {
                             foundUser = nil; errorMessage = nil
                         }
                     }
 
-                    // Found user card
                     if let found = foundUser {
                         VStack(spacing: 16) {
                             Circle()
-                                .fill(Color(red: 1.0, green: 0.36, blue: 0.54).opacity(0.15))
-                                .frame(width: 72, height: 72)
-                                .overlay(Image(systemName: "person.fill").font(.system(size: 32))
-                                    .foregroundColor(Color(red: 1.0, green: 0.36, blue: 0.54)))
+                                .fill(ThemeManager.shared.pastelPink.opacity(0.2))
+                                .frame(width: 68, height: 68)
+                                .overlay(Image(systemName: "person.fill").font(.system(size: 28))
+                                    .foregroundColor(ThemeManager.shared.pastelRose))
 
                             Text(found["displayName"] as? String ?? "Usuario Encontrado")
-                                .font(.system(size: 18, weight: .bold)).foregroundColor(.white)
+                                .font(.system(size: 18, weight: .bold)).foregroundColor(.primary)
 
                             if let uname = found["username"] as? String, !uname.isEmpty {
                                 Text("@\(uname)")
                                     .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(Color(red: 1.0, green: 0.36, blue: 0.54))
+                                    .foregroundColor(ThemeManager.shared.pastelRose)
                                     .padding(.horizontal, 10).padding(.vertical, 3)
-                                    .background(Color(red: 1.0, green: 0.36, blue: 0.54).opacity(0.1)).cornerRadius(8)
+                                    .background(ThemeManager.shared.pastelPink.opacity(0.15)).cornerRadius(8)
                             }
 
                             Button {
@@ -98,9 +97,7 @@ public struct AddPartnerView: View {
                                     switch result {
                                     case .success:
                                         authService.savePartner(uid: found["uid"] as? String ?? "", name: found["displayName"] as? String ?? "Pareja")
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                            onComplete?()
-                                        }
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { onComplete?() }
                                     case .alreadyHasPartner:
                                         errorMessage = "Ya tienes una pareja vinculada."
                                     case .targetHasPartner:
@@ -114,8 +111,12 @@ public struct AddPartnerView: View {
                             } label: {
                                 if isAdding {
                                     ProgressView().tint(.white)
-                                        .frame(maxWidth: .infinity).padding(.vertical, 14)
-                                        .background(Color(red: 1.0, green: 0.36, blue: 0.54)).cornerRadius(14)
+                                        .frame(maxWidth: .infinity).frame(height: 50)
+                                        .background(
+                                            LinearGradient(colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
+                                                startPoint: .leading, endPoint: .trailing)
+                                        )
+                                        .cornerRadius(14)
                                 } else {
                                     HStack(spacing: 8) {
                                         Image(systemName: "heart.fill").font(.system(size: 16))
@@ -123,16 +124,26 @@ public struct AddPartnerView: View {
                                             .font(.system(size: 15, weight: .bold))
                                     }
                                     .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity).padding(.vertical, 14)
-                                    .background(Color(red: 1.0, green: 0.36, blue: 0.54)).cornerRadius(14)
+                                    .frame(maxWidth: .infinity).frame(height: 50)
+                                    .background(
+                                        LinearGradient(colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
+                                            startPoint: .leading, endPoint: .trailing)
+                                    )
+                                    .cornerRadius(14)
+                                    .shadow(color: ThemeManager.shared.pastelRose.opacity(0.2), radius: 8, y: 3)
                                 }
                             }
                             .disabled(isAdding)
                         }
                         .padding(20)
-                        .background(Color(red: 0.11, green: 0.11, blue: 0.12))
+                        .background(.ultraThinMaterial)
+                        .background(ThemeManager.shared.pastelWarmBg.opacity(0.3))
                         .cornerRadius(20)
-                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color(red: 1.0, green: 0.36, blue: 0.54).opacity(0.4)))
+                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(
+                            LinearGradient(colors: [.white.opacity(0.6), ThemeManager.shared.pastelPink.opacity(0.2)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing),
+                            lineWidth: 0.8
+                        ))
                     }
 
                     Spacer()
@@ -142,7 +153,8 @@ public struct AddPartnerView: View {
                         onComplete?()
                     } label: {
                         Text("Vincular más tarde")
-                            .font(.system(size: 14)).foregroundColor(.white.opacity(0.5))
+                            .font(.system(size: 14))
+                            .foregroundColor(ThemeManager.shared.textSecondary)
                     }
                     .padding(.bottom, 28)
                 }
@@ -157,16 +169,12 @@ public struct AddPartnerView: View {
         isSearching = true
         errorMessage = nil
         foundUser = nil
-
         Task {
             let user = await userService.searchUser(query: trimmed)
             await MainActor.run {
                 self.isSearching = false
-                if let user = user {
-                    self.foundUser = user
-                } else {
-                    self.errorMessage = "No se encontró ningún usuario con ese nombre o correo."
-                }
+                if let user = user { self.foundUser = user }
+                else { self.errorMessage = "No se encontró ningún usuario con ese nombre o correo." }
             }
         }
     }

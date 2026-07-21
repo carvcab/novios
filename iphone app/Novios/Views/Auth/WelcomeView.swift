@@ -10,39 +10,46 @@ public struct WelcomeView: View {
 
     public var body: some View {
         ZStack {
-            Color(red: 0.035, green: 0.035, blue: 0.043).ignoresSafeArea()
+            LiquidBackgroundView()
 
             ScrollView {
-                VStack(spacing: 24) {
-                    Spacer().frame(height: 40)
+                VStack(spacing: 22) {
+                    Spacer().frame(height: 50)
 
-                    Image(systemName: "heart.fill").font(.system(size: 56)).foregroundColor(Color(red: 1.0, green: 0.36, blue: 0.54))
-                    Text("Novios").font(.system(size: 32, weight: .medium)).foregroundColor(.white).tracking(6)
-                    Text("Solo para nosotros dos").font(.system(size: 14)).foregroundColor(.white.opacity(0.5)).tracking(2)
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 50))
+                        .foregroundColor(ThemeManager.shared.pastelRose)
 
-                    Spacer().frame(height: 20)
+                    Text("Novios")
+                        .font(.system(size: 30, weight: .medium))
+                        .foregroundColor(ThemeManager.shared.pastelRose)
+                        .tracking(6)
+
+                    Text("Solo para nosotros dos")
+                        .font(.system(size: 14))
+                        .foregroundColor(ThemeManager.shared.textSecondary)
+                        .tracking(2)
+
+                    Spacer().frame(height: 10)
 
                     if let err = errorMessage {
-                        Text(err).font(.system(size: 13)).foregroundColor(.red).padding(12)
-                            .frame(maxWidth: .infinity).background(.red.opacity(0.15)).cornerRadius(12)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(.red.opacity(0.3)))
+                        Text(err)
+                            .font(.system(size: 13))
+                            .foregroundColor(.red)
+                            .padding(12)
+                            .frame(maxWidth: .infinity)
+                            .background(.ultraThinMaterial)
+                            .background(Color.red.opacity(0.06))
+                            .cornerRadius(12)
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.2)))
                     }
 
                     VStack(spacing: 12) {
                         if isSignUp {
-                            TextField("", text: $name, prompt: Text("Tu Nombre").foregroundColor(.white.opacity(0.3)))
-                                .foregroundColor(.white).padding(14)
-                                .background(.white.opacity(0.08)).cornerRadius(16)
-                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.12)))
+                            glassField(placeholder: "Tu Nombre", text: $name, icon: "person.fill")
                         }
-                        TextField("", text: $email, prompt: Text("Correo Electrónico").foregroundColor(.white.opacity(0.3)))
-                            .foregroundColor(.white).keyboardType(.emailAddress).padding(14)
-                            .background(.white.opacity(0.08)).cornerRadius(16)
-                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.12)))
-                        SecureField("", text: $password, prompt: Text("Contraseña").foregroundColor(.white.opacity(0.3)))
-                            .foregroundColor(.white).padding(14)
-                            .background(.white.opacity(0.08)).cornerRadius(16)
-                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.12)))
+                        glassField(placeholder: "Correo Electrónico", text: $email, icon: "envelope.fill", keyboardType: .emailAddress)
+                        glassField(placeholder: "Contraseña", text: $password, icon: "lock.fill", isSecure: true)
                     }
 
                     Button {
@@ -70,13 +77,25 @@ public struct WelcomeView: View {
                     } label: {
                         if authService.isLoading {
                             ProgressView().tint(.white)
-                                .frame(maxWidth: .infinity).padding(.vertical, 16)
-                                .background(Color(red: 1.0, green: 0.36, blue: 0.54)).cornerRadius(14)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                                .background(
+                                    LinearGradient(colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
+                                        startPoint: .leading, endPoint: .trailing)
+                                )
+                                .cornerRadius(16)
                         } else {
                             Text(isSignUp ? "Registrarse" : "Ingresar")
-                                .font(.system(size: 16, weight: .semibold)).foregroundColor(.white)
-                                .frame(maxWidth: .infinity).padding(.vertical, 16)
-                                .background(Color(red: 1.0, green: 0.36, blue: 0.54)).cornerRadius(14)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                                .background(
+                                    LinearGradient(colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
+                                        startPoint: .leading, endPoint: .trailing)
+                                )
+                                .cornerRadius(16)
+                                .shadow(color: ThemeManager.shared.pastelRose.opacity(0.25), radius: 8, y: 3)
                         }
                     }
                     .disabled(authService.isLoading)
@@ -85,7 +104,8 @@ public struct WelcomeView: View {
                         withAnimation { isSignUp.toggle(); errorMessage = nil }
                     } label: {
                         Text(isSignUp ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate")
-                            .font(.system(size: 13, weight: .semibold)).foregroundColor(Color(red: 1.0, green: 0.36, blue: 0.54))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(ThemeManager.shared.pastelRose)
                     }
 
                     Spacer()
@@ -93,5 +113,33 @@ public struct WelcomeView: View {
                 .padding(.horizontal, 32)
             }
         }
+    }
+
+    private func glassField(placeholder: String, text: Binding<String>, icon: String, keyboardType: UIKeyboardType = .default, isSecure: Bool = false) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .foregroundColor(ThemeManager.shared.pastelRose)
+                .font(.system(size: 16))
+            if isSecure {
+                SecureField("", text: text, prompt: Text(placeholder).foregroundColor(ThemeManager.shared.textSecondary.opacity(0.5)))
+                    .foregroundColor(.primary)
+            } else {
+                TextField("", text: text, prompt: Text(placeholder).foregroundColor(ThemeManager.shared.textSecondary.opacity(0.5)))
+                    .foregroundColor(.primary)
+                    .keyboardType(keyboardType)
+            }
+        }
+        .padding(14)
+        .background(.ultraThinMaterial)
+        .background(ThemeManager.shared.pastelWarmBg.opacity(0.3))
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(
+                    LinearGradient(colors: [.white.opacity(0.6), ThemeManager.shared.pastelPink.opacity(0.15)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 0.8
+                )
+        )
     }
 }

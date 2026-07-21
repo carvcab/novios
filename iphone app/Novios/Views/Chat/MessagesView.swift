@@ -64,7 +64,7 @@ public struct MessagesView: View {
                     } label: {
                         Image(systemName: "gearshape.fill")
                             .font(.system(size: 18))
-                            .foregroundStyle(.secondary)
+                            .foregroundColor(ThemeManager.shared.pastelRose.opacity(0.6))
                     }
                 }
             }
@@ -91,17 +91,18 @@ public struct MessagesView: View {
                     } label: {
                         Text(e).font(.system(size: 18))
                             .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(.ultraThinMaterial.opacity(0.6))
+                            .background(.ultraThinMaterial)
+                            .background(ThemeManager.shared.pastelWarmBg.opacity(0.2))
                             .clipShape(Capsule())
-                            .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 0.5))
-                            .shadow(color: .black.opacity(0.03), radius: 4, y: 2)
+                            .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 0.5))
+                            .shadow(color: ThemeManager.shared.pastelRose.opacity(0.06), radius: 4, y: 2)
                     }
                 }
             }
             .padding(.horizontal, 14).padding(.vertical, 6)
         }
         .frame(height: 42)
-        .background(.ultraThinMaterial.opacity(0.5))
+        .background(.ultraThinMaterial.opacity(0.7))
     }
 
     @ViewBuilder
@@ -121,13 +122,14 @@ public struct MessagesView: View {
                                 .overlay(Circle().stroke(Color.red, lineWidth: 2).scaleEffect(1.3))
                                 .overlay(Circle().fill(Color.red).frame(width: 10, height: 10))
                         } else {
-                            Image(systemName: "mic.fill")
-                                .font(.system(size: 18))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 36, height: 36)
-                                .background(.ultraThinMaterial.opacity(0.6))
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(ThemeManager.shared.pastelRose.opacity(0.6))
+                            .frame(width: 36, height: 36)
+                            .background(.ultraThinMaterial)
+                            .background(ThemeManager.shared.pastelWarmBg.opacity(0.2))
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 0.5))
                         }
                     }
                 }
@@ -138,21 +140,22 @@ public struct MessagesView: View {
                     } label: {
                         Image(systemName: "photo.on.rectangle")
                             .font(.system(size: 16))
-                            .foregroundStyle(.secondary)
+                            .foregroundColor(ThemeManager.shared.pastelRose.opacity(0.7))
                     }
 
                     TextField("Escribe un mensaje...", text: $textInput)
                         .font(.system(size: 15))
                         .foregroundColor(.primary)
-                        .tint(ThemeManager.shared.primaryPink)
+                        .tint(ThemeManager.shared.pastelRose)
                         .onSubmit { sendText() }
 
                     flameButton
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(.ultraThinMaterial.opacity(0.7))
+                .background(.ultraThinMaterial)
+                .background(ThemeManager.shared.pastelWarmBg.opacity(0.2))
                 .clipShape(Capsule())
-                .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 0.5))
+                .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 0.6))
 
                 Button {
                     sendText()
@@ -160,7 +163,7 @@ public struct MessagesView: View {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 30))
                         .foregroundColor(textInput.trimmingCharacters(in: .whitespaces).isEmpty
-                            ? .gray.opacity(0.3) : ThemeManager.shared.primaryPink)
+                            ? ThemeManager.shared.textSecondary.opacity(0.2) : ThemeManager.shared.pastelRose)
                 }
                 .disabled(textInput.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -185,16 +188,16 @@ public struct MessagesView: View {
                     if chatService.isShowingDisappearing {
                         Image(systemName: "flame.fill")
                             .font(.system(size: 16))
-                            .foregroundColor(.orange)
-                            .shadow(color: .orange.opacity(0.6), radius: 4)
+                            .foregroundColor(Color(red: 0.95, green: 0.6, blue: 0.3))
+                            .shadow(color: Color(red: 0.95, green: 0.6, blue: 0.3).opacity(0.4), radius: 4)
                     }
                     Image(systemName: chatService.isShowingDisappearing ? "flame.fill" : "flame")
                         .font(.system(size: 16))
-                        .foregroundColor(chatService.isShowingDisappearing ? .orange : .secondary.opacity(0.35))
+                        .foregroundColor(chatService.isShowingDisappearing ? Color(red: 0.95, green: 0.6, blue: 0.3) : ThemeManager.shared.textSecondary.opacity(0.3))
                 }
                 Text("EFÍMERO")
                     .font(.system(size: 6, weight: .bold))
-                    .foregroundColor(chatService.isShowingDisappearing ? .orange : .secondary.opacity(0.25))
+                    .foregroundColor(chatService.isShowingDisappearing ? Color(red: 0.95, green: 0.6, blue: 0.3) : ThemeManager.shared.textSecondary.opacity(0.2))
                     .tracking(0.8)
             }
         }
@@ -204,7 +207,7 @@ public struct MessagesView: View {
                     .font(.system(size: 8, weight: .medium))
                     .foregroundColor(.white)
                     .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Color.orange)
+                    .background(Color(red: 0.95, green: 0.6, blue: 0.3))
                     .clipShape(Capsule())
                     .offset(y: -24)
                     .transition(.scale.combined(with: .opacity))
@@ -229,7 +232,10 @@ public struct MessagesView: View {
             } label: {
                 Text("Enviar").font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
                     .padding(.horizontal, 14).padding(.vertical, 6)
-                    .background(ThemeManager.shared.primaryPink).clipShape(Capsule())
+                    .background(
+                        LinearGradient(colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
+                            startPoint: .leading, endPoint: .trailing)
+                    ).clipShape(Capsule())
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 8)

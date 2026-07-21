@@ -7,10 +7,12 @@ public struct AppGate: View {
         Group {
             if authService.isRestoringSession {
                 ZStack {
-                    ThemeManager.shared.backgroundGradient.ignoresSafeArea()
+                    LiquidBackgroundView()
                     VStack(spacing: 16) {
-                        ProgressView().tint(ThemeManager.shared.primaryPink)
-                        Text("Cargando tu cuenta...").font(.system(size: 14, weight: .medium)).foregroundColor(.primary.opacity(0.7))
+                        ProgressView().tint(ThemeManager.shared.pastelRose)
+                        Text("Cargando tu cuenta...")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(ThemeManager.shared.textSecondary)
                     }
                 }
             } else if !authService.isLoggedIn {

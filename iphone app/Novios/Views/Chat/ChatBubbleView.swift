@@ -62,7 +62,7 @@ public struct ChatBubbleView: View {
     }
 
     private var bubbleBackground: Color {
-        isFromMe ? Color(red: 0.93, green: 0.33, blue: 0.52) : Color(.systemGray6)
+        isFromMe ? Color(red: 0.93, green: 0.65, blue: 0.75) : Color(.systemGray6)
     }
 
     private var bubbleGlass: some View {
@@ -70,9 +70,9 @@ public struct ChatBubbleView: View {
             if isFromMe {
                 bubbleShape
                     .fill(LinearGradient(gradient: Gradient(colors: [
-                        Color.white.opacity(0.25),
+                        Color.white.opacity(0.35),
                         Color.clear,
-                        Color.white.opacity(0.08)
+                        Color.white.opacity(0.12)
                     ]), startPoint: .top, endPoint: .bottom))
             }
         }
@@ -85,7 +85,7 @@ public struct ChatBubbleView: View {
     }
 
     private var shadowColor: Color {
-        isFromMe ? Color(red: 0.87, green: 0.28, blue: 0.5).opacity(0.35) : .black.opacity(0.04)
+        isFromMe ? Color(red: 0.87, green: 0.55, blue: 0.65).opacity(0.25) : .black.opacity(0.04)
     }
 
     private var partnerAvatar: some View {
@@ -108,7 +108,7 @@ public struct ChatBubbleView: View {
             } else {
                 Text(message.text ?? "")
                     .font(.system(size: 15, weight: isSpecialType ? .semibold : .regular))
-                    .foregroundColor(isFromMe ? .white : Color(.darkGray)).lineSpacing(4)
+                    .foregroundColor(isFromMe ? Color(red: 0.35, green: 0.15, blue: 0.2) : Color(.darkGray)).lineSpacing(4)
             }
             if let reactions = message.reactions, !reactions.isEmpty {
                 reactionRow
@@ -143,7 +143,7 @@ public struct ChatBubbleView: View {
     }
 
     private var replyBg: Color {
-        isFromMe ? Color.white.opacity(0.1) : Color(.systemBackground).opacity(0.4)
+        isFromMe ? Color.white.opacity(0.2) : Color(.systemBackground).opacity(0.4)
     }
 
     private var timestampRow: some View {
@@ -215,7 +215,7 @@ public struct ChatBubbleView: View {
     private var bubbleBorder: some View {
         if isFromMe {
             UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 18, bottomTrailing: 4, topTrailing: 18), style: .continuous)
-                .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                .stroke(Color.white.opacity(0.3), lineWidth: 0.6)
         } else {
             UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 4, bottomTrailing: 18, topTrailing: 18), style: .continuous)
                 .stroke(Color(.systemGray4), lineWidth: 0.5)

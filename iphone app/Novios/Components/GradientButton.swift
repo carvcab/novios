@@ -5,10 +5,9 @@ public struct GradientButton: View {
     public var icon: String?
     public var isLoading: Bool
     public var action: () -> Void
-    
+
     @State private var isPressed = false
-    @State private var auraGlow = false
-    
+
     public init(
         title: String,
         icon: String? = nil,
@@ -20,7 +19,7 @@ public struct GradientButton: View {
         self.isLoading = isLoading
         self.action = action
     }
-    
+
     public var body: some View {
         Button {
             let impact = UIImpactFeedbackGenerator(style: .medium)
@@ -45,30 +44,18 @@ public struct GradientButton: View {
             .frame(height: 54)
             .background(
                 ZStack {
-                    ThemeManager.shared.neonGlowGradient
-                    
-                    // Shimmer highlights
                     LinearGradient(
-                        colors: [Color.white.opacity(0.25), Color.clear],
-                        startPoint: .top,
-                        endPoint: .bottom
+                        colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
+                        startPoint: .leading,
+                        endPoint: .trailing
                     )
+                    Color.white.opacity(0.1)
                 }
             )
             .cornerRadius(18)
-            .shadow(
-                color: ThemeManager.shared.primaryPink.opacity(auraGlow ? 0.7 : 0.4),
-                radius: auraGlow ? 16 : 10,
-                x: 0,
-                y: 6
-            )
-            .scaleEffect(isPressed ? 0.96 : 1.0)
+            .shadow(color: ThemeManager.shared.pastelRose.opacity(0.3), radius: 10, x: 0, y: 4)
+            .scaleEffect(isPressed ? 0.97 : 1.0)
         }
         .disabled(isLoading)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                auraGlow.toggle()
-            }
-        }
     }
 }

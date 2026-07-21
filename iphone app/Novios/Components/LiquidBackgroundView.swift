@@ -10,37 +10,34 @@ public struct LiquidBackgroundView: View {
 
     public var body: some View {
         ZStack {
-            Color.white.opacity(0.97).ignoresSafeArea()
+            ThemeManager.shared.pastelWarmBg.ignoresSafeArea()
 
-            // Large soft pink orb
             Circle()
-                .fill(Color(red: 1.0, green: 0.36, blue: 0.54).opacity(0.08))
-                .frame(width: 360, height: 360)
-                .blur(radius: 100)
-                .offset(x: animate1 ? -100 : 120, y: animate1 ? -160 : -50)
-                .scaleEffect(animate1 ? 1.15 : 0.85)
+                .fill(ThemeManager.shared.pastelPink.opacity(0.25))
+                .frame(width: 340, height: 340)
+                .blur(radius: 90)
+                .offset(x: animate1 ? -90 : 110, y: animate1 ? -140 : -60)
+                .scaleEffect(animate1 ? 1.1 : 0.9)
 
-            // Purple orb
             Circle()
-                .fill(Color(red: 0.65, green: 0.35, blue: 0.95).opacity(0.05))
-                .frame(width: 400, height: 400)
-                .blur(radius: 120)
-                .offset(x: animate2 ? 140 : -90, y: animate2 ? 200 : 70)
-                .scaleEffect(animate2 ? 0.8 : 1.1)
+                .fill(ThemeManager.shared.pastelLavender.opacity(0.2))
+                .frame(width: 380, height: 380)
+                .blur(radius: 110)
+                .offset(x: animate2 ? 130 : -80, y: animate2 ? 180 : 80)
+                .scaleEffect(animate2 ? 0.85 : 1.05)
 
-            // Small pink accent
             Circle()
-                .fill(Color(red: 0.9, green: 0.1, blue: 0.4).opacity(0.04))
-                .frame(width: 260, height: 260)
+                .fill(ThemeManager.shared.pastelPeach.opacity(0.2))
+                .frame(width: 280, height: 280)
                 .blur(radius: 80)
-                .offset(x: animate3 ? -50 : 80, y: animate3 ? 100 : -130)
-                .scaleEffect(animate3 ? 1.05 : 0.9)
+                .offset(x: animate3 ? -40 : 70, y: animate3 ? 90 : -110)
+                .scaleEffect(animate3 ? 1.0 : 0.92)
         }
         .ignoresSafeArea()
         .onAppear {
-            withAnimation(.easeInOut(duration: 6.0).repeatForever(autoreverses: true)) { animate1.toggle() }
-            withAnimation(.easeInOut(duration: 8.0).repeatForever(autoreverses: true)) { animate2.toggle() }
-            withAnimation(.easeInOut(duration: 7.0).repeatForever(autoreverses: true)) { animate3.toggle() }
+            withAnimation(.easeInOut(duration: 7.0).repeatForever(autoreverses: true)) { animate1.toggle() }
+            withAnimation(.easeInOut(duration: 9.0).repeatForever(autoreverses: true)) { animate2.toggle() }
+            withAnimation(.easeInOut(duration: 8.0).repeatForever(autoreverses: true)) { animate3.toggle() }
         }
     }
 }

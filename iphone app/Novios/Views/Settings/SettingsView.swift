@@ -51,7 +51,8 @@ public struct SettingsView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 22)).foregroundStyle(.secondary)
+                            .font(.system(size: 22))
+                            .foregroundColor(ThemeManager.shared.pastelRose.opacity(0.5))
                     }
                 }
             }
@@ -70,21 +71,21 @@ public struct SettingsView: View {
             GlassCard {
                 if userService.partnerUser != nil {
                     HStack(spacing: 12) {
-                        Circle().fill(ThemeManager.shared.primaryPink.opacity(0.15)).frame(width: 48, height: 48)
-                            .overlay(Image(systemName: "person.fill").font(.system(size: 20)).foregroundColor(ThemeManager.shared.primaryPink))
+                        Circle().fill(ThemeManager.shared.pastelPink.opacity(0.25)).frame(width: 48, height: 48)
+                            .overlay(Image(systemName: "person.fill").font(.system(size: 20)).foregroundColor(ThemeManager.shared.pastelRose))
                         VStack(alignment: .leading, spacing: 2) {
                             Text("@\(userService.partnerUser?.username ?? "")")
                                 .font(.system(size: 16, weight: .semibold))
                             Text(userService.partnerUser?.displayName ?? "Sin nombre")
-                                .font(.system(size: 13)).foregroundColor(.secondary)
+                                .font(.system(size: 13)).foregroundColor(ThemeManager.shared.textSecondary)
                         }
                         Spacer()
                     }
                 } else {
                     HStack(spacing: 12) {
-                        Image(systemName: "person.badge.plus").font(.system(size: 28)).foregroundColor(ThemeManager.shared.primaryPink)
+                        Image(systemName: "person.badge.plus").font(.system(size: 24)).foregroundColor(ThemeManager.shared.pastelRose)
                         Text("Aún no has agregado a tu pareja")
-                            .font(.system(size: 14)).foregroundColor(.secondary)
+                            .font(.system(size: 14)).foregroundColor(ThemeManager.shared.textSecondary)
                         Spacer()
                     }
                     Button {
@@ -93,7 +94,10 @@ public struct SettingsView: View {
                         Text("Buscar y agregar pareja")
                             .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
                             .frame(maxWidth: .infinity).padding(.vertical, 12)
-                            .background(ThemeManager.shared.primaryPink).cornerRadius(14)
+                            .background(
+                                LinearGradient(colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
+                                    startPoint: .leading, endPoint: .trailing)
+                            ).cornerRadius(14)
                     }
                 }
             }
@@ -107,14 +111,12 @@ public struct SettingsView: View {
             sectionHeader(icon: "paintpalette.fill", title: "Personalización")
             GlassCard {
                 Toggle(isOn: $isDarkMode) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Modo oscuro").font(.system(size: 14, weight: .medium))
-                    }
+                    Text("Modo oscuro").font(.system(size: 14, weight: .medium))
                 }
-                .tint(ThemeManager.shared.primaryPink)
+                .tint(ThemeManager.shared.pastelRose)
                 Divider().padding(.vertical, 4)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Fuente / Tipografía").font(.system(size: 13, weight: .medium)).foregroundColor(.secondary)
+                    Text("Fuente / Tipografía").font(.system(size: 13, weight: .medium)).foregroundColor(ThemeManager.shared.textSecondary)
                     Picker("Fuente", selection: $selectedFont) {
                         ForEach(fonts, id: \.self) { font in
                             Text(font).tag(font)
@@ -133,19 +135,19 @@ public struct SettingsView: View {
             sectionHeader(icon: "calendar", title: "Fechas Importantes")
             GlassCard {
                 dateRow(icon: "heart.fill", label: "Aniversario de novios",
-                    subtitle: "Cuando se hicieron novios", date: $anniversaryDate, color: ThemeManager.shared.primaryPink)
+                    subtitle: "Cuando se hicieron novios", date: $anniversaryDate, color: ThemeManager.shared.pastelRose)
                 Divider().padding(.vertical, 6)
                 dateRow(icon: "person.2.fill", label: "Día que nos conocimos",
-                    subtitle: "El día que se conocieron", date: $metDate, color: Color(red: 0.49, green: 0.51, blue: 1.0))
+                    subtitle: "El día que se conocieron", date: $metDate, color: ThemeManager.shared.pastelBlue)
                 Divider().padding(.vertical, 6)
                 dateRow(icon: "cup.and.saucer.fill", label: "Primera cita",
-                    subtitle: "Su primera cita juntos", date: $datingDate, color: Color(red: 1.0, green: 0.72, blue: 0.3))
+                    subtitle: "Su primera cita juntos", date: $datingDate, color: ThemeManager.shared.pastelPeach)
                 Divider().padding(.vertical, 6)
                 dateRow(icon: "person.fill", label: "Boda",
-                    subtitle: "Cuando se casaron", date: $weddingDate, color: Color(red: 0.4, green: 0.73, blue: 0.42))
+                    subtitle: "Cuando se casaron", date: $weddingDate, color: ThemeManager.shared.pastelMint)
                 Divider().padding(.vertical, 6)
                 dateRow(icon: "envelope.badge.fill", label: "Invitación en Vivo",
-                    subtitle: "Invitación a la boda", date: $invitationDate, color: Color(red: 0.85, green: 0.4, blue: 0.65))
+                    subtitle: "Invitación a la boda", date: $invitationDate, color: ThemeManager.shared.pastelLavender)
             }
         }
     }
@@ -159,24 +161,24 @@ public struct SettingsView: View {
                 Toggle(isOn: $shareLocation) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Compartir ubicación en tiempo real").font(.system(size: 14, weight: .medium))
-                        Text("Tu pareja podrá ver donde estás").font(.system(size: 11)).foregroundColor(.secondary)
+                        Text("Tu pareja podrá ver donde estás").font(.system(size: 11)).foregroundColor(ThemeManager.shared.textSecondary)
                     }
                 }
-                .tint(ThemeManager.shared.primaryPink)
+                .tint(ThemeManager.shared.pastelRose)
                 Divider().padding(.vertical, 4)
                 HStack(spacing: 6) {
                     Image(systemName: shareLocation ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(shareLocation ? .green : .gray).font(.system(size: 14))
+                        .foregroundColor(shareLocation ? ThemeManager.shared.pastelMint : .gray).font(.system(size: 14))
                     Text(shareLocation ? "Compartiendo ubicación" : "Ubicación no compartida")
-                        .font(.system(size: 12, weight: .medium)).foregroundColor(shareLocation ? .green : .gray)
+                        .font(.system(size: 12, weight: .medium)).foregroundColor(shareLocation ? ThemeManager.shared.pastelMint : .gray)
                 }
                 HStack(spacing: 6) {
-                    Image(systemName: "bell.fill").foregroundColor(.blue).font(.system(size: 12))
-                    Text("Alertas al entrar/salir de zonas").font(.system(size: 12)).foregroundColor(.secondary)
+                    Image(systemName: "bell.fill").foregroundColor(ThemeManager.shared.pastelBlue).font(.system(size: 12))
+                    Text("Alertas al entrar/salir de zonas").font(.system(size: 12)).foregroundColor(ThemeManager.shared.textSecondary)
                 }.padding(.top, 4)
                 HStack(spacing: 6) {
-                    Image(systemName: "clock.fill").foregroundColor(.orange).font(.system(size: 12))
-                    Text("Historial de ubicación 24h").font(.system(size: 12)).foregroundColor(.secondary)
+                    Image(systemName: "clock.fill").foregroundColor(ThemeManager.shared.pastelPeach).font(.system(size: 12))
+                    Text("Historial de ubicación 24h").font(.system(size: 12)).foregroundColor(ThemeManager.shared.textSecondary)
                 }.padding(.top, 2)
                 if shareLocation {
                     Divider().padding(.vertical, 6)
@@ -187,7 +189,10 @@ public struct SettingsView: View {
                             Label("Voy a casa", systemImage: "house.fill")
                                 .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
                                 .padding(.horizontal, 12).padding(.vertical, 10)
-                                .background(Color.green).cornerRadius(12)
+                                .background(
+                                    LinearGradient(colors: [ThemeManager.shared.pastelMint, Color(red: 0.5, green: 0.8, blue: 0.5)],
+                                        startPoint: .leading, endPoint: .trailing)
+                                ).cornerRadius(12)
                         }
                         Button {
                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -195,7 +200,10 @@ public struct SettingsView: View {
                             Label("Llegué bien", systemImage: "checkmark.circle.fill")
                                 .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
                                 .padding(.horizontal, 12).padding(.vertical, 10)
-                                .background(Color.blue).cornerRadius(12)
+                                .background(
+                                    LinearGradient(colors: [ThemeManager.shared.pastelBlue, Color(red: 0.5, green: 0.6, blue: 0.9)],
+                                        startPoint: .leading, endPoint: .trailing)
+                                ).cornerRadius(12)
                         }
                     }
                 }
@@ -212,18 +220,30 @@ public struct SettingsView: View {
                 Toggle(isOn: $securityEnabled) {
                     Text("Bloquear con PIN al abrir").font(.system(size: 14, weight: .medium))
                 }
-                .tint(ThemeManager.shared.primaryPink)
+                .tint(ThemeManager.shared.pastelRose)
                 if securityEnabled {
                     VStack(spacing: 10) {
                         SecureField("Código PIN (4 dígitos)", text: $pinCode)
                             .font(.system(size: 14)).keyboardType(.numberPad)
-                            .padding(12).background(Color(.systemGray6)).cornerRadius(10)
+                            .padding(12)
+                            .background(.ultraThinMaterial)
+                            .background(ThemeManager.shared.pastelWarmBg.opacity(0.2))
+                            .cornerRadius(10)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.2), lineWidth: 0.5))
                         TextField("Pregunta Secreta de Recuperación", text: $securityQuestion)
                             .font(.system(size: 14))
-                            .padding(12).background(Color(.systemGray6)).cornerRadius(10)
+                            .padding(12)
+                            .background(.ultraThinMaterial)
+                            .background(ThemeManager.shared.pastelWarmBg.opacity(0.2))
+                            .cornerRadius(10)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.2), lineWidth: 0.5))
                         SecureField("Respuesta Secreta", text: $securityAnswer)
                             .font(.system(size: 14))
-                            .padding(12).background(Color(.systemGray6)).cornerRadius(10)
+                            .padding(12)
+                            .background(.ultraThinMaterial)
+                            .background(ThemeManager.shared.pastelWarmBg.opacity(0.2))
+                            .cornerRadius(10)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.2), lineWidth: 0.5))
                     }
                     .padding(.top, 6)
                 }
@@ -238,7 +258,7 @@ public struct SettingsView: View {
             sectionHeader(icon: "brain.head.profile", title: "Servicios de IA")
             GlassCard {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Motor de IA").font(.system(size: 13, weight: .medium)).foregroundColor(.secondary)
+                    Text("Motor de IA").font(.system(size: 13, weight: .medium)).foregroundColor(ThemeManager.shared.textSecondary)
                     Picker("Motor de IA", selection: $aiMode) {
                         Text("DeepSeek API (Online)").tag(0)
                         Text("DeepSeek Local (Sin Internet)").tag(1)
@@ -247,21 +267,25 @@ public struct SettingsView: View {
                     if aiMode == 0 {
                         SecureField("DeepSeek API Key", text: $deepseekKey)
                             .font(.system(size: 14))
-                            .padding(12).background(Color(.systemGray6)).cornerRadius(10)
+                            .padding(12)
+                            .background(.ultraThinMaterial)
+                            .background(ThemeManager.shared.pastelWarmBg.opacity(0.2))
+                            .cornerRadius(10)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.2), lineWidth: 0.5))
                         Text("Obtén una key en platform.deepseek.com/api_keys")
-                            .font(.system(size: 10)).foregroundColor(.secondary)
+                            .font(.system(size: 10)).foregroundColor(ThemeManager.shared.textSecondary)
                     }
                     if aiMode == 1 {
                         VStack(spacing: 10) {
                             HStack(spacing: 8) {
-                                Image(systemName: "iphone.gen3").foregroundColor(.green)
+                                Image(systemName: "iphone.gen3").foregroundColor(ThemeManager.shared.pastelMint)
                                 Text("El modelo DeepSeek R1 1.5B se descarga una vez (~1.1 GB) y corre 100% offline")
-                                    .font(.system(size: 11)).foregroundColor(.green).opacity(0.8)
+                                    .font(.system(size: 11)).foregroundColor(ThemeManager.shared.pastelMint)
                             }
                             if modelDownloaded {
                                 HStack {
-                                    Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
-                                    Text("Modelo instalado y listo").font(.system(size: 12, weight: .bold)).foregroundColor(.green)
+                                    Image(systemName: "checkmark.circle.fill").foregroundColor(ThemeManager.shared.pastelMint)
+                                    Text("Modelo instalado y listo").font(.system(size: 12, weight: .bold)).foregroundColor(ThemeManager.shared.pastelMint)
                                 }
                                 Button {
                                     modelDownloaded = false
@@ -280,23 +304,25 @@ public struct SettingsView: View {
                                     }
                                 } label: {
                                     HStack {
-                                        if isDownloadingModel {
-                                            ProgressView().tint(.white)
-                                        } else {
-                                            Image(systemName: "arrow.down.circle.fill")
-                                        }
+                                        if isDownloadingModel { ProgressView().tint(.white) }
+                                        else { Image(systemName: "arrow.down.circle.fill") }
                                         Text(isDownloadingModel ? "Descargando..." : "Descargar Modelo Local")
                                     }
                                     .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
                                     .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                    .background(Color.green).cornerRadius(10)
+                                    .background(
+                                        LinearGradient(colors: [ThemeManager.shared.pastelMint, Color(red: 0.5, green: 0.8, blue: 0.5)],
+                                            startPoint: .leading, endPoint: .trailing)
+                                    ).cornerRadius(10)
                                 }
                                 .disabled(isDownloadingModel)
                             }
                         }
                         .padding(10)
-                        .background(Color.green.opacity(0.06)).cornerRadius(10)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green.opacity(0.15)))
+                        .background(.ultraThinMaterial)
+                        .background(ThemeManager.shared.pastelMint.opacity(0.06))
+                        .cornerRadius(10)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(ThemeManager.shared.pastelMint.opacity(0.2), lineWidth: 0.5))
                     }
                 }
             }
@@ -312,7 +338,11 @@ public struct SettingsView: View {
             Text("Guardar Todas las Configuraciones")
                 .font(.system(size: 16, weight: .bold)).foregroundColor(.white)
                 .frame(maxWidth: .infinity).padding(.vertical, 16)
-                .background(ThemeManager.shared.neonGlowGradient).cornerRadius(16)
+                .background(
+                    LinearGradient(colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
+                        startPoint: .leading, endPoint: .trailing)
+                ).cornerRadius(16)
+                .shadow(color: ThemeManager.shared.pastelRose.opacity(0.2), radius: 8, y: 3)
         }
     }
 
@@ -320,7 +350,7 @@ public struct SettingsView: View {
 
     private func sectionHeader(icon: String, title: String) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: icon).font(.system(size: 14)).foregroundColor(ThemeManager.shared.primaryPink)
+            Image(systemName: icon).font(.system(size: 14)).foregroundColor(ThemeManager.shared.pastelRose)
             Text(title).font(.system(size: 16, weight: .semibold))
         }
         .padding(.leading, 4).padding(.bottom, 2)
@@ -334,9 +364,9 @@ public struct SettingsView: View {
                 Text(label).font(.system(size: 14, weight: .semibold))
                 if let d = date.wrappedValue {
                     Text(d.formatted(date: .long, time: .omitted))
-                        .font(.system(size: 12, weight: .bold)).foregroundColor(ThemeManager.shared.primaryPink)
+                        .font(.system(size: 12, weight: .bold)).foregroundColor(ThemeManager.shared.pastelRose)
                 } else {
-                    Text(subtitle).font(.system(size: 11)).foregroundColor(.secondary)
+                    Text(subtitle).font(.system(size: 11)).foregroundColor(ThemeManager.shared.textSecondary)
                 }
             }
             Spacer()
@@ -344,9 +374,9 @@ public struct SettingsView: View {
                 showDatePicker(for: label, binding: date, color: color)
             }
             .font(.system(size: 12, weight: .medium))
-            .foregroundColor(ThemeManager.shared.primaryPink)
+            .foregroundColor(ThemeManager.shared.pastelRose)
             .padding(.horizontal, 12).padding(.vertical, 6)
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(ThemeManager.shared.primaryPink.opacity(0.3)))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(ThemeManager.shared.pastelRose.opacity(0.3)))
         }
     }
 
@@ -375,8 +405,7 @@ public struct SettingsView: View {
         datingDate = dateFromDefaults("dating_date")
         weddingDate = dateFromDefaults("wedding_date")
         invitationDate = dateFromDefaults("invitation_date")
-        let savedMode = defaults.integer(forKey: "ai_mode")
-        aiMode = savedMode
+        aiMode = defaults.integer(forKey: "ai_mode")
         modelDownloaded = defaults.bool(forKey: "model_downloaded")
     }
 
@@ -420,11 +449,8 @@ public struct SettingsView: View {
     }
 
     private func dateToDefaults(_ key: String, date: Date?) {
-        if let d = date {
-            defaults.set(ISO8601DateFormatter().string(from: d), forKey: key)
-        } else {
-            defaults.removeObject(forKey: key)
-        }
+        if let d = date { defaults.set(ISO8601DateFormatter().string(from: d), forKey: key) }
+        else { defaults.removeObject(forKey: key) }
     }
 }
 
@@ -455,7 +481,10 @@ private struct DatePickerView: View {
                 } label: {
                     Text("Guardar").font(.system(size: 16, weight: .bold)).foregroundColor(.white)
                         .frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(color).cornerRadius(14)
+                        .background(
+                            LinearGradient(colors: [ThemeManager.shared.pastelRose, ThemeManager.shared.pastelLavender],
+                                startPoint: .leading, endPoint: .trailing)
+                        ).cornerRadius(14)
                 }
             }
             .padding(20)

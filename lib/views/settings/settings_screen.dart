@@ -194,29 +194,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ],
                               ),
                               const SizedBox(height: 16),
-                              const Divider(),
-                              const SizedBox(height: 8),
-                              TextButton.icon(
-                                onPressed: () async {
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (ctx) => AlertDialog(
-                                      title: const Text('Desvincular pareja'),
-                                      content: const Text('¿Seguro que quieres desvincular a tu pareja? Podrás vincular a otra persona después.'),
-                                      actions: [
-                                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-                                        ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Desvincular', style: TextStyle(color: Colors.red))),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirm == true) {
-                                    await UserService().removePartner();
-                                    if (mounted) setState(() {});
-                                  }
-                                },
-                                icon: Icon(Icons.link_off_rounded, color: Colors.redAccent, size: 18),
-                                label: const Text('Desvincular pareja', style: TextStyle(color: Colors.redAccent)),
-                              ),
                             ],
                           )
                         : Column(
@@ -568,72 +545,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: const Text("Guardar Todas las Configuraciones", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
             ),
-            const SizedBox(height: 16),
-            EntranceAnimation(
-              delayMs: 500,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _SectionHeader(title: "Cuenta", icon: Icons.person_rounded),
-                  GlassCard(
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                        children: [
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 22),
-                            ),
-                            title: const Text('Cerrar sesión', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                            subtitle: Text('Volver a la pantalla de inicio de sesión', style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
-                            onTap: () async {
-                              final nav = Navigator.of(context);
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text("Cerrar sesion"),
-                                  content: const Text("Estas seguro de que quieres cerrar sesion?"),
-                                  actions: [
-                                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancelar")),
-                                    ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("Cerrar sesion")),
-                                  ],
-                                ),
-                              );
-                              if (confirm != true) return;
-                              await ProfileService().logout();
-                              if (mounted) {
-                                nav.popUntil((route) => route.isFirst);
-                              }
-                            },
-                          ),
-                          const Divider(),
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(Icons.person_rounded, color: primary, size: 22),
-                            ),
-                            title: const Text('Mi usuario', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                            subtitle: Text('@${UserService().username ?? 'sin usuario'}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             const SizedBox(height: 30),
           ],
         ),

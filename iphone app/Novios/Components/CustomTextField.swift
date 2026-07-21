@@ -5,7 +5,7 @@ public struct CustomTextField: View {
     @Binding public var text: String
     public var icon: String
     public var isSecure: Bool
-    
+
     public init(
         placeholder: String,
         text: Binding<String>,
@@ -17,27 +17,32 @@ public struct CustomTextField: View {
         self.icon = icon
         self.isSecure = isSecure
     }
-    
+
     public var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(.primary.opacity(0.4))
+                .foregroundColor(ThemeManager.shared.pastelRose)
                 .font(.system(size: 18))
-            
+
             if isSecure {
-                SecureField("", text: $text, prompt: Text(placeholder).foregroundColor(.primary.opacity(0.4)))
+                SecureField("", text: $text, prompt: Text(placeholder).foregroundColor(ThemeManager.shared.textSecondary.opacity(0.5)))
                     .foregroundColor(.primary)
             } else {
-                TextField("", text: $text, prompt: Text(placeholder).foregroundColor(.primary.opacity(0.4)))
+                TextField("", text: $text, prompt: Text(placeholder).foregroundColor(ThemeManager.shared.textSecondary.opacity(0.5)))
                     .foregroundColor(.primary)
             }
         }
         .padding()
-        .background(ThemeManager.shared.cardBackground)
+        .background(.ultraThinMaterial)
+        .background(ThemeManager.shared.pastelWarmBg.opacity(0.4))
         .cornerRadius(16)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .stroke(
+                    LinearGradient(colors: [.white.opacity(0.5), ThemeManager.shared.pastelPink.opacity(0.2)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 0.8
+                )
         )
     }
 }
