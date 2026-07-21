@@ -9,7 +9,8 @@ public struct ProfileView: View {
     @State private var displayName = ""
     @State private var username = ""
     @State private var birthdayDate: Date?
-    @State private var profilePhotoBase64: String?
+    @State private var profileImage: UIImage?
+    @State private var profilePhotoFirestoreUrl: String?
     @State private var partnerName = ""
     @State private var partnerUid = ""
 
@@ -24,6 +25,7 @@ public struct ProfileView: View {
     @State private var editingDateIndex: Int?
     @State private var editingDate: [String: Any]?
     @State private var showSettings = false
+    @State private var errorMessage: String?
 
     private let defaults = UserDefaults.standard
 
@@ -39,29 +41,44 @@ public struct ProfileView: View {
 
     public var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    if isLoading {
-                        VStack(spacing: 12) {
-                            Spacer().frame(height: 60)
-                            ProgressView().tint(theme.primary)
-                            Text("Cargando perfil...")
-                                .appFont(size: 14)
-                                .foregroundColor(theme.textSecondary)
+            ZStack {
+                theme.backgroundGradient.ignoresSafeArea()
+
+                if isLoading {
+                    VStack(spacing: 12) {
+                        Spacer().frame(height: 80)
+                        ProgressView().tint(theme.primary)
+                        Text("Cargando perfil...")
+                            .appFont(size: 14)
+                            .foregroundColor(theme.textSecondary)
+                        Spacer()
+                    }
+                } else {
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            if let err = errorMessage {
+                                Text(err)
+                                    .appFont(size: 12)
+                                    .foregroundColor(.red)
+                                    .padding(10)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.red.opacity(0.06))
+                                    .cornerRadius(10)
+                            }
+
+                            profileHeader
+                            if !partnerUid.isEmpty {
+                                partnerInfo
+                            }
+                            streakCard
+                            importantDatesSection
+                            quickActionsSection
                         }
-                    } else {
-                        profileHeader
-                        if !partnerUid.isEmpty {
-                            partnerInfo
-                        }
-                        streakCard
-                        importantDatesSection
-                        quickActionsSection
+                        .padding(16)
+                        .padding(.bottom, 30)
                     }
                 }
-                .padding(16)
             }
-            .background(theme.backgroundGradient.ignoresSafeArea())
             .navigationTitle("Perfil")
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -72,11 +89,7 @@ public struct ProfileView: View {
         }
         .sheet(isPresented: $showPhotoPicker) {
             PhotoPicker { image in
-                if let data = image.jpegData(compressionQuality: 0.6) {
-                    let base64 = data.base64EncodedString()
-                    profilePhotoBase64 = base64
-                    saveField("profilePhotoUrl", value: "data:image/jpeg;base64,\(base64)")
-                }
+                uploadProfilePhoto(image)
             }
         }
         .alert("Editar usuario", isPresented: $showEditUsername) {
@@ -88,11 +101,7 @@ public struct ProfileView: View {
         }
         .sheet(isPresented: $showEditBirthday) {
             BirthdayPickerView(selectedDate: birthdayDate ?? Date()) { date in
-                birthdayDate = date
-                let str = dateFormatter.string(from: date)
-                saveField("birthdayDate", value: str)
-                saveField("dob", value: str)
-                defaults.set(str, forKey: "profile_dob")
+                saveBirthday(date)
             }
         }
         .sheet(isPresented: $showAddDate) {
@@ -124,29 +133,26 @@ public struct ProfileView: View {
                 showPhotoPicker = true
             } label: {
                 ZStack {
-                    Group {
-                        if let base64 = profilePhotoBase64,
-                           let data = Data(base64Encoded: base64),
-                           let uiImage = UIImage(data: data) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 100, height: 100)
-                                .clipShape(Circle())
-                        } else {
-                            Circle()
-                                .fill(theme.primary.opacity(0.2))
-                                .frame(width: 100, height: 100)
-                                .overlay(
-                                    Text(displayName.prefix(1).uppercased())
-                                        .appFont(size: 40, weight: .bold)
-                                        .foregroundColor(theme.primary)
-                                )
-                        }
+                    if let img = profileImage {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
+                    } else {
+                        Circle()
+                            .fill(theme.primary.opacity(0.2))
+                            .frame(width: 100, height: 100)
+                            .overlay(
+                                Text(displayName.prefix(1).uppercased())
+                                    .appFont(size: 40, weight: .bold)
+                                    .foregroundColor(theme.primary)
+                            )
                     }
                     Circle()
                         .stroke(Color.white, lineWidth: 3)
                         .frame(width: 100, height: 100)
+
                     VStack {
                         Spacer()
                         HStack {
@@ -259,7 +265,7 @@ public struct ProfileView: View {
                 .foregroundColor(partnerUid.isEmpty ? theme.primary : .orange)
             Text(partnerUid.isEmpty
                 ? "Vincula tu cuenta en Ajustes para iniciar tu racha!"
-                : "Racha: \(streakCount) días seguidos"
+                : "Racha: \(streakCount) días seguidos 🔥"
             )
             .appFont(size: partnerUid.isEmpty ? 13 : 16, weight: .semibold)
             .foregroundColor(.primary)
@@ -343,9 +349,11 @@ public struct ProfileView: View {
                             Text(title)
                                 .appFont(size: 14, weight: .semibold)
                                 .foregroundColor(.primary)
-                            Text(counter)
-                                .appFont(size: 11)
-                                .foregroundColor(theme.textSecondary)
+                            if let date = date {
+                                Text("\(date.dayMonthYear()) - \(counter)")
+                                    .appFont(size: 11)
+                                    .foregroundColor(theme.textSecondary)
+                            }
                         }
 
                         Spacer()
@@ -378,7 +386,10 @@ public struct ProfileView: View {
         if repeats {
             let now = Date()
             let cal = Calendar.current
-            let thisYear = cal.date(bySettingHour: 0, minute: 0, second: 0, of: cal.date(from: DateComponents(year: cal.component(.year, from: now), month: cal.component(.month, from: date), day: cal.component(.day, from: date)))!)!
+            let comps = cal.dateComponents([.month, .day], from: date)
+            guard let thisYear = cal.date(bySettingHour: 0, minute: 0, second: 0, of: cal.date(from: DateComponents(year: cal.component(.year, from: now), month: comps.month, day: comps.day))!) else {
+                return ""
+            }
             if thisYear < now {
                 target = cal.date(byAdding: .year, value: 1, to: thisYear)!
             } else {
@@ -389,7 +400,7 @@ public struct ProfileView: View {
         }
         let diff = Calendar.current.dateComponents([.day], from: Date(), to: target).day ?? 0
         if diff > 0 { return "Faltan \(diff) días" }
-        if diff == 0 { return "Hoy!" }
+        if diff == 0 { return "Hoy! 🎉" }
         let past = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
         return "\(past) días desde entonces"
     }
@@ -412,15 +423,9 @@ public struct ProfileView: View {
                 quickActionRow(icon: "gearshape.fill", title: "Ajustes", color: theme.primary) {
                     showSettings = true
                 }
-                quickActionRow(icon: "music.note", title: "Música", color: theme.pastelPeach) {
-                    // Placeholder
-                }
-                quickActionRow(icon: "note.text", title: "Notas", color: theme.pastelMint) {
-                    // Placeholder
-                }
-                quickActionRow(icon: "calendar", title: "Calendario", color: theme.pastelBlue) {
-                    // Placeholder
-                }
+                quickActionRow(icon: "music.note", title: "Música", color: theme.pastelPeach) {}
+                quickActionRow(icon: "note.text", title: "Notas", color: theme.pastelMint) {}
+                quickActionRow(icon: "calendar", title: "Calendario", color: theme.pastelBlue) {}
             }
         }
     }
@@ -459,7 +464,7 @@ public struct ProfileView: View {
     // MARK: - Firestore Data Loading
 
     private func loadUserData() {
-        guard let uid = authService.currentUser?.id ?? FirebaseRESTService.shared.localId else {
+        guard let uid = resolveUid() else {
             isLoading = false
             return
         }
@@ -470,20 +475,22 @@ public struct ProfileView: View {
                 await MainActor.run {
                     displayName = extractString(fields, key: "displayName")
                         ?? extractString(fields, key: "name")
-                        ?? authService.currentUser?.displayName ?? "Usuario"
+                        ?? defaults.string(forKey: "auth_user_name")
+                        ?? "Usuario"
                     username = extractString(fields, key: "username")
-                        ?? defaults.string(forKey: "profile_username") ?? ""
+                        ?? defaults.string(forKey: "profile_username")
+                        ?? ""
                     partnerName = extractString(fields, key: "partnerName")
-                        ?? defaults.string(forKey: "partner_name") ?? ""
-                    partnerUid = extractString(fields, key: "partnerUid") ?? ""
+                        ?? extractString(fields, key: "partnerDisplayName")
+                        ?? defaults.string(forKey: "partner_name")
+                        ?? ""
+                    partnerUid = extractString(fields, key: "partnerUid")
+                        ?? defaults.string(forKey: "partner_uid")
+                        ?? ""
 
-                    if let photoVal = extractString(fields, key: "profilePhotoUrl"), !photoVal.isEmpty {
-                        if photoVal.hasPrefix("data:image") {
-                            let base64 = photoVal.replacingOccurrences(of: "data:image/.*?;base64,", with: "", options: .regularExpression)
-                            profilePhotoBase64 = base64
-                        } else {
-                            // Could be a URL - convert to base64 if needed
-                        }
+                    if let photoUrl = extractString(fields, key: "profilePhotoUrl"), !photoUrl.isEmpty {
+                        profilePhotoFirestoreUrl = photoUrl
+                        loadProfilePhoto(photoUrl)
                     }
 
                     if let bdStr = extractString(fields, key: "birthdayDate")
@@ -498,18 +505,87 @@ public struct ProfileView: View {
                 loadImportantDatesFromFirestore(fields: fields)
             } else {
                 await MainActor.run {
-                    displayName = authService.currentUser?.displayName ?? "Usuario"
-                    username = defaults.string(forKey: "profile_username") ?? ""
-                    partnerName = defaults.string(forKey: "partner_name") ?? ""
-                    partnerUid = defaults.string(forKey: "partner_uid") ?? ""
-                    if let bdStr = defaults.string(forKey: "profile_dob") {
-                        birthdayDate = dateFormatter.date(from: bdStr)
-                    }
+                    loadFromDefaults()
                     isLoading = false
                 }
             }
         }
     }
+
+    private func loadProfilePhoto(_ url: String) {
+        if url.hasPrefix("data:image") {
+            let base64 = url.replacingOccurrences(of: "data:image/.*?;base64,", with: "", options: .regularExpression)
+            if let data = Data(base64Encoded: base64), let img = UIImage(data: data) {
+                profileImage = img
+                return
+            }
+        }
+
+        if url.hasPrefix("firestore://") {
+            let path = url.replacingOccurrences(of: "firestore://", with: "")
+            Task {
+                if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
+                   let fields = doc["fields"] as? [String: Any],
+                   let b64 = extractString(fields, key: "data") ?? extractString(fields, key: "data"),
+                   let data = Data(base64Encoded: b64),
+                   let img = UIImage(data: data) {
+                    await MainActor.run { self.profileImage = img }
+                }
+            }
+            return
+        }
+
+        if let urlObj = URL(string: url) {
+            Task {
+                if let data = try? Data(contentsOf: urlObj), let img = UIImage(data: data) {
+                    await MainActor.run { self.profileImage = img }
+                }
+            }
+        }
+    }
+
+    private func loadFromDefaults() {
+        displayName = defaults.string(forKey: "auth_user_name") ?? authService.currentUser?.displayName ?? "Usuario"
+        username = defaults.string(forKey: "profile_username") ?? ""
+        partnerName = defaults.string(forKey: "partner_name") ?? ""
+        partnerUid = defaults.string(forKey: "partner_uid") ?? ""
+        if let bdStr = defaults.string(forKey: "profile_dob") {
+            birthdayDate = dateFormatter.date(from: bdStr)
+        }
+    }
+
+    // MARK: - Photo Upload (Android-compatible)
+
+    private func uploadProfilePhoto(_ image: UIImage) {
+        guard let imageData = image.jpegData(compressionQuality: 0.6) else { return }
+        let b64 = imageData.base64EncodedString()
+
+        let coupleId = defaults.string(forKey: "couple_id") ?? defaults.string(forKey: "pair_id") ?? ""
+        let uid = resolveUid() ?? ""
+
+        if !coupleId.isEmpty {
+            let photoId = "profile_\(Int(Date().timeIntervalSince1970))"
+            let path = "pairs/\(coupleId)/photos/\(photoId)"
+            Task {
+                try? await FirebaseRESTService.shared.firestoreSet(path: path, fields: [
+                    "data": b64,
+                    "mimeType": "image/jpeg",
+                    "createdAt": df.string(from: Date())
+                ])
+                let firestoreUrl = "firestore://\(path)"
+                profilePhotoFirestoreUrl = firestoreUrl
+                await MainActor.run { self.profileImage = image }
+                saveField("profilePhotoUrl", value: firestoreUrl)
+            }
+        } else {
+            let dataUrl = "data:image/jpeg;base64,\(b64)"
+            profilePhotoFirestoreUrl = dataUrl
+            profileImage = image
+            saveField("profilePhotoUrl", value: dataUrl)
+        }
+    }
+
+    // MARK: - Firestore Data Helpers
 
     private func loadImportantDatesFromFirestore(fields: [String: Any]) {
         if let datesJson = extractString(fields, key: "importantDatesJson"),
@@ -529,7 +605,7 @@ public struct ProfileView: View {
 
     private func saveImportantDates() {
         saveImportantDatesLocally()
-        guard let uid = authService.currentUser?.id ?? FirebaseRESTService.shared.localId else { return }
+        guard let uid = resolveUid() else { return }
         if let data = try? JSONSerialization.data(withJSONObject: importantDates),
            let json = String(data: data, encoding: .utf8) {
             Task {
@@ -560,7 +636,6 @@ public struct ProfileView: View {
         if lastDate != todayStr {
             let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
             let yesterdayStr = dateFormatter.string(from: yesterday)
-
             if lastDate != yesterdayStr {
                 streakCount = 1
             } else {
@@ -576,10 +651,18 @@ public struct ProfileView: View {
     // MARK: - Save Helpers
 
     private func saveField(_ key: String, value: String) {
-        guard let uid = authService.currentUser?.id ?? FirebaseRESTService.shared.localId else { return }
+        guard let uid = resolveUid() else { return }
         Task {
             try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [key: value])
         }
+    }
+
+    private func saveBirthday(_ date: Date) {
+        birthdayDate = date
+        let str = dateFormatter.string(from: date)
+        saveField("birthdayDate", value: str)
+        saveField("dob", value: str)
+        defaults.set(str, forKey: "profile_dob")
     }
 
     private func saveUsername() {
@@ -587,17 +670,27 @@ public struct ProfileView: View {
         guard !val.isEmpty else { return }
         username = val
         defaults.set(val, forKey: "profile_username")
-        guard let uid = authService.currentUser?.id ?? FirebaseRESTService.shared.localId else { return }
+        guard let uid = resolveUid() else { return }
         Task {
             try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: ["username": val])
             try? await FirebaseRESTService.shared.firestoreSet(path: "usernames/\(val)", fields: [
                 "uid": uid,
                 "email": authService.currentUser?.email ?? ""
             ])
+            await MainActor.run {
+                if var user = AuthService.shared.currentUser {
+                    user.username = val
+                    AuthService.shared.currentUser = user
+                }
+            }
         }
     }
 
-    // MARK: - Field Extractor
+    // MARK: - Helpers
+
+    private func resolveUid() -> String? {
+        authService.currentUser?.id ?? FirebaseRESTService.shared.localId
+    }
 
     private func extractString(_ fields: [String: Any], key: String) -> String? {
         guard let map = fields[key] as? [String: Any] else { return nil }
@@ -770,5 +863,15 @@ struct AddDateView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Date Helper
+
+private extension Date {
+    func dayMonthYear() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "dd/MM/yyyy"
+        return f.string(from: self)
     }
 }
