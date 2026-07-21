@@ -14,7 +14,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     @Published public var partnerOnline = false
     @Published public var distanceToPartner: Double?
 
-    private let locationManager = CLLocationManager()
+    private var locationManager: CLLocationManager?
     private var firebaseTimer: Timer?
     private var partnerPollTimer: Timer?
     private var lastFirebaseUpdate = Date.distantPast
@@ -24,28 +24,34 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
     private override init() {
         super.init()
-        locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.distanceFilter = 30
-        locationManager.allowsBackgroundLocationUpdates = true
-        locationManager.pausesLocationUpdatesAutomatically = false
         if UserDefaults.standard.bool(forKey: "location_sharing_enabled") {
             startSharing()
         }
     }
 
+    private func ensureManager() -> CLLocationManager {
+        if let mgr = locationManager { return mgr }
+        let mgr = CLLocationManager()
+        mgr.delegate = self
+        mgr.desiredAccuracy = kCLLocationAccuracyBest
+        mgr.distanceFilter = 30
+        locationManager = mgr
+        return mgr
+    }
+
     // MARK: - Public API
 
     public func startSharing() {
-        let status = locationManager.authorizationStatus
+        let mgr = ensureManager()
+        let status = mgr.authorizationStatus
         if status == .notDetermined {
-            locationManager.requestAlwaysAuthorization()
+            mgr.requestAlwaysAuthorization()
             return
         }
         if status == .denied || status == .restricted {
             return
         }
-        locationManager.startUpdatingLocation()
+        mgr.startUpdatingLocation()
         isSharing = true
         defaults.set(true, forKey: "location_sharing_enabled")
         startFirebaseTimer()
@@ -53,7 +59,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     }
 
     public func stopSharing() {
-        locationManager.stopUpdatingLocation()
+        locationManager?.stopUpdatingLocation()
         isSharing = false
         defaults.set(false, forKey: "location_sharing_enabled")
         firebaseTimer?.invalidate()
@@ -63,7 +69,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     }
 
     public func requestPermission() {
-        locationManager.requestAlwaysAuthorization()
+        ensureManager().requestAlwaysAuthorization()
     }
 
     // MARK: - CLLocationManagerDelegate
@@ -138,7 +144,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     private func startFirebaseTimer() {
         firebaseTimer?.invalidate()
         firebaseTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
-            guard let self = self, let loc = self.locationManager.location else { return }
+            guard let self = self, let loc = self.locationManager?.location else { return }
             self.updateFirebasePosition(loc)
         }
     }
@@ -158,7 +164,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
                let fields = doc["fields"] as? [String: Any] {
                 let extractDouble = { (key: String) -> Double? in
                     if let map = fields[key] as? [String: Any] {
-                        return map["doubleValue"] as? Double
+                        return map["doubleValue"] as? Double ?? Double(map["stringValue"] as? String ?? "")
                     }
                     return nil
                 }

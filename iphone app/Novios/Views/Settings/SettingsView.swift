@@ -1,5 +1,4 @@
 import SwiftUI
-import CoreLocation
 
 public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -209,22 +208,6 @@ public struct SettingsView: View {
             GlassCard {
                 Toggle(isOn: Binding(get: { locationService.isSharing }, set: { newVal in
                     if newVal {
-                        let status = CLLocationManager().authorizationStatus
-                        if status == .denied || status == .restricted {
-                            showLocationPermissionAlert = true
-                            return
-                        }
-                        if status == .notDetermined {
-                            locationService.requestPermission()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                                if CLLocationManager().authorizationStatus == .authorizedAlways ||
-                                    CLLocationManager().authorizationStatus == .authorizedWhenInUse {
-                                    locationService.startSharing()
-                                    shareLocation = true
-                                }
-                            }
-                            return
-                        }
                         locationService.startSharing()
                         shareLocation = true
                     } else {
