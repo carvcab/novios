@@ -25,6 +25,7 @@ public struct ChatBubbleView: View {
                 .background(bubbleBackground)
                 .clipShape(bubbleShape)
                 .overlay(bubbleBorder)
+                .overlay(bubbleGlass)
                 .shadow(color: shadowColor, radius: 4, y: 2)
                 .frame(maxWidth: UIScreen.main.bounds.width * 0.78, alignment: isFromMe ? .trailing : .leading)
                 .modifier(BubbleAppearModifier(isAppeared: $isAppeared, isFromMe: isFromMe))
@@ -44,21 +45,20 @@ public struct ChatBubbleView: View {
         .task(id: message.id) { loadMediaIfNeeded() }
     }
 
-    private var bubbleBackground: some View {
-        if isFromMe {
-            ZStack {
-                LinearGradient(gradient: Gradient(colors: [
-                    Color(red: 0.93, green: 0.35, blue: 0.55),
-                    Color(red: 0.82, green: 0.22, blue: 0.48)
-                ]), startPoint: .topLeading, endPoint: .bottomTrailing)
-                LinearGradient(gradient: Gradient(colors: [
-                    Color.white.opacity(0.25),
-                    Color.clear,
-                    Color.white.opacity(0.08)
-                ]), startPoint: .top, endPoint: .bottom)
+    private var bubbleBackground: Color {
+        isFromMe ? Color(red: 0.93, green: 0.33, blue: 0.52) : Color(.systemGray6)
+    }
+
+    private var bubbleGlass: some View {
+        Group {
+            if isFromMe {
+                bubbleShape
+                    .fill(LinearGradient(gradient: Gradient(colors: [
+                        Color.white.opacity(0.25),
+                        Color.clear,
+                        Color.white.opacity(0.08)
+                    ]), startPoint: .top, endPoint: .bottom))
             }
-        } else {
-            Color(.systemGray6)
         }
     }
 
@@ -147,7 +147,7 @@ public struct ChatBubbleView: View {
             ForEach(Array(Set(message.reactions!.values)), id: \.self) { emoji in
                 Text(emoji).font(.system(size: 14))
                     .padding(.horizontal, 5).padding(.vertical, 2)
-                    .background(isFromMe ? Color.white.opacity(0.15) : .ultraThinMaterial.opacity(0.7))
+                    .background(isFromMe ? Color.white.opacity(0.15) : Color(.systemGray5).opacity(0.5))
                     .clipShape(Capsule())
             }
         }
@@ -193,6 +193,7 @@ public struct ChatBubbleView: View {
         }
     }
 
+    @ViewBuilder
     private var bubbleBorder: some View {
         if isFromMe {
             UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 18, bottomTrailing: 4, topTrailing: 18), style: .continuous)

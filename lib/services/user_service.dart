@@ -376,12 +376,14 @@ class UserService extends ChangeNotifier {
   }
 
   Future<void> _healRelationship(String uid, String? remotePartnerUid, Map<String, dynamic> userData) async {
-    // 1. If remote partnerUid is null or empty, we are UNLINKED remotely
     if (remotePartnerUid == null || remotePartnerUid.isEmpty) {
       final localPartner = LocalStorage().getString('partner_uid');
+      final skipped = LocalStorage().getBool('partner_skipped') == true;
       if (localPartner != null && localPartner.isNotEmpty) {
-        debugPrint("[SELF_HEAL] Remote partnerUid is null. Clearing local partner state.");
-        await _clearPartnerState();
+        if (!skipped) {
+          debugPrint("[SELF_HEAL] Remote partnerUid is null. Clearing local partner state.");
+          await _clearPartnerState();
+        }
       }
       return;
     }

@@ -83,9 +83,10 @@ class _LoginScreenState extends State<LoginScreen>
               MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
             );
           } else if (!hasPartner && !partnerSkipped) {
+            await LocalStorage().setBool('partner_skipped', true);
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const AddPartnerScreen()),
+              MaterialPageRoute(builder: (_) => const HomeNavigation()),
             );
           } else {
             final permissionsDone = LocalStorage().getBool('permissions_granted') == true;

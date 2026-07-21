@@ -238,7 +238,7 @@ class _AppGateState extends State<AppGate> with SingleTickerProviderStateMixin {
     }
 
     if (!hasPartner && !partnerSkipped) {
-      return const AddPartnerScreen();
+      return const HomeNavigation();
     }
 
     final permissionsDone = LocalStorage().getBool('permissions_granted') == true;
