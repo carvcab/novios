@@ -31,9 +31,17 @@ class _MessagesTabState extends State<MessagesTab>
   bool _disappearingMode = false;
   final List<_FloatingHeart> _hearts = [];
   final Set<String> _markedAsReadIds = {};
+  final Map<String, GlobalKey> _messageKeys = {};
+  final ScrollController _scrollCtrl = ScrollController();
 
   late Stream<List<MessageModel>> _messagesStream;
   MessageModel? _replyToMsg;
+
+  void _scrollToMessage(String messageId) {
+    final key = _messageKeys[messageId];
+    if (key?.currentContext == null) return;
+    Scrollable.ensureVisible(key!.currentContext!, alignment: 0.3, duration: const Duration(milliseconds: 300));
+  }
 
   @override
   void initState() {
@@ -362,18 +370,21 @@ class _MessagesTabState extends State<MessagesTab>
                 children: [
                   ListView.builder(
                     reverse: true,
+                    controller: _scrollCtrl,
                     padding: const EdgeInsets.all(16),
                     itemCount: list.length,
                     itemBuilder: (context, index) {
                       final msg = list[index];
                       final isMe = _isMyMessage(msg.senderId);
+                      _messageKeys[msg.id] = GlobalKey();
                       return _ChatBubble(
-                        key: ValueKey(msg.id),
+                        key: _messageKeys[msg.id],
                         msg: msg,
                         isMe: isMe,
                         cs: cs,
                         onReply: () => _setReply(msg),
                         onReact: (emoji) => _toggleReaction(msg.id, emoji),
+                        onTapReply: msg.replyToId != null ? () => _scrollToMessage(msg.replyToId!) : null,
                       );
                     },
                   ),
@@ -586,6 +597,7 @@ class _ChatBubble extends StatelessWidget {
   final ColorScheme cs;
   final VoidCallback onReply;
   final ValueChanged<String> onReact;
+  final VoidCallback? onTapReply;
 
   const _ChatBubble({
     super.key,
@@ -594,6 +606,7 @@ class _ChatBubble extends StatelessWidget {
     required this.cs,
     required this.onReply,
     required this.onReact,
+    this.onTapReply,
   });
 
   void _showMenu(BuildContext context) {
@@ -675,6 +688,7 @@ class _ChatBubble extends StatelessWidget {
                   text: msg.replyToText!,
                   isFromMe: msg.replyToSenderId == LocalStorage().getUserId(),
                   cs: cs,
+                  onTap: onTapReply,
                 ),
               if (msg.type == 'voice' && msg.mediaUrl != null)
                 _VoicePlayer(mediaUrl: msg.mediaUrl!, isMe: isMe, cs: cs)
@@ -752,40 +766,45 @@ class _ReplyPreview extends StatelessWidget {
   final String text;
   final bool isFromMe;
   final ColorScheme cs;
+  final VoidCallback? onTap;
 
   const _ReplyPreview({
     required this.text,
     required this.isFromMe,
     required this.cs,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
-      decoration: BoxDecoration(
-        color: cs.surface.withValues(alpha: 0.5),
-        border: Border(
-          left: BorderSide(color: cs.primary, width: 2.5),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+        decoration: BoxDecoration(
+          color: cs.surface.withValues(alpha: 0.5),
+          border: Border(
+            left: BorderSide(color: cs.primary, width: 2.5),
+          ),
+          borderRadius: BorderRadius.circular(6),
         ),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            isFromMe ? 'Tú' : 'Ella/Él',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: cs.primary),
-          ),
-          Text(
-            text,
-            style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.7)),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              isFromMe ? 'Tú' : 'Ella/Él',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: cs.primary),
+            ),
+            Text(
+              text,
+              style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.7)),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }

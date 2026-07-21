@@ -19,7 +19,7 @@ public struct ChatBubbleView: View {
 
     public var body: some View {
         HStack(alignment: .bottom, spacing: 4) {
-            if isFromMe { Spacer(minLength: 40) }
+            if isFromMe { Spacer(minLength: 55) }
             if !isFromMe { partnerAvatar }
 
             messageContent
@@ -29,11 +29,10 @@ public struct ChatBubbleView: View {
                 .overlay(bubbleBorder)
                 .overlay(bubbleGlass)
                 .shadow(color: shadowColor, radius: 4, y: 2)
-                .frame(maxWidth: UIScreen.main.bounds.width * 0.78, alignment: isFromMe ? .trailing : .leading)
+                .frame(maxWidth: isFromMe ? UIScreen.main.bounds.width * 0.82 : UIScreen.main.bounds.width * 0.72, alignment: isFromMe ? .trailing : .leading)
                 .modifier(BubbleAppearModifier(isAppeared: $isAppeared, isFromMe: isFromMe))
 
-            if !isFromMe { Spacer(minLength: 50) }
-            if isFromMe { Spacer(minLength: 20) }
+            if !isFromMe { Spacer(minLength: 55) }
         }
         .fullScreenCover(isPresented: $showImageViewer) {
             if let img = loadedImage {
