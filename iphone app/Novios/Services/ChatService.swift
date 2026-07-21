@@ -186,14 +186,6 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         }
     }
 
-    public func markAsRead(messageId: String) {
-        guard let idx = messages.firstIndex(where: { $0.id == messageId }) else { return }
-        messages[idx].readTimestamp = Date()
-        Task {
-            try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)/chat/mensajes/\(messageId)", fields: ["readTimestamp": ISO8601DateFormatter().string(from: Date())])
-        }
-    }
-
     public func sendImage(imageData: Data) {
         let msgId = UUID().uuidString
         sentIds.insert(msgId)
