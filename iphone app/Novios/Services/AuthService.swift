@@ -162,15 +162,21 @@ public class AuthService: ObservableObject {
         isRestoringSession = false
 
         Task {
+            var firestoreOK = false
             if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                let fields = doc["fields"] as? [String: Any] {
                 await syncFromFirestore(fields)
+                firestoreOK = true
             } else if let newToken = try? await FirebaseRESTService.shared.refreshIdToken() {
                 _ = newToken
                 if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                    let fields = doc["fields"] as? [String: Any] {
                     await syncFromFirestore(fields)
+                    firestoreOK = true
                 }
+            }
+            if !firestoreOK {
+                await MainActor.run { self.signOut() }
             }
             await MainActor.run { self.checkProfileAndPartner() }
         }
