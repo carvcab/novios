@@ -24,29 +24,14 @@ public class UserService: ObservableObject {
         guard !clean.isEmpty else { return nil }
         let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id
 
-        // 1. Search by Pair Code (e.g. LOVE-8492)
-        let upper = clean.uppercased()
-        let formattedCode = upper.contains("LOVE-") ? upper : "LOVE-\(upper)"
-        if let codeDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "pair_codes/\(formattedCode)"),
-           let codeFields = codeDoc["fields"] as? [String: Any],
-           let uid = (codeFields["uid"] as? [String: Any])?["stringValue"] as? String,
-           uid != myUid {
-            if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
-               let userFields = userDoc["fields"] as? [String: Any] {
-                var result = extractUserData(uid: uid, fields: userFields)
-                result["_source"] = "pair_code"
-                return result
-            }
-        }
-
-        // 2. Search by Username (direct usernames/{username} doc)
+        // 1. Try direct usernames/{clean} lookup
         if let usernameDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames/\(clean)"),
            let unFields = usernameDoc["fields"] as? [String: Any],
            let uid = (unFields["uid"] as? [String: Any])?["stringValue"] as? String,
            uid != myUid {
             if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                let userFields = userDoc["fields"] as? [String: Any] {
-                var result = extractUserData(uid: uid, fields: userFields)
+                var result = self.extractUserData(uid: uid, fields: userFields)
                 result["_source"] = "username"
                 return result
             }
@@ -55,36 +40,19 @@ public class UserService: ObservableObject {
             return result
         }
 
-        // 3. Try structured queries (users WHERE username == clean / email == clean)
-        for (field, skipIfNoAt) in [("username", false), ("email", true), ("name", false), ("displayName", false)] {
-            if skipIfNoAt, !clean.contains("@") { continue }
-            if let docs = try? await FirebaseRESTService.shared.firestoreQuery(path: "users", field: field, op: "EQUAL", value: clean),
-               let first = docs.first,
-               let name = first["name"] as? String,
-               let fields = first["fields"] as? [String: Any] {
-                let uid = name.split(separator: "/").last.map(String.init) ?? ""
-                if !uid.isEmpty, uid != myUid {
-                    var result = extractUserData(uid: uid, fields: fields)
-                    result["_source"] = "query_\(field)"
-                    return result
-                }
-            }
-        }
-
-        // 4. Fallback: iterate usernames collection (matches by document ID or email)
+        // 2. Try listing usernames collection and match by document ID or email
         if let allDocs = try? await FirebaseRESTService.shared.firestoreGet(path: "usernames"),
            let docs = allDocs["documents"] as? [[String: Any]] {
             for doc in docs {
                 guard let f = doc["fields"] as? [String: Any] else { continue }
                 let docId = (doc["name"] as? String)?.split(separator: "/").last.map(String.init)?.lowercased() ?? ""
                 let emailVal = ((f["email"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-                let match = docId == clean || emailVal == clean
-                guard match else { continue }
+                guard docId == clean || emailVal == clean else { continue }
                 let uid = (f["uid"] as? [String: Any])?["stringValue"] as? String ?? ""
                 guard !uid.isEmpty, uid != myUid else { continue }
                 if let userDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
                    let userFields = userDoc["fields"] as? [String: Any] {
-                    var result = extractUserData(uid: uid, fields: userFields)
+                    var result = self.extractUserData(uid: uid, fields: userFields)
                     result["_source"] = docId == clean ? "username_iter" : "email"
                     return result
                 }
@@ -94,24 +62,26 @@ public class UserService: ObservableObject {
             }
         }
 
-        // 5. Final fallback: iterate all users documents
+        // 3. Final fallback: list ALL users and find by any matching field
         if let usersList = try? await FirebaseRESTService.shared.firestoreGet(path: "users"),
            let docs = usersList["documents"] as? [[String: Any]] {
             for doc in docs {
                 guard let f = doc["fields"] as? [String: Any],
-                      let name = doc["name"] as? String else { continue }
-                let uid = name.split(separator: "/").last.map(String.init) ?? ""
-                guard uid != myUid else { continue }
-                let username = ((f["username"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-                let displayName = (f["displayName"] as? [String: Any])?["stringValue"] as? String
-                    ?? (f["name"] as? [String: Any])?["stringValue"] as? String ?? ""
-                let email = ((f["email"] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
-                let nameField = (f["name"] as? [String: Any])?["stringValue"] as? String ?? ""
+                      let docName = doc["name"] as? String else { continue }
+                let uid = docName.split(separator: "/").last.map(String.init) ?? ""
+                guard !uid.isEmpty, uid != myUid else { continue }
 
-                if username == clean || displayName.lowercased() == clean || nameField.lowercased() == clean || email == clean {
-                    var result = extractUserData(uid: uid, fields: f)
-                    result["_source"] = "fallback"
-                    return result
+                let extractStr = { (key: String) -> String in
+                    ((f[key] as? [String: Any])?["stringValue"] as? String ?? "").lowercased()
+                }
+
+                let fieldsToCheck = ["username", "displayName", "name", "email"]
+                for field in fieldsToCheck {
+                    if extractStr(field) == clean {
+                        var result = self.extractUserData(uid: uid, fields: f)
+                        result["_source"] = "field_\(field)"
+                        return result
+                    }
                 }
             }
         }
