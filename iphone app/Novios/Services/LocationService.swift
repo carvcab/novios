@@ -82,8 +82,9 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
     private func setOffline() {
         guard let uid = AuthService.shared.currentUser?.id ?? rest.localId else { return }
+        let path = "parejas/\(CoupleService.parejaId)/ubicacion/\(uid)"
         Task {
-            await firestoreSetWithFallback(path: "usuarios/\(uid)", fields: [
+            await firestoreSetWithFallback(path: path, fields: [
                 "isOnline": false,
                 "lastLocationUpdate": df.string(from: Date()),
             ])
@@ -177,7 +178,8 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         let battery = shareBattery ? (UIDevice.current.batteryLevel >= 0 ? Int(UIDevice.current.batteryLevel * 100) : -1) : -1
 
         Task {
-            await firestoreSetWithFallback(path: "usuarios/\(uid)", fields: [
+            let path = "parejas/\(CoupleService.parejaId)/ubicacion/\(uid)"
+            await firestoreSetWithFallback(path: path, fields: [
                 "latitude": loc.coordinate.latitude,
                 "longitude": loc.coordinate.longitude,
                 "speed": speed,
@@ -190,8 +192,9 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
     private func setOnline() {
         guard let uid = AuthService.shared.currentUser?.id ?? rest.localId else { return }
+        let path = "parejas/\(CoupleService.parejaId)/ubicacion/\(uid)"
         Task {
-            await firestoreSetWithFallback(path: "usuarios/\(uid)", fields: [
+            await firestoreSetWithFallback(path: path, fields: [
                 "isOnline": true,
                 "lastLocationUpdate": df.string(from: Date()),
             ])
@@ -217,7 +220,8 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         let puid = CoupleService.shared.partnerUid
         guard !puid.isEmpty else { return }
         Task { @MainActor in
-            if let doc = await firestoreGetWithFallback(path: "usuarios/\(puid)"),
+            let partnerPath = "parejas/\(CoupleService.parejaId)/ubicacion/\(puid)"
+            if let doc = await firestoreGetWithFallback(path: partnerPath),
                let fields = doc["fields"] as? [String: Any] {
                 let ed = { (k: String) -> Double? in
                     if let dv = (fields[k] as? [String: Any])?["doubleValue"] as? Double { return dv }
