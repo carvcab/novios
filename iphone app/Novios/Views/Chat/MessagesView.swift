@@ -9,6 +9,7 @@ public struct MessagesView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showSettings = false
     @State private var scrollTargetId: String?
+    private var currentUserId: String { authService.currentUser?.id ?? FirebaseRESTService.shared.localId ?? "me" }
 
     @State private var nextDateLabel: String?
     @State private var nextDateDays: Int?
@@ -27,8 +28,7 @@ public struct MessagesView: View {
                         ScrollView {
                             LazyVStack(spacing: 6) {
                                 ForEach(chatService.messages) { msg in
-                                    let myId = authService.currentUser?.id ?? FirebaseRESTService.shared.localId ?? "me"
-                                    let isMe = msg.senderId == myId
+                                    let isMe = msg.senderId == currentUserId
                                     ChatBubbleView(message: msg, isFromMe: isMe, onReply: { self.chatService.setReplyTo(message: msg) }, onReact: { self.chatService.addReaction(to: msg.id, emoji: $0) }, onTapReply: { self.scrollTargetId = $0 })
                                         .id(msg.id)
                                 }
