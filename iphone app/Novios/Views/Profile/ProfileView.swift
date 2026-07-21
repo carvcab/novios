@@ -135,20 +135,7 @@ public struct ProfileView: View {
                 SettingsView()
             }
         }
-        .sheet(isPresented: $showPhotoPicker) {
-            PhotoPicker { image in
-                if let data = image.jpegData(compressionQuality: 0.6) {
-                    let b64 = data.base64EncodedString()
-                    profileImage = image
-                    let uid = AuthService.shared.currentUser?.id ?? ""
-                    Task {
-                        try? await FirebaseRESTService.shared.firestoreSet(path: "usuarios/\(uid)", fields: [
-                            "foto": "data:image/jpeg;base64,\(b64)"
-                        ])
-                    }
-                }
-            }
-        }
+
     }
 
     private func profileCircle(for name: String, color: Color) -> some View {
