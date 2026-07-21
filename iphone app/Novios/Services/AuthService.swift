@@ -11,6 +11,7 @@ public class AuthService: ObservableObject {
     @Published public var partnerSkipped = false
     @Published public var isLoading = false
     @Published public var isRestoringSession = true
+    @Published public var isLocked = false
 
     private let defaults = UserDefaults.standard
     private let df = ISO8601DateFormatter()
