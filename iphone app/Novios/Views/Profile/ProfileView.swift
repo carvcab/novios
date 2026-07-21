@@ -42,9 +42,9 @@ public struct ProfileView: View {
 
                     // Photos
                     HStack(spacing: -12) {
-                        profileCircle(for: couple.myUID == couple.diegoUID ? "Diego" : "Yosmari",
+                        profileCircle(for: couple.currentUid == CoupleService.diegoUid ? "Diego" : "Yosmari",
                                       photo: nil, color: theme.primary)
-                        profileCircle(for: couple.myUID == couple.diegoUID ? "Yosmari" : "Diego",
+                        profileCircle(for: couple.currentUid == CoupleService.diegoUid ? "Yosmari" : "Diego",
                                       photo: nil, color: theme.secondary)
                     }
                     .padding(.bottom, 8)
@@ -107,7 +107,7 @@ public struct ProfileView: View {
     private func profileCircle(for name: String, photo: UIImage?, color: Color) -> some View {
         Button { showPhotoPicker = true } label: {
             ZStack {
-                if let img = profileImage, name == (couple.myUID == couple.diegoUID ? "Diego" : "Yosmari") {
+                if let img = profileImage, name == (couple.currentUid == CoupleService.diegoUid ? "Diego" : "Yosmari") {
                     Image(uiImage: img).resizable().scaledToFill()
                         .frame(width: 80, height: 80).clipShape(Circle())
                 } else {

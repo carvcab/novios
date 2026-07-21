@@ -22,7 +22,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     private var coupleId: String { "pareja_001" }
     private var myUid: String { AuthService.shared.currentUser?.id ?? "me" }
-    private var myName: String { CoupleService.shared.myName }
+    private var myName: String { CoupleService.shared.currentName }
 
     override public init() {
         super.init()
