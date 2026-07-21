@@ -1,25 +1,19 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CLIENT_ID</key>
-	<string>584791867341-47v11j6838n8vj243m85ekld6m1eevqg.apps.googleusercontent.com</string>
-	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.584791867341-47v11j6838n8vj243m85ekld6m1eevqg</string>
-	<key>ANDROID_CLIENT_ID</key>
-	<string>584791867341-9vf2abu53j3vdp1flfuo7946vc8vv45e.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
-	<string>AIzaSyCG9W2qU4SH2RkjNRJHI96fJzt3hHqLzys</string>
+	<string>AIzaSyASvpCiEJzuuCg31pVw7qDxnp26LKrJhJA</string>
 	<key>GCM_SENDER_ID</key>
-	<string>584791867341</string>
+	<string>809123897203</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>novios</string>
+	<string>com.novios</string>
 	<key>PROJECT_ID</key>
-	<string>novios-49289</string>
+	<string>novios-everus</string>
 	<key>STORAGE_BUCKET</key>
-	<string>novios-49289.firebasestorage.app</string>
+	<string>novios-everus.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -31,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:584791867341:ios:98e72271335ef26bd74e84</string>
+	<string>1:809123897203:ios:bd9e8e44bc1dfa0ee0ef06</string>
 </dict>
 </plist>

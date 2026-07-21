@@ -20,18 +20,22 @@ import 'permissions/permissions_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(options: firebaseOptions);
-  }
   try {
-    await Firebase.initializeApp(name: 'backup', options: firebaseOptionsBackup);
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(options: firebaseOptions);
+    }
+    try {
+      await Firebase.initializeApp(name: 'backup', options: firebaseOptionsBackup);
+    } catch (e) {
+      debugPrint('Backup Firebase init skipped: $e');
+    }
   } catch (e) {
-    debugPrint('Backup Firebase init skipped: $e');
+    debugPrint('Firebase init error: $e');
   }
   await LocalStorage().init().catchError((_) => false);
-  await FirebaseService().init().catchError((_) {});
-  try { WidgetService().init().catchError((_) {}); } catch (e) { debugPrint("WidgetService init error: $e"); }
-  try { await ProfileService().init(); } catch (e) { debugPrint("ProfileService init error: $e"); }
+  try { await FirebaseService().init().catchError((_) {}); } catch (e) {}
+  try { WidgetService().init().catchError((_) {}); } catch (e) {}
+  try { await ProfileService().init(); } catch (e) {}
   try { await UserService().syncFromFirestore(); } catch (_) {}
   try { UserService().startListening(); } catch (_) {}
 

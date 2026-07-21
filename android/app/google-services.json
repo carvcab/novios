@@ -1,44 +1,26 @@
-{
+﻿{
   "project_info": {
-    "project_number": "584791867341",
-    "project_id": "novios-49289",
-    "storage_bucket": "novios-49289.firebasestorage.app"
+    "project_number": "809123897203",
+    "project_id": "novios-everus",
+    "storage_bucket": "novios-everus.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:584791867341:android:8781e6839f2e0bc5d74e84",
+        "mobilesdk_app_id": "1:809123897203:android:a03402fa07dc17cde0ef06",
         "android_client_info": {
           "package_name": "com.novios"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "584791867341-9vf2abu53j3vdp1flfuo7946vc8vv45e.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.novios",
-            "certificate_hash": "8766c2b6fbf2aceb3dc1a5028779587acebdaf3c"
-          }
-        },
-        {
-          "client_id": "584791867341-itg02ash2ds47ft3lv63o7f7qko5mug9.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCHLh-ifzUYCX5p_7tyuaaOImbqyhdEI2U"
+          "current_key": "AIzaSyAgZLZSshhuHpUi62b9UZsLOchjM9G-xWc"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "584791867341-itg02ash2ds47ft3lv63o7f7qko5mug9.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }
