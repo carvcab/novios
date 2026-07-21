@@ -13,6 +13,8 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     @Published public var partnerLongitude: Double?
     @Published public var partnerOnline = false
     @Published public var partnerLastUpdate: Date?
+    @Published public var partnerSpeed: Double?
+    @Published public var partnerBattery: Int?
     @Published public var distanceToPartner: Double?
 
     private var locationManager: CLLocationManager?
@@ -199,12 +201,15 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
         let shareSpeed = defaults.bool(forKey: "privacy_share_speed")
         let speed = shareSpeed ? (loc.speed >= 0 ? loc.speed * 3.6 : 0.0) : 0.0
+        let shareBattery = defaults.bool(forKey: "privacy_share_battery")
+        let battery = shareBattery ? (UIDevice.current.batteryLevel >= 0 ? Int(UIDevice.current.batteryLevel * 100) : -1) : -1
 
         Task {
             await firestoreSetWithFallback(path: "users/\(uid)", fields: [
                 "latitude": loc.coordinate.latitude,
                 "longitude": loc.coordinate.longitude,
                 "speed": speed,
+                "batteryLevel": battery,
                 "lastLocationUpdate": df.string(from: now),
                 "isOnline": true,
             ])
@@ -253,9 +258,17 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
                 if let tsStr = (fields["lastLocationUpdate"] as? [String: Any])?["stringValue"] as? String {
                     self.partnerLastUpdate = self.df.date(from: tsStr)
                 }
+                let partnerSpeed = ed("speed")
+                let partnerBattery = { () -> Int? in
+                    if let v = (fields["batteryLevel"] as? [String: Any])?["integerValue"] as? String { return Int(v) }
+                    if let v = (fields["batteryLevel"] as? [String: Any])?["doubleValue"] as? Double { return Int(v) }
+                    return nil
+                }()
                 self.partnerLatitude = newLat
                 self.partnerLongitude = newLng
                 self.partnerOnline = online
+                self.partnerSpeed = partnerSpeed
+                self.partnerBattery = partnerBattery
                 if let myLat = self.lastLatitude, let myLng = self.lastLongitude,
                    let pLat = newLat, let pLng = newLng {
                     self.distanceToPartner = self.haversine(lat1: myLat, lon1: myLng, lat2: pLat, lon2: pLng) / 1000.0

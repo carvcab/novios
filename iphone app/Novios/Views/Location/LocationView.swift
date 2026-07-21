@@ -67,8 +67,8 @@ public struct LocationView: View {
                 }
             }
             .onAppear {
-                loadSettings()
                 UIDevice.current.isBatteryMonitoringEnabled = true
+                loadSettings()
             }
         }
         .sheet(isPresented: $showCheckInSheet) { checkInSheet }
@@ -232,8 +232,8 @@ public struct LocationView: View {
 
     private var infoStrips: some View {
         HStack(spacing: 8) {
-            infoChip(icon: "speedometer", value: locationService.lastSpeed.map { "\(String(format: "%.0f", $0)) km/h" } ?? "--", label: "Velocidad", color: .orange)
-            infoChip(icon: "battery.100", value: myBattery > 0 ? "\(myBattery)%" : "--", label: "Batería", color: myBattery < 20 ? .red : .green)
+            infoChip(icon: "speedometer", value: locationService.partnerSpeed.map { "\(String(format: "%.0f", $0)) km/h" } ?? "--", label: "Velocidad", color: .orange)
+            infoChip(icon: "battery.100", value: locationService.partnerBattery.map { $0 > 0 ? "\($0)%" : "--" } ?? "--", label: "Batería", color: (locationService.partnerBattery ?? 100) < 20 ? .red : .green)
             infoChip(icon: "timer", value: lastUpdateText(), label: "Actualizado", color: .blue)
         }
     }
