@@ -19,6 +19,7 @@ public struct UserModel: Identifiable, Codable, Equatable {
     public var longitude: Double?
     public var lastLocationUpdate: Date?
     public var createdAt: Date
+    public var birthdayDate: Date?
     public var skippedPartner: Bool
     
     public init(
@@ -30,6 +31,7 @@ public struct UserModel: Identifiable, Codable, Equatable {
         pairCode: String = "",
         partnerUid: String? = nil,
         anniversaryDate: Date? = nil,
+        birthdayDate: Date? = nil,
         mood: String = "❤️",
         moodMessage: String? = nil,
         batteryLevel: Double = 1.0,
@@ -49,6 +51,7 @@ public struct UserModel: Identifiable, Codable, Equatable {
         self.pairCode = pairCode
         self.partnerUid = partnerUid
         self.anniversaryDate = anniversaryDate
+        self.birthdayDate = birthdayDate
         self.mood = mood
         self.moodMessage = moodMessage
         self.batteryLevel = batteryLevel
@@ -87,6 +90,7 @@ public struct UserModel: Identifiable, Codable, Equatable {
         if let avatarUrl = avatarUrl { dict["avatarUrl"] = avatarUrl }
         if let partnerUid = partnerUid { dict["partnerUid"] = partnerUid }
         if let anniversaryDate = anniversaryDate { dict["anniversaryDate"] = anniversaryDate.timeIntervalSince1970 }
+        if let birthdayDate = birthdayDate { dict["birthdayDate"] = birthdayDate.timeIntervalSince1970 }
         if let moodMessage = moodMessage { dict["moodMessage"] = moodMessage }
         if let latitude = latitude { dict["latitude"] = latitude }
         if let longitude = longitude { dict["longitude"] = longitude }
