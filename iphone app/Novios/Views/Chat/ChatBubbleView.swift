@@ -44,20 +44,14 @@ public struct ChatBubbleView: View {
         .task(id: message.id) { loadMediaIfNeeded() }
     }
 
-    private var bubbleBackground: some View {
-        if isFromMe {
-            Color(red: 0.91, green: 0.27, blue: 0.49)
-        } else {
-            Color(.systemGray6)
-        }
+    private var bubbleBackground: Color {
+        isFromMe ? Color(red: 0.91, green: 0.27, blue: 0.49) : Color(.systemGray6)
     }
 
-    private var bubbleShape: some View {
-        if isFromMe {
-            UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 18, topTrailing: 18, bottomTrailing: 4), style: .continuous)
-        } else {
-            UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 4, topTrailing: 18, bottomTrailing: 18), style: .continuous)
-        }
+    private var bubbleShape: UnevenRoundedRectangle {
+        isFromMe
+            ? UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 18, bottomTrailing: 4, topTrailing: 18), style: .continuous)
+            : UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 4, bottomTrailing: 18, topTrailing: 18), style: .continuous)
     }
 
     private var shadowColor: Color {
@@ -187,10 +181,10 @@ public struct ChatBubbleView: View {
 
     private var bubbleBorder: some View {
         if isFromMe {
-            UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 18, topTrailing: 18, bottomTrailing: 4), style: .continuous)
+            UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 18, bottomTrailing: 4, topTrailing: 18), style: .continuous)
                 .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
         } else {
-            UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 4, topTrailing: 18, bottomTrailing: 18), style: .continuous)
+            UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 4, bottomTrailing: 18, topTrailing: 18), style: .continuous)
                 .stroke(Color(.systemGray4), lineWidth: 0.5)
         }
     }
@@ -209,7 +203,7 @@ public struct ChatBubbleView: View {
                   let fields = doc["fields"] as? [String: Any],
                   let b64 = (fields["data"] as? [String: Any])?["stringValue"] as? String,
                   let data = Data(base64Encoded: b64) else { return }
-            try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
             try? AVAudioSession.sharedInstance().setActive(true)
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("audio_\(message.id).m4a")
             try? data.write(to: tempURL)
