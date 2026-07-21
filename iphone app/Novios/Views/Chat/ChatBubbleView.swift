@@ -16,21 +16,21 @@ public struct ChatBubbleView: View {
     private let reactions = ["❤️", "😘", "😂", "😮", "😢", "🔥", "💖", "👍", "👎"]
 
     public var body: some View {
-        HStack(alignment: .bottom, spacing: 6) {
-            if isFromMe { Spacer(minLength: 55) }
+        HStack(alignment: .bottom, spacing: 4) {
+            if isFromMe { Spacer(minLength: 40) }
             if !isFromMe { partnerAvatar }
 
             messageContent
-                .padding(.horizontal, 13).padding(.vertical, 9)
+                .padding(.horizontal, 13).padding(.vertical, 10)
                 .background(bubbleBackground)
                 .clipShape(bubbleShape)
                 .overlay(bubbleBorder)
                 .shadow(color: shadowColor, radius: 4, y: 2)
-                .frame(maxWidth: UIScreen.main.bounds.width * 0.72, alignment: isFromMe ? .trailing : .leading)
+                .frame(maxWidth: UIScreen.main.bounds.width * 0.78, alignment: isFromMe ? .trailing : .leading)
                 .modifier(BubbleAppearModifier(isAppeared: $isAppeared, isFromMe: isFromMe))
 
-            if !isFromMe { Spacer(minLength: 55) }
-            if isFromMe { Spacer(minLength: 40) }
+            if !isFromMe { Spacer(minLength: 50) }
+            if isFromMe { Spacer(minLength: 20) }
         }
         .padding(.vertical, 2)
         .contextMenu {
@@ -44,8 +44,22 @@ public struct ChatBubbleView: View {
         .task(id: message.id) { loadMediaIfNeeded() }
     }
 
-    private var bubbleBackground: Color {
-        isFromMe ? Color(red: 0.91, green: 0.27, blue: 0.49) : Color(.systemGray6)
+    private var bubbleBackground: some View {
+        if isFromMe {
+            ZStack {
+                LinearGradient(gradient: Gradient(colors: [
+                    Color(red: 0.93, green: 0.35, blue: 0.55),
+                    Color(red: 0.82, green: 0.22, blue: 0.48)
+                ]), startPoint: .topLeading, endPoint: .bottomTrailing)
+                LinearGradient(gradient: Gradient(colors: [
+                    Color.white.opacity(0.25),
+                    Color.clear,
+                    Color.white.opacity(0.08)
+                ]), startPoint: .top, endPoint: .bottom)
+            }
+        } else {
+            Color(.systemGray6)
+        }
     }
 
     private var bubbleShape: UnevenRoundedRectangle {
@@ -55,7 +69,7 @@ public struct ChatBubbleView: View {
     }
 
     private var shadowColor: Color {
-        isFromMe ? Color(red: 0.91, green: 0.27, blue: 0.49).opacity(0.25) : .black.opacity(0.04)
+        isFromMe ? Color(red: 0.87, green: 0.28, blue: 0.5).opacity(0.35) : .black.opacity(0.04)
     }
 
     private var partnerAvatar: some View {
@@ -116,25 +130,25 @@ public struct ChatBubbleView: View {
     }
 
     private var timestampRow: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 4) {
             Text(message.timestamp, style: .time)
-                .font(.system(size: 10))
-                .foregroundColor(isFromMe ? .white.opacity(0.7) : .primary.opacity(0.45))
+                .font(.system(size: 10, weight: .light))
+                .foregroundColor(isFromMe ? .white.opacity(0.65) : .primary.opacity(0.45))
             if isFromMe {
                 Image(systemName: message.readTimestamp != nil ? "heart.fill" : "heart")
-                    .font(.system(size: 10))
-                    .foregroundColor(message.readTimestamp != nil ? .white : .white.opacity(0.4))
+                    .font(.system(size: 8))
+                    .foregroundColor(message.readTimestamp != nil ? Color(red: 1, green: 0.85, blue: 0.95) : .white.opacity(0.4))
             }
         }
     }
 
     private var reactionRow: some View {
-        HStack(spacing: 2) {
-            ForEach(Array(message.reactions!.values), id: \.self) { emoji in
-                Text(emoji).font(.system(size: 12))
-                    .padding(.horizontal, 4).padding(.vertical, 1)
-                    .background(.ultraThinMaterial.opacity(0.8)).clipShape(Capsule())
-                    .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 0.3))
+        HStack(spacing: 3) {
+            ForEach(Array(Set(message.reactions!.values)), id: \.self) { emoji in
+                Text(emoji).font(.system(size: 14))
+                    .padding(.horizontal, 5).padding(.vertical, 2)
+                    .background(isFromMe ? Color.white.opacity(0.15) : .ultraThinMaterial.opacity(0.7))
+                    .clipShape(Capsule())
             }
         }
     }
