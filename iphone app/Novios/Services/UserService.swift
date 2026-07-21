@@ -31,19 +31,15 @@ public class UserService: ObservableObject {
         }
 
         let myUid = FirebaseRESTService.shared.localId ?? AuthService.shared.currentUser?.id
-        guard myUid != nil else { return nil }
+        guard let myUid = myUid else { return nil }
 
         // Verify auth works by fetching own user doc
-        let ownDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(myUid!)")
-        guard ownDoc != nil else {
-            // Try one more refresh
-            if let newToken = try? await FirebaseRESTService.shared.refreshIdToken() {
-                _ = newToken
-            } else {
+        let ownDoc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(myUid)")
+        if ownDoc == nil {
+            if (try? await FirebaseRESTService.shared.refreshIdToken()) == nil {
                 return nil
             }
-            // Retry own doc
-            guard (try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(myUid!)")) != nil else {
+            guard (try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(myUid)")) != nil else {
                 return nil
             }
         }
