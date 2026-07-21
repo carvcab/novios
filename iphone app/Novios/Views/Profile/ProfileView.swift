@@ -480,10 +480,13 @@ public struct ProfileView: View {
                 await MainActor.run {
                     displayName = extractString(fields, key: "displayName")
                         ?? extractString(fields, key: "name")
+                        ?? authService.currentUser?.displayName
                         ?? defaults.string(forKey: "auth_user_name")
                         ?? "Usuario"
                     username = extractString(fields, key: "username")
+                        ?? authService.currentUser?.username
                         ?? defaults.string(forKey: "profile_username")
+                        ?? authService.currentUser?.email.components(separatedBy: "@").first?.lowercased()
                         ?? ""
                     partnerName = extractString(fields, key: "partnerName")
                         ?? extractString(fields, key: "partnerDisplayName")
@@ -550,8 +553,8 @@ public struct ProfileView: View {
     }
 
     private func loadFromDefaults() {
-        displayName = defaults.string(forKey: "auth_user_name") ?? authService.currentUser?.displayName ?? "Usuario"
-        username = defaults.string(forKey: "profile_username") ?? ""
+        displayName = authService.currentUser?.displayName ?? defaults.string(forKey: "auth_user_name") ?? "Usuario"
+        username = authService.currentUser?.username ?? defaults.string(forKey: "profile_username") ?? authService.currentUser?.email.components(separatedBy: "@").first?.lowercased() ?? ""
         partnerName = defaults.string(forKey: "partner_name") ?? ""
         partnerUid = defaults.string(forKey: "partner_uid") ?? ""
         if let bdStr = defaults.string(forKey: "profile_dob") {
@@ -703,8 +706,12 @@ public struct ProfileView: View {
                     let newPartnerName = extractString(fields, key: "partnerName") ?? extractString(fields, key: "partnerDisplayName") ?? partnerName
                     let newPartnerUid = extractString(fields, key: "partnerUid") ?? partnerUid
 
-                    if newName != displayName { displayName = newName }
-                    if newUsername != username { username = newUsername; defaults.set(newUsername, forKey: "profile_username") }
+                    if newName != displayName { displayName = newName; defaults.set(newName, forKey: "auth_user_name") }
+                    if newUsername != username {
+                        username = newUsername
+                        defaults.set(newUsername, forKey: "profile_username")
+                        if var user = authService.currentUser { user.username = newUsername; authService.currentUser = user }
+                    }
                     if newPartnerName != partnerName { partnerName = newPartnerName }
                     if newPartnerUid != partnerUid { partnerUid = newPartnerUid }
 
