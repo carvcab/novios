@@ -31,11 +31,15 @@ public struct AppGate: View {
         .environmentObject(authService)
         .onChange(of: scenePhase) { phase in
             let securityEnabled = UserDefaults.standard.bool(forKey: "security_enabled")
-            if phase == .active && securityEnabled && didLockOnBackground {
-                authService.isLocked = true
-                didLockOnBackground = false
+            if phase == .active {
+                LocationService.shared.appDidBecomeActive()
+                if securityEnabled && didLockOnBackground {
+                    authService.isLocked = true
+                    didLockOnBackground = false
+                }
             }
             if phase == .background || phase == .inactive {
+                LocationService.shared.appDidEnterBackground()
                 if securityEnabled {
                     didLockOnBackground = true
                 }

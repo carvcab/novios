@@ -58,6 +58,12 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         defaults.set(true, forKey: "location_sharing_enabled")
         startFirebaseTimer()
         startPartnerPolling()
+        // Immediately mark online
+        if let loc = mgr.location {
+            updateFirebasePosition(loc)
+        } else {
+            setOnline()
+        }
     }
 
     public func stopSharing() {
@@ -68,6 +74,17 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         firebaseTimer = nil
         partnerPollTimer?.invalidate()
         partnerPollTimer = nil
+        setOffline()
+    }
+
+    private func setOffline() {
+        guard let uid = AuthService.shared.currentUser?.id ?? rest.localId else { return }
+        Task {
+            await firestoreSetWithFallback(path: "users/\(uid)", fields: [
+                "isOnline": false,
+                "lastLocationUpdate": df.string(from: Date()),
+            ])
+        }
     }
 
     public func requestPermission() {
@@ -76,6 +93,18 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
     public func refreshPartnerNow() {
         fetchPartnerLocation()
+    }
+
+    public func appDidEnterBackground() {
+        if isSharing {
+            setOffline()
+        }
+    }
+
+    public func appDidBecomeActive() {
+        if defaults.bool(forKey: "location_sharing_enabled") {
+            startSharing()
+        }
     }
 
     // MARK: - CLLocationManagerDelegate
@@ -178,6 +207,16 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
                 "speed": speed,
                 "lastLocationUpdate": df.string(from: now),
                 "isOnline": true,
+            ])
+        }
+    }
+
+    private func setOnline() {
+        guard let uid = AuthService.shared.currentUser?.id ?? rest.localId else { return }
+        Task {
+            await firestoreSetWithFallback(path: "users/\(uid)", fields: [
+                "isOnline": true,
+                "lastLocationUpdate": df.string(from: Date()),
             ])
         }
     }
