@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:path_provider/path_provider.dart';
 import 'local_storage.dart';
 import 'firebase_service.dart';
+import 'couple_service.dart';
 import 'package:image/image.dart' as img;
 
 class StorageService {
@@ -14,30 +15,38 @@ class StorageService {
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  String? get _storageId {
-    final cid = FirebaseService().coupleId;
-    debugPrint("[Storage] coupleId = $cid");
-    if (cid == 'default_couple_id' || cid.isEmpty) {
-      return null;
+  DocumentReference? _getDocFromFirestoreUrl(String firestoreUrl) {
+    if (!firestoreUrl.startsWith('firestore://')) return null;
+    final cleanUrl = firestoreUrl.split('?').first;
+    final relPath = cleanUrl.replaceFirst('firestore://', '');
+    if (relPath.isEmpty) return null;
+    if (relPath.startsWith('pairs/')) {
+      final parts = relPath.split('/');
+      if (parts.length >= 4) {
+        return _db.collection('parejas').doc(CoupleService.parejaId).collection('chat').doc(parts[2]).collection('items').doc(parts.last);
+      }
     }
-    return cid;
+    return _db.doc(relPath);
   }
 
   Future<String?> uploadPhoto(String localPath, {String? memoryId}) async {
-    final sid = _storageId;
-    if (sid == null) return null;
     try {
-      final file = File(localPath);
+      String cleanPath = localPath;
+      if (!cleanPath.startsWith('/') && (cleanPath.contains('data/user/') || cleanPath.contains('storage/'))) {
+        cleanPath = '/$cleanPath';
+      }
+      final file = File(cleanPath);
       if (!await file.exists()) return null;
       final bytes = await _compressImage(file);
       final b64 = base64Encode(bytes);
       final id = memoryId ?? DateTime.now().microsecondsSinceEpoch.toString();
-      await _db.collection('pairs').doc(sid).collection('photos').doc(id).set({
+      final path = 'parejas/${CoupleService.parejaId}/chat/fotos/$id';
+      await _db.doc(path).set({
         'data': b64,
         'mimeType': 'image/jpeg',
         'createdAt': FieldValue.serverTimestamp(),
       });
-      return 'firestore://pairs/$sid/photos/$id';
+      return 'firestore://$path';
     } catch (e) {
       debugPrint("Error uploading photo: $e");
       return null;
@@ -45,17 +54,14 @@ class StorageService {
   }
 
   Future<String?> uploadAudio(String localPath, {String? messageId}) async {
-    final sid = _storageId;
-    if (sid == null) {
-      final err = 'No storage ID (couple not set up)';
-      debugPrint("[Storage] uploadAudio: $err");
-      LocalStorage().setString('last_upload_error', err);
-      return null;
-    }
     try {
-      final file = File(localPath);
+      String cleanPath = localPath;
+      if (!cleanPath.startsWith('/') && (cleanPath.contains('data/user/') || cleanPath.contains('storage/'))) {
+        cleanPath = '/$cleanPath';
+      }
+      final file = File(cleanPath);
       if (!await file.exists()) {
-        final err = 'File not found: $localPath';
+        final err = 'File not found: $cleanPath';
         debugPrint("[Storage] uploadAudio: $err");
         LocalStorage().setString('last_upload_error', err);
         return null;
@@ -70,20 +76,21 @@ class StorageService {
 
       if (bytes.length > 750 * 1024) {
         final sizeMB = (bytes.length / 1024).toStringAsFixed(1);
-        final err = 'Audio demasiado grande (${sizeMB}KB). Max: 750KB. Graba mas corto.';
+        final err = 'Audio demasiado grande (${sizeMB}KB). Max: 750KB.';
         debugPrint("[Storage] uploadAudio: $err");
         LocalStorage().setString('last_upload_error', err);
         return null;
       }
       final b64 = base64Encode(bytes);
       final id = messageId ?? DateTime.now().microsecondsSinceEpoch.toString();
-      await _db.collection('pairs').doc(sid).collection('audio').doc(id).set({
+      final path = 'parejas/${CoupleService.parejaId}/chat/audio/$id';
+      await _db.doc(path).set({
         'data': b64,
         'mimeType': 'audio/m4a',
         'createdAt': FieldValue.serverTimestamp(),
       });
       LocalStorage().setString('last_upload_error', '');
-      return 'firestore://pairs/$sid/audio/$id';
+      return 'firestore://$path';
     } catch (e) {
       final err = e.toString();
       debugPrint("[Storage] Error uploading audio: $err");
@@ -93,10 +100,12 @@ class StorageService {
   }
 
   Future<String?> uploadVideo(String localPath, {String? memoryId}) async {
-    final sid = _storageId;
-    if (sid == null) return null;
     try {
-      final file = File(localPath);
+      String cleanPath = localPath;
+      if (!cleanPath.startsWith('/') && (cleanPath.contains('data/user/') || cleanPath.contains('storage/'))) {
+        cleanPath = '/$cleanPath';
+      }
+      final file = File(cleanPath);
       if (!await file.exists()) return null;
       final bytes = await file.readAsBytes();
       if (bytes.length > 700 * 1024) {
@@ -105,12 +114,13 @@ class StorageService {
       }
       final b64 = base64Encode(bytes);
       final id = memoryId ?? DateTime.now().microsecondsSinceEpoch.toString();
-      await _db.collection('pairs').doc(sid).collection('videos').doc(id).set({
+      final path = 'parejas/${CoupleService.parejaId}/chat/videos/$id';
+      await _db.doc(path).set({
         'data': b64,
         'mimeType': 'video/mp4',
         'createdAt': FieldValue.serverTimestamp(),
       });
-      return 'firestore://pairs/$sid/videos/$id';
+      return 'firestore://$path';
     } catch (e) {
       debugPrint("Error uploading video: $e");
       return null;
@@ -119,25 +129,27 @@ class StorageService {
 
   Future<String?> getLocalFilePath(String url, String extension) async {
     try {
-      // Ruta local
       if (!url.startsWith('firestore://')) {
-        if (await File(url).exists()) return url;
+        String clean = url;
+        if (!clean.startsWith('/') && (clean.contains('data/user/') || clean.contains('storage/'))) {
+          clean = '/$clean';
+        }
+        if (await File(clean).exists()) return clean;
         return null;
       }
 
-      final cleanUrl = url.split('?').first;
-      final parts = cleanUrl.replaceFirst('firestore://', '').split('/');
-      if (parts.length < 4) return null;
+      final docRef = _getDocFromFirestoreUrl(url);
+      if (docRef == null) return null;
 
-      final docId = parts[3];
+      final docId = docRef.id;
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/temp_$docId.$extension');
 
       if (await file.exists()) return file.path;
 
-      final doc = await _db.collection(parts[0]).doc(parts[1]).collection(parts[2]).doc(docId).get();
-      if (!doc.exists) return null;
-      final b64 = doc.get('data') as String?;
+      final snap = await docRef.get();
+      if (!snap.exists) return null;
+      final b64 = snap.get('data') as String?;
       if (b64 == null) return null;
       final bytes = base64Decode(b64);
       await file.writeAsBytes(bytes);
@@ -150,12 +162,21 @@ class StorageService {
 
   Future<Uint8List?> loadAudioBytes(String url) async {
     try {
-      if (!url.startsWith('firestore://')) return null;
-      final parts = url.replaceFirst('firestore://', '').split('/');
-      if (parts.length < 4) return null;
-      final doc = await _db.collection(parts[0]).doc(parts[1]).collection(parts[2]).doc(parts[3]).get();
-      if (!doc.exists) return null;
-      final b64 = doc.get('data') as String?;
+      if (!url.startsWith('firestore://')) {
+        String clean = url;
+        if (!clean.startsWith('/') && (clean.contains('data/user/') || clean.contains('storage/'))) {
+          clean = '/$clean';
+        }
+        final file = File(clean);
+        if (await file.exists()) return await file.readAsBytes();
+        return null;
+      }
+
+      final docRef = _getDocFromFirestoreUrl(url);
+      if (docRef == null) return null;
+      final snap = await docRef.get();
+      if (!snap.exists) return null;
+      final b64 = snap.get('data') as String?;
       if (b64 == null) return null;
       return base64Decode(b64);
     } catch (e) {
@@ -167,11 +188,11 @@ class StorageService {
   Future<Uint8List?> loadPhoto(String firestoreUrl) async {
     try {
       if (!firestoreUrl.startsWith('firestore://')) return null;
-      final parts = firestoreUrl.replaceFirst('firestore://', '').split('/');
-      if (parts.length < 4) return null;
-      final doc = await _db.collection(parts[0]).doc(parts[1]).collection(parts[2]).doc(parts[3]).get();
-      if (!doc.exists) return null;
-      final b64 = doc.get('data') as String?;
+      final docRef = _getDocFromFirestoreUrl(firestoreUrl);
+      if (docRef == null) return null;
+      final snap = await docRef.get();
+      if (!snap.exists) return null;
+      final b64 = snap.get('data') as String?;
       if (b64 == null) return null;
       return base64Decode(b64);
     } catch (e) {
@@ -183,9 +204,9 @@ class StorageService {
   Future<void> deleteFile(String firestoreUrl) async {
     try {
       if (!firestoreUrl.startsWith('firestore://')) return;
-      final parts = firestoreUrl.replaceFirst('firestore://', '').split('/');
-      if (parts.length < 4) return;
-      await _db.collection(parts[0]).doc(parts[1]).collection(parts[2]).doc(parts[3]).delete();
+      final docRef = _getDocFromFirestoreUrl(firestoreUrl);
+      if (docRef == null) return;
+      await docRef.delete();
     } catch (e) {
       debugPrint("Error deleting file: $e");
     }

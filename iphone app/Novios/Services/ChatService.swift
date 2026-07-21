@@ -40,11 +40,22 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     }
 
     private static func parseIsoDate(_ str: String) -> Date? {
+        var cleanStr = str
+        if !cleanStr.contains("Z") && !cleanStr.contains("+") && !cleanStr.contains("-", where: { $0.offset > 10 }) {
+            cleanStr += "Z"
+        }
         let f1 = ISO8601DateFormatter()
         f1.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let d = f1.date(from: str) { return d }
+        if let d = f1.date(from: cleanStr) { return d }
         let f2 = ISO8601DateFormatter()
-        if let d = f2.date(from: str) { return d }
+        if let d = f2.date(from: cleanStr) { return d }
+
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "en_US_POSIX")
+        df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSZ"
+        if let d = df.date(from: cleanStr) { return d }
+        df.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        if let d = df.date(from: cleanStr) { return d }
         return nil
     }
 

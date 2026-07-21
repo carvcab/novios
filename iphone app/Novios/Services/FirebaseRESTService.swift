@@ -153,7 +153,13 @@ public class FirebaseRESTService {
     public func firestoreList(path: String) async throws -> [[String: Any]] {
         try await ensureAuth()
         var headers = try await getAuthHeader()
-        let url = URL(string: firestoreURL(path))!
+        var urlStr = firestoreURL(path)
+        if !urlStr.contains("?") {
+            urlStr += "?pageSize=300"
+        } else {
+            urlStr += "&pageSize=300"
+        }
+        let url = URL(string: urlStr)!
         var req = URLRequest(url: url)
         req.allHTTPHeaderFields = headers
         do {
