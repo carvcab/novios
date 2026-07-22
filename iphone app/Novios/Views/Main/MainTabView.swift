@@ -8,31 +8,31 @@ public struct MainTabView: View {
 
     public var body: some View {
         TabView(selection: $selectedTab) {
+            HomeView()
+                .tabItem {
+                    Image(systemName: "house.fill")
+                    Text("Inicio")
+                }
+                .tag(0)
+
             MessagesView()
                 .tabItem {
                     Image(systemName: "message.fill")
                     Text("Nuestro Chat")
                 }
-                .tag(0)
+                .tag(1)
+
+            LoveView()
+                .tabItem {
+                    Image(systemName: "heart.fill")
+                    Text("Nuestro Amor")
+                }
+                .tag(2)
 
             LocationView()
                 .tabItem {
                     Image(systemName: "location.fill")
                     Text("Nuestro Mapa")
-                }
-                .tag(1)
-
-            MemoriesAndLettersView()
-                .tabItem {
-                    Image(systemName: "heart.fill")
-                    Text("Recuerdos")
-                }
-                .tag(2)
-
-            DreamsAndGoalsView()
-                .tabItem {
-                    Image(systemName: "star.fill")
-                    Text("Sueños")
                 }
                 .tag(3)
 
@@ -44,5 +44,11 @@ public struct MainTabView: View {
                 .tag(4)
         }
         .tint(ThemeManager.shared.primary)
+        .onAppear {
+            CoupleService.shared.startPolling()
+        }
+        .task {
+            await CoupleService.shared.refreshSubcollections()
+        }
     }
 }

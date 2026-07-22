@@ -13,6 +13,46 @@
 		9A000042C00000000000004 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EC2C00000000000003EC /* GlassCard.swift */; };
 		9A000052C00000000000005 /* GradientButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003ED2C00000000000003ED /* GradientButton.swift */; };
 		9A000062C00000000000006 /* LiquidBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EE2C00000000000003EE /* LiquidBackgroundView.swift */; };
+		9A000072C00000000000007 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EF2C00000000000003EF /* ThemeManager.swift */; };
+		9A000082C00000000000008 /* CoupleModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F02C00000000000003F0 /* CoupleModel.swift */; };
+		9A000092C00000000000009 /* MessageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F12C00000000000003F1 /* MessageModel.swift */; };
+		9A0000A2C0000000000000A /* UserModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F22C00000000000003F2 /* UserModel.swift */; };
+		9A0000B2C0000000000000B /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F32C00000000000003F3 /* AIService.swift */; };
+		9A0000C2C0000000000000C /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F42C00000000000003F4 /* AuthService.swift */; };
+		9A0000D2C0000000000000D /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F52C00000000000003F5 /* ChatService.swift */; };
+		9A0000E2C0000000000000E /* CoupleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F62C00000000000003F6 /* CoupleService.swift */; };
+		9A0000F2C0000000000000F /* FirebaseRESTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F72C00000000000003F7 /* FirebaseRESTService.swift */; };
+		9A000102C00000000000010 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F82C00000000000003F8 /* LocationService.swift */; };
+		9A000112C00000000000011 /* StatusService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F92C00000000000003F9 /* StatusService.swift */; };
+		9A000122C00000000000012 /* UserService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FA2C00000000000003FA /* UserService.swift */; };
+		9A000132C00000000000013 /* AddPartnerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FB2C00000000000003FB /* AddPartnerView.swift */; };
+		9A000142C00000000000014 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FC2C00000000000003FC /* WelcomeView.swift */; };
+		9A000152C00000000000015 /* ChatBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FD2C00000000000003FD /* ChatBubbleView.swift */; };
+		9A000162C00000000000016 /* MessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FE2C00000000000003FE /* MessagesView.swift */; };
+		9A000172C00000000000017 /* LocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003FF2C00000000000003FF /* LocationView.swift */; };
+		9A000182C00000000000018 /* CapsulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004002C0000000000000400 /* CapsulesView.swift */; };
+		9A000192C00000000000019 /* DateIdeasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004012C0000000000000401 /* DateIdeasView.swift */; };
+		9A0001A2C0000000000001A /* GamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004022C0000000000000402 /* GamesView.swift */; };
+		9A0001B2C0000000000001B /* GoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004032C0000000000000403 /* GoalsView.swift */; };
+		9A0001C2C0000000000001C /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004042C0000000000000404 /* HomeView.swift */; };
+		9A0001D2C0000000000001D /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004052C0000000000000405 /* JournalView.swift */; };
+		9A0001E2C0000000000001E /* LettersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004062C0000000000000406 /* LettersView.swift */; };
+		9A0001F2C0000000000001F /* LoveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004072C0000000000000407 /* LoveView.swift */; };
+		9A000202C00000000000020 /* MemoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004082C0000000000000408 /* MemoriesView.swift */; };
+		9A000212C00000000000021 /* MusicView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004092C0000000000000409 /* MusicView.swift */; };
+		9A000222C00000000000022 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040A2C000000000000040A /* StatsView.swift */; };
+		9A000232C00000000000023 /* TodoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040B2C000000000000040B /* TodoView.swift */; };
+		9A000242C00000000000024 /* DreamsAndGoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040C2C000000000000040C /* DreamsAndGoalsView.swift */; };
+		9A000252C00000000000025 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040D2C000000000000040D /* MainTabView.swift */; };
+		9A000262C00000000000026 /* MemoriesAndLettersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040E2C000000000000040E /* MemoriesAndLettersView.swift */; };
+		9A000272C00000000000027 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0040F2C000000000000040F /* ProfileView.swift */; };
+		9A000282C00000000000028 /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004102C0000000000000410 /* LockScreenView.swift */; };
+		9A000292C00000000000029 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A004112C0000000000000411 /* SettingsView.swift */; };
+		9A000022C00000000000002 /* AppGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EA2C00000000000003EA /* AppGate.swift */; };
+		9A000032C00000000000003 /* CustomTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EB2C00000000000003EB /* CustomTextField.swift */; };
+		9A000042C00000000000004 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EC2C00000000000003EC /* GlassCard.swift */; };
+		9A000052C00000000000005 /* GradientButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003ED2C00000000000003ED /* GradientButton.swift */; };
+		9A000062C00000000000006 /* LiquidBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003EE2C00000000000003EE /* LiquidBackgroundView.swift */; };
 		9A0000A2C0000000000000A /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F22C00000000000003F2 /* ThemeManager.swift */; };
 		9A0000C2C0000000000000C /* MessageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F42C00000000000003F4 /* MessageModel.swift */; };
 		9A0000E2C0000000000000E /* UserModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A003F62C00000000000003F6 /* UserModel.swift */; };
@@ -43,6 +83,46 @@
 /* Begin PBXFileReference section */
 		9A2000012C00000100000001 /* NoviosApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/NoviosApp.swift; sourceTree = "<group>"; };
 		9A2000002C00000000000000 /* Novios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Novios.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9A003EA2C00000000000003EA /* AppGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AppGate.swift; sourceTree = "<group>"; };
+		9A003EB2C00000000000003EB /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/CustomTextField.swift; sourceTree = "<group>"; };
+		9A003EC2C00000000000003EC /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/GlassCard.swift; sourceTree = "<group>"; };
+		9A003ED2C00000000000003ED /* GradientButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/GradientButton.swift; sourceTree = "<group>"; };
+		9A003EE2C00000000000003EE /* LiquidBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/LiquidBackgroundView.swift; sourceTree = "<group>"; };
+		9A003EF2C00000000000003EF /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/ThemeManager.swift; sourceTree = "<group>"; };
+		9A003F02C00000000000003F0 /* CoupleModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/CoupleModel.swift; sourceTree = "<group>"; };
+		9A003F12C00000000000003F1 /* MessageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/MessageModel.swift; sourceTree = "<group>"; };
+		9A003F22C00000000000003F2 /* UserModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/UserModel.swift; sourceTree = "<group>"; };
+		9A003F32C00000000000003F3 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AIService.swift; sourceTree = "<group>"; };
+		9A003F42C00000000000003F4 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AuthService.swift; sourceTree = "<group>"; };
+		9A003F52C00000000000003F5 /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/ChatService.swift; sourceTree = "<group>"; };
+		9A003F62C00000000000003F6 /* CoupleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/CoupleService.swift; sourceTree = "<group>"; };
+		9A003F72C00000000000003F7 /* FirebaseRESTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/FirebaseRESTService.swift; sourceTree = "<group>"; };
+		9A003F82C00000000000003F8 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LocationService.swift; sourceTree = "<group>"; };
+		9A003F92C00000000000003F9 /* StatusService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/StatusService.swift; sourceTree = "<group>"; };
+		9A003FA2C00000000000003FA /* UserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/UserService.swift; sourceTree = "<group>"; };
+		9A003FB2C00000000000003FB /* AddPartnerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Auth/AddPartnerView.swift; sourceTree = "<group>"; };
+		9A003FC2C00000000000003FC /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Auth/WelcomeView.swift; sourceTree = "<group>"; };
+		9A003FD2C00000000000003FD /* ChatBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Chat/ChatBubbleView.swift; sourceTree = "<group>"; };
+		9A003FE2C00000000000003FE /* MessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Chat/MessagesView.swift; sourceTree = "<group>"; };
+		9A003FF2C00000000000003FF /* LocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Location/LocationView.swift; sourceTree = "<group>"; };
+		9A004002C0000000000000400 /* CapsulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/CapsulesView.swift; sourceTree = "<group>"; };
+		9A004012C0000000000000401 /* DateIdeasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/DateIdeasView.swift; sourceTree = "<group>"; };
+		9A004022C0000000000000402 /* GamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/GamesView.swift; sourceTree = "<group>"; };
+		9A004032C0000000000000403 /* GoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/GoalsView.swift; sourceTree = "<group>"; };
+		9A004042C0000000000000404 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/HomeView.swift; sourceTree = "<group>"; };
+		9A004052C0000000000000405 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/JournalView.swift; sourceTree = "<group>"; };
+		9A004062C0000000000000406 /* LettersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/LettersView.swift; sourceTree = "<group>"; };
+		9A004072C0000000000000407 /* LoveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/LoveView.swift; sourceTree = "<group>"; };
+		9A004082C0000000000000408 /* MemoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/MemoriesView.swift; sourceTree = "<group>"; };
+		9A004092C0000000000000409 /* MusicView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/MusicView.swift; sourceTree = "<group>"; };
+		9A0040A2C000000000000040A /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/StatsView.swift; sourceTree = "<group>"; };
+		9A0040B2C000000000000040B /* TodoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/TodoView.swift; sourceTree = "<group>"; };
+		9A0040C2C000000000000040C /* DreamsAndGoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Main/DreamsAndGoalsView.swift; sourceTree = "<group>"; };
+		9A0040D2C000000000000040D /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Main/MainTabView.swift; sourceTree = "<group>"; };
+		9A0040E2C000000000000040E /* MemoriesAndLettersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Main/MemoriesAndLettersView.swift; sourceTree = "<group>"; };
+		9A0040F2C000000000000040F /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Profile/ProfileView.swift; sourceTree = "<group>"; };
+		9A004102C0000000000000410 /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Security/LockScreenView.swift; sourceTree = "<group>"; };
+		9A004112C0000000000000411 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/SettingsView.swift; sourceTree = "<group>"; };
 		9A003EA2C00000000000003EA /* AppGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AppGate.swift; sourceTree = "<group>"; };
 		9A003EB2C00000000000003EB /* CustomTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/CustomTextField.swift; sourceTree = "<group>"; };
 		9A003EC2C00000000000003EC /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/GlassCard.swift; sourceTree = "<group>"; };
@@ -100,6 +180,46 @@
 			isa = PBXGroup;
 			children = (
 				9A2000012C00000100000001 /* NoviosApp.swift */,
+				9A003EA2C00000000000003EA /* AppGate.swift */,
+				9A003EB2C00000000000003EB /* CustomTextField.swift */,
+				9A003EC2C00000000000003EC /* GlassCard.swift */,
+				9A003ED2C00000000000003ED /* GradientButton.swift */,
+				9A003EE2C00000000000003EE /* LiquidBackgroundView.swift */,
+				9A003EF2C00000000000003EF /* ThemeManager.swift */,
+				9A003F02C00000000000003F0 /* CoupleModel.swift */,
+				9A003F12C00000000000003F1 /* MessageModel.swift */,
+				9A003F22C00000000000003F2 /* UserModel.swift */,
+				9A003F32C00000000000003F3 /* AIService.swift */,
+				9A003F42C00000000000003F4 /* AuthService.swift */,
+				9A003F52C00000000000003F5 /* ChatService.swift */,
+				9A003F62C00000000000003F6 /* CoupleService.swift */,
+				9A003F72C00000000000003F7 /* FirebaseRESTService.swift */,
+				9A003F82C00000000000003F8 /* LocationService.swift */,
+				9A003F92C00000000000003F9 /* StatusService.swift */,
+				9A003FA2C00000000000003FA /* UserService.swift */,
+				9A003FB2C00000000000003FB /* AddPartnerView.swift */,
+				9A003FC2C00000000000003FC /* WelcomeView.swift */,
+				9A003FD2C00000000000003FD /* ChatBubbleView.swift */,
+				9A003FE2C00000000000003FE /* MessagesView.swift */,
+				9A003FF2C00000000000003FF /* LocationView.swift */,
+				9A004002C0000000000000400 /* CapsulesView.swift */,
+				9A004012C0000000000000401 /* DateIdeasView.swift */,
+				9A004022C0000000000000402 /* GamesView.swift */,
+				9A004032C0000000000000403 /* GoalsView.swift */,
+				9A004042C0000000000000404 /* HomeView.swift */,
+				9A004052C0000000000000405 /* JournalView.swift */,
+				9A004062C0000000000000406 /* LettersView.swift */,
+				9A004072C0000000000000407 /* LoveView.swift */,
+				9A004082C0000000000000408 /* MemoriesView.swift */,
+				9A004092C0000000000000409 /* MusicView.swift */,
+				9A0040A2C000000000000040A /* StatsView.swift */,
+				9A0040B2C000000000000040B /* TodoView.swift */,
+				9A0040C2C000000000000040C /* DreamsAndGoalsView.swift */,
+				9A0040D2C000000000000040D /* MainTabView.swift */,
+				9A0040E2C000000000000040E /* MemoriesAndLettersView.swift */,
+				9A0040F2C000000000000040F /* ProfileView.swift */,
+				9A004102C0000000000000410 /* LockScreenView.swift */,
+				9A004112C0000000000000411 /* SettingsView.swift */,
 				9A003EA2C00000000000003EA /* AppGate.swift */,
 				9A003EB2C00000000000003EB /* CustomTextField.swift */,
 				9A003EC2C00000000000003EC /* GlassCard.swift */,
@@ -207,6 +327,46 @@
 				9A000042C00000000000004 /* GlassCard.swift in Sources */,
 				9A000052C00000000000005 /* GradientButton.swift in Sources */,
 				9A000062C00000000000006 /* LiquidBackgroundView.swift in Sources */,
+				9A000072C00000000000007 /* ThemeManager.swift in Sources */,
+				9A000082C00000000000008 /* CoupleModel.swift in Sources */,
+				9A000092C00000000000009 /* MessageModel.swift in Sources */,
+				9A0000A2C0000000000000A /* UserModel.swift in Sources */,
+				9A0000B2C0000000000000B /* AIService.swift in Sources */,
+				9A0000C2C0000000000000C /* AuthService.swift in Sources */,
+				9A0000D2C0000000000000D /* ChatService.swift in Sources */,
+				9A0000E2C0000000000000E /* CoupleService.swift in Sources */,
+				9A0000F2C0000000000000F /* FirebaseRESTService.swift in Sources */,
+				9A000102C00000000000010 /* LocationService.swift in Sources */,
+				9A000112C00000000000011 /* StatusService.swift in Sources */,
+				9A000122C00000000000012 /* UserService.swift in Sources */,
+				9A000132C00000000000013 /* AddPartnerView.swift in Sources */,
+				9A000142C00000000000014 /* WelcomeView.swift in Sources */,
+				9A000152C00000000000015 /* ChatBubbleView.swift in Sources */,
+				9A000162C00000000000016 /* MessagesView.swift in Sources */,
+				9A000172C00000000000017 /* LocationView.swift in Sources */,
+				9A000182C00000000000018 /* CapsulesView.swift in Sources */,
+				9A000192C00000000000019 /* DateIdeasView.swift in Sources */,
+				9A0001A2C0000000000001A /* GamesView.swift in Sources */,
+				9A0001B2C0000000000001B /* GoalsView.swift in Sources */,
+				9A0001C2C0000000000001C /* HomeView.swift in Sources */,
+				9A0001D2C0000000000001D /* JournalView.swift in Sources */,
+				9A0001E2C0000000000001E /* LettersView.swift in Sources */,
+				9A0001F2C0000000000001F /* LoveView.swift in Sources */,
+				9A000202C00000000000020 /* MemoriesView.swift in Sources */,
+				9A000212C00000000000021 /* MusicView.swift in Sources */,
+				9A000222C00000000000022 /* StatsView.swift in Sources */,
+				9A000232C00000000000023 /* TodoView.swift in Sources */,
+				9A000242C00000000000024 /* DreamsAndGoalsView.swift in Sources */,
+				9A000252C00000000000025 /* MainTabView.swift in Sources */,
+				9A000262C00000000000026 /* MemoriesAndLettersView.swift in Sources */,
+				9A000272C00000000000027 /* ProfileView.swift in Sources */,
+				9A000282C00000000000028 /* LockScreenView.swift in Sources */,
+				9A000292C00000000000029 /* SettingsView.swift in Sources */,
+				9A000022C00000000000002 /* AppGate.swift in Sources */,
+				9A000032C00000000000003 /* CustomTextField.swift in Sources */,
+				9A000042C00000000000004 /* GlassCard.swift in Sources */,
+				9A000052C00000000000005 /* GradientButton.swift in Sources */,
+				9A000062C00000000000006 /* LiquidBackgroundView.swift in Sources */,
 				9A0000A2C0000000000000A /* ThemeManager.swift in Sources */,
 				9A0000C2C0000000000000C /* MessageModel.swift in Sources */,
 				9A0000E2C0000000000000E /* UserModel.swift in Sources */,
@@ -239,14 +399,15 @@
 		9A9000002C00000000000000 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-								SDKROOT = iphoneos;
+												SDKROOT = iphoneos;
+SDKROOT = iphoneos;
 ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Novios necesita tu ubicación para compartirla con tu pareja.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Novios necesita tu ubicación en segundo plano para notificar a tu pareja cuando estés cerca.";
@@ -262,7 +423,7 @@ ALWAYS_SEARCH_USER_PATHS = NO;
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.novios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -274,13 +435,14 @@ ALWAYS_SEARCH_USER_PATHS = NO;
 		9A9000012C00000000000000 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-								SDKROOT = iphoneos;
+												SDKROOT = iphoneos;
+SDKROOT = iphoneos;
 ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Novios necesita tu ubicación para compartirla con tu pareja.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Novios necesita tu ubicación en segundo plano para notificar a tu pareja cuando estés cerca.";
@@ -296,7 +458,7 @@ ALWAYS_SEARCH_USER_PATHS = NO;
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.novios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
