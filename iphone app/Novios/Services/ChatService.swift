@@ -294,26 +294,22 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     public func sendVoiceNote(audioData: Data) {
         let msgId = UUID().uuidString
-        Task {
-            try? await FirebaseRESTService.shared.firestoreSet(
-                path: "parejas/\(coupleId)/chat/audio/\(msgId)",
-                fields: [
-                    "data": audioData.base64EncodedString(),
-                    "mimeType": "audio/m4a",
-                    "timestamp": Date()
-                ]
-            )
-            let msg = MessageModel(
-                id: msgId,
-                senderId: myUid,
-                text: "Nota de voz",
-                timestamp: Date(),
-                type: .voice,
-                mediaUrl: "firestore://parejas/\(coupleId)/chat/audio/\(msgId)"
-            )
-            await MainActor.run { self.messages.append(msg); self.didSendMessage.send() }
-            self.saveMessage(msg: msg)
+        let base64 = audioData.base64EncodedString()
+        if base64.count > 900_000 {
+            errorMessage = "Audio demasiado largo"
+            return
         }
+        let msg = MessageModel(
+            id: msgId,
+            senderId: myUid,
+            text: "Nota de voz",
+            timestamp: Date(),
+            type: .voice,
+            mediaUrl: base64
+        )
+        messages.append(msg)
+        didSendMessage.send()
+        saveMessage(msg: msg)
     }
 
     public func setReplyTo(message: MessageModel) { replyToMessage = message }
@@ -322,10 +318,15 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     public func sendHugAction() { sendMessage(text: "\u{1F917}") }
 
     public func startRecording() {
-        switch AVAudioSession.sharedInstance().recordPermission {
-        case .denied: return
+        let session = AVAudioSession.sharedInstance()
+        switch session.recordPermission {
+        case .denied:
+            DispatchQueue.main.async {
+                self.errorMessage = "Permiso de micrófono denegado. Ve a Ajustes > Novios > Micrófono."
+            }
+            return
         case .undetermined:
-            AVAudioSession.sharedInstance().requestRecordPermission { granted in
+            session.requestRecordPermission { granted in
                 if granted { DispatchQueue.main.async { self.startRecording() } }
             }
             return
@@ -333,7 +334,6 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         @unknown default: return
         }
         do {
-            let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playAndRecord, mode: .default)
             try session.setActive(true)
             let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("voice_\(Date().timeIntervalSince1970).m4a")
@@ -351,10 +351,15 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             isRecording = true
             recordingDuration = 0
             recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-                self?.recordingDuration = self?.audioRecorder?.currentTime ?? 0
+                guard let self = self else { return }
+                let dur = self.audioRecorder?.currentTime ?? 0
+                DispatchQueue.main.async { self.recordingDuration = dur }
             }
         } catch {
-            print("[Chat] record error: \(error)")
+            DispatchQueue.main.async {
+                print("[Chat] record error: \(error)")
+                self.errorMessage = "Error al grabar: \(error.localizedDescription)"
+            }
         }
     }
 
