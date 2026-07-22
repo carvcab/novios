@@ -24,6 +24,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     override public init() {
         super.init()
+        fetchMessages()
         startPolling()
     }
 
