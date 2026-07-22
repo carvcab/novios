@@ -32,12 +32,12 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     public func startPolling() {
         stopPolling()
-        let t = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
+        let t = Timer(timeInterval: 60, repeats: true) { [weak self] _ in
             self?.fetchMessages()
         }
         RunLoop.main.add(t, forMode: .common)
         pollingTimer = t
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
             self?.fetchMessages()
         }
     }
@@ -90,8 +90,20 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             do {
                 docs = try await FirebaseRESTService.shared.firestoreList(path: "parejas/\(coupleId)/chat")
             } catch {
+                let msg = error.localizedDescription.lowercased()
                 print("[Chat] fetchMessages error: \(error.localizedDescription)")
-                errorMessage = "Error al cargar mensajes: \(error.localizedDescription)"
+                if msg.contains("quota") || msg.contains("429") || msg.contains("too many") || msg.contains("resource exhausted") {
+                    print("[Chat] quota exceeded, slowing down polling")
+                    stopPolling()
+                    let t = Timer(timeInterval: 120, repeats: true) { [weak self] _ in
+                        self?.fetchMessages()
+                    }
+                    RunLoop.main.add(t, forMode: .common)
+                    pollingTimer = t
+                    errorMessage = "Límite de lectura excedido. Esperando 2 minutos para reintentar..."
+                } else {
+                    errorMessage = "Error al cargar mensajes: \(error.localizedDescription)"
+                }
                 isLoading = false
                 return
             }
