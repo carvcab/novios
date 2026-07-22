@@ -604,138 +604,105 @@ class _LetterReaderScreenState extends State<_LetterReaderScreen> with SingleTic
       body: Stack(
         alignment: Alignment.center,
         children: [
-          // ── 1. CARTA SLIDING OUT / REVEALED SHEET ──
+          // ── 1. LETTER CONTENT (slides up when envelope opens) ──
           AnimatedBuilder(
             animation: _slideAnimation,
             builder: (context, child) {
-              final slideValue = _slideAnimation.value;
+              final s = _slideAnimation.value;
               return Transform.translate(
-                offset: Offset(0, 180 * (1.0 - slideValue) - 50 * slideValue),
+                offset: Offset(0, 200 * (1.0 - s)),
                 child: Transform.scale(
-                  scale: 0.75 + 0.25 * slideValue,
-                  child: Center(
-                    child: child,
-                  ),
+                  scale: 0.8 + 0.2 * s,
+                  child: Opacity(opacity: s),
+                  child: child,
                 ),
               );
             },
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 width: double.infinity,
+                constraints: const BoxConstraints(maxHeight: 520),
                 padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
-                  color: widget.color.withValues(alpha: 0.95), // Paper sheet color
-                  borderRadius: BorderRadius.circular(16),
+                  color: widget.color.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: const [
-                    BoxShadow(color: Colors.black45, blurRadius: 15, offset: Offset(0, 10)),
+                    BoxShadow(color: Colors.black45, blurRadius: 20, offset: Offset(0, 8)),
                   ],
-                  // Subtle paper lines texture
-                  image: const DecorationImage(
-                    image: NetworkImage('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=200&auto=format&fit=crop'),
-                    fit: BoxFit.cover,
-                    opacity: 0.05,
-                  ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(sticker, style: const TextStyle(fontSize: 48)),
-                    const SizedBox(height: 16),
-                    Text(
-                      title,
-                      style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-                      textAlign: TextAlign.center,
-                    ),
-                    if (authorId != null) ...[
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(sticker, style: const TextStyle(fontSize: 44)),
+                      const SizedBox(height: 14),
+                      Text(title, style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87), textAlign: TextAlign.center),
                       const SizedBox(height: 6),
-                      Text(
-                        'Escrita por ${authorId == 'profile_1' ? 'Diego' : 'Yosmar'} 💞',
-                        style: GoogleFonts.outfit(fontSize: 12, color: Colors.pink, fontWeight: FontWeight.bold),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('💞 ', style: TextStyle(fontSize: 11)),
+                          if (authorId != null)
+                            Text('Para ti', style: GoogleFonts.outfit(fontSize: 12, color: Colors.pink.shade600, fontWeight: FontWeight.bold)),
+                          Text('  $date', style: TextStyle(fontSize: 11, color: Colors.black38)),
+                        ],
                       ),
+                      const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Colors.black12)),
+                      Text(message, style: messageStyle, textAlign: TextAlign.center),
+                      const SizedBox(height: 12),
                     ],
-                    const SizedBox(height: 6),
-                    Text(date, style: const TextStyle(fontSize: 11, color: Colors.black38)),
-                    const Divider(color: Colors.black12, height: 24),
-                    Text(
-                      message,
-                      style: messageStyle,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
 
-          // ── 2. ENVELOPE BASE (Drawn in front until opened) ──
-          if (!_isOpen || _slideAnimation.value < 0.9)
+          // ── 2. ENVELOPE ──
+          if (!_isOpen || _slideAnimation.value < 0.85)
             IgnorePointer(
               ignoring: _isOpen,
-              child: Center(
+              child: AnimatedBuilder(
+                animation: _flapAnimation,
+                builder: (context, child) {
+                  return Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.001)
+                      ..rotateX(-_flapAnimation.value * 1.5),
+                    child: child,
+                  );
+                },
                 child: Container(
-                  width: 320,
-                  height: 220,
+                  width: 300,
+                  height: 200,
                   decoration: BoxDecoration(
                     color: const Color(0xFF2E1C20),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 20, offset: const Offset(0, 10)),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8)),
                     ],
                   ),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Envelope Folds graphic drawing
-                      CustomPaint(
-                        size: const Size(320, 220),
-                        painter: _EnvelopePainter(),
-                      ),
-
-                      // Seal wax button in the center
+                      CustomPaint(size: const Size(300, 200), painter: _EnvelopePainter()),
                       GestureDetector(
                         onTap: _openEnvelope,
-                        child: AnimatedBuilder(
-                          animation: _flapAnimation,
-                          builder: (context, child) {
-                            final angle = _flapAnimation.value * pi;
-                            return Transform(
-                              alignment: Alignment.center,
-                              transform: Matrix4.identity()
-                                ..setEntry(3, 2, 0.002)
-                                ..rotateX(angle),
-                              child: child,
-                            );
-                          },
-                          child: Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                colors: [
-                                  Colors.redAccent.shade200,
-                                  Colors.red.shade900,
-                                ],
-                              ),
-                              boxShadow: const [
-                                BoxShadow(color: Colors.black45, blurRadius: 8, offset: Offset(2, 4)),
-                              ],
-                              border: Border.all(color: Colors.yellow.shade800, width: 1.5),
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.favorite_rounded, color: Colors.white, size: 24),
-                            ),
+                        child: Container(
+                          width: 52, height: 52,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const RadialGradient(colors: [Color(0xFFFF6B6B), Color(0xFF8B0000)]),
+                            boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 8, offset: Offset(2, 3))],
+                            border: Border.all(color: const Color(0xFFD4A017), width: 2),
                           ),
+                          child: const Center(child: Icon(Icons.favorite_rounded, color: Colors.white, size: 22)),
                         ),
                       ),
                       Positioned(
-                        bottom: 24,
-                        child: Text(
-                          'Pulsa el sello para abrir 🔐',
-                          style: GoogleFonts.outfit(color: Colors.white38, fontSize: 10, fontStyle: FontStyle.italic),
-                        ),
+                        bottom: 20,
+                        child: Text('Toca el sello 💌', style: GoogleFonts.outfit(color: Colors.white38, fontSize: 11, fontStyle: FontStyle.italic)),
                       ),
                     ],
                   ),
@@ -751,30 +718,49 @@ class _LetterReaderScreenState extends State<_LetterReaderScreen> with SingleTic
 class _EnvelopePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF3F262B)
-      ..style = PaintingStyle.fill;
+    final w = size.width;
+    final h = size.height;
+    final cx = w / 2;
+    final cy = h / 2;
 
-    final linePaint = Paint()
-      ..color = Colors.black26
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
+    // Background
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, w, h), const Radius.circular(16)), Paint()..color = const Color(0xFF3F262B));
 
-    final path = Path()
-      ..moveTo(0, size.height)
-      ..lineTo(size.width / 2, size.height / 2 + 10)
-      ..lineTo(size.width, size.height)
+    // Bottom flap triangle (darker)
+    final bottomPath = Path()
+      ..moveTo(0, h)
+      ..lineTo(cx, cy + 10)
+      ..lineTo(w, h)
       ..close();
-    canvas.drawPath(path, paint);
-    canvas.drawPath(path, linePaint);
+    canvas.drawPath(bottomPath, Paint()..color = const Color(0xFF2E1C20));
+    canvas.drawPath(bottomPath, Paint()..color = Colors.black26..style = PaintingStyle.stroke..strokeWidth = 1);
 
-    final path2 = Path()
+    // Left flap triangle
+    final leftPath = Path()
       ..moveTo(0, 0)
-      ..lineTo(size.width / 2, size.height / 2 - 10)
-      ..lineTo(size.width, 0)
+      ..lineTo(cx, cy)
+      ..lineTo(0, h)
       ..close();
-    canvas.drawPath(path2, Paint()..color = const Color(0xFF4C2F34));
-    canvas.drawPath(path2, linePaint);
+    canvas.drawPath(leftPath, Paint()..color = const Color(0xFF4C2F34));
+    canvas.drawPath(leftPath, Paint()..color = Colors.black12..style = PaintingStyle.stroke..strokeWidth = 1);
+
+    // Right flap triangle
+    final rightPath = Path()
+      ..moveTo(w, 0)
+      ..lineTo(cx, cy)
+      ..lineTo(w, h)
+      ..close();
+    canvas.drawPath(rightPath, Paint()..color = const Color(0xFF4C2F34));
+    canvas.drawPath(rightPath, Paint()..color = Colors.black12..style = PaintingStyle.stroke..strokeWidth = 1);
+
+    // Top flap (lighter, will be rotated by animation)
+    final topPath = Path()
+      ..moveTo(0, 0)
+      ..lineTo(cx, cy - 15)
+      ..lineTo(w, 0)
+      ..close();
+    canvas.drawPath(topPath, Paint()..color = const Color(0xFF5C3A40));
+    canvas.drawPath(topPath, Paint()..color = Colors.black26..style = PaintingStyle.stroke..strokeWidth = 1);
   }
 
   @override
