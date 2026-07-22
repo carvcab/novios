@@ -234,38 +234,21 @@ public struct ChatBubbleView: View {
         guard let urlStr = message.mediaUrl, !urlStr.isEmpty else { return }
         Task {
             var audioData: Data? = nil
-            for attempt in 0..<5 {
-                if urlStr.hasPrefix("audio_b64://") {
-                    let mediaId = urlStr.replacingOccurrences(of: "audio_b64://", with: "")
-                    if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "chat_media/\(mediaId)"),
-                       let fields = doc["fields"] as? [String: Any],
-                       let rawB64 = (fields["data"] as? [String: Any])?["stringValue"] as? String {
-                        let cleanB64 = rawB64.replacingOccurrences(of: "\n", with: "").replacingOccurrences(of: "\r", with: "").replacingOccurrences(of: " ", with: "")
-                        audioData = Data(base64Encoded: cleanB64, options: .ignoreUnknownCharacters)
-                        if audioData != nil { break }
-                    }
-                } else if urlStr.hasPrefix("firestore://") {
-                    let path = urlStr.replacingOccurrences(of: "firestore://", with: "")
-                    if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
-                       let fields = doc["fields"] as? [String: Any],
-                       let rawB64 = (fields["data"] as? [String: Any])?["stringValue"] as? String {
-                        let cleanB64 = rawB64.replacingOccurrences(of: "\n", with: "").replacingOccurrences(of: "\r", with: "").replacingOccurrences(of: " ", with: "")
-                        audioData = Data(base64Encoded: cleanB64, options: .ignoreUnknownCharacters)
-                        if audioData != nil { break }
-                    }
-                } else if let httpURL = URL(string: urlStr), urlStr.hasPrefix("http") {
-                    audioData = try? (await URLSession.shared.data(from: httpURL)).0
-                    if audioData != nil { break }
+            if urlStr.hasPrefix("firestore://") {
+                let path = urlStr.replacingOccurrences(of: "firestore://", with: "")
+                if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
+                   let fields = doc["fields"] as? [String: Any],
+                   let rawB64 = (fields["data"] as? [String: Any])?["stringValue"] as? String {
+                    let cleanB64 = rawB64.replacingOccurrences(of: "\n", with: "").replacingOccurrences(of: "\r", with: "").replacingOccurrences(of: " ", with: "")
+                    audioData = Data(base64Encoded: cleanB64, options: .ignoreUnknownCharacters)
                 }
-                if audioData == nil && attempt < 4 {
-                    try? await Task.sleep(nanoseconds: 500_000_000)
-                }
+            } else if let httpURL = URL(string: urlStr), urlStr.hasPrefix("http") {
+                audioData = try? (await URLSession.shared.data(from: httpURL)).0
+            } else {
+                audioData = Data(base64Encoded: urlStr, options: .ignoreUnknownCharacters)
             }
 
-            guard let data = audioData, !data.isEmpty else {
-                await MainActor.run { print("[Audio] no data for \(urlStr)") }
-                return
-            }
+            guard let data = audioData, !data.isEmpty else { return }
             try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
             try? AVAudioSession.sharedInstance().setActive(true)
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("audio_\(message.id).m4a")
