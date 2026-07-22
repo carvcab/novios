@@ -8,6 +8,8 @@ public struct LettersView: View {
     @State private var contentInput = ""
     @State private var selectedLetter: LetterModel? = nil
 
+    public init() {}
+
     public var body: some View {
         NavigationStack {
             ZStack {

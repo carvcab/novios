@@ -11,6 +11,8 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     @Published public var isShowingDisappearing = false
     @Published public var replyToMessage: MessageModel?
     @Published public var recordingDuration: TimeInterval = 0
+    @Published public var isLoaded = false
+    @Published public var isLoading = false
 
     public let didSendMessage = PassthroughSubject<Void, Never>()
     public let autoScrollToBottom = PassthroughSubject<Void, Never>()
@@ -24,7 +26,6 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     override public init() {
         super.init()
-        fetchMessages()
         startPolling()
     }
 
@@ -35,6 +36,9 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         }
         RunLoop.main.add(t, forMode: .common)
         pollingTimer = t
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.fetchMessages()
+        }
     }
 
     public func stopPolling() {
@@ -45,21 +49,16 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     private static func parseIsoDate(_ str: String) -> Date? {
         var cleanStr = str.trimmingCharacters(in: .whitespacesAndNewlines)
         if cleanStr.isEmpty { return nil }
-
         let hasTimezone = cleanStr.contains("Z") || cleanStr.contains("+") || (cleanStr.count > 10 && cleanStr.dropFirst(10).contains("-"))
-        if !hasTimezone {
-            cleanStr += "Z"
-        }
+        if !hasTimezone { cleanStr += "Z" }
         let f1 = ISO8601DateFormatter()
         f1.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let d = f1.date(from: cleanStr) { return d }
         let f2 = ISO8601DateFormatter()
         f2.formatOptions = [.withInternetDateTime]
         if let d = f2.date(from: cleanStr) { return d }
-
         let df = DateFormatter()
         df.locale = Locale(identifier: "en_US_POSIX")
-
         let noZ = cleanStr.hasSuffix("Z") ? String(cleanStr.dropLast()) : cleanStr
         df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
         if let d = df.date(from: noZ) { return d }
@@ -72,38 +71,31 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         return nil
     }
 
-    private func fetchMessages() {
+    public func fetchMessages() {
         Task { @MainActor in
-            let documents: [[String: Any]]
-            if let queried = try? await FirebaseRESTService.shared.firestoreQuery(parent: "parejas/\(coupleId)", collectionId: "chat", limit: 200), !queried.isEmpty {
-                documents = queried
-            } else if let listed = try? await FirebaseRESTService.shared.firestoreList(path: "parejas/\(coupleId)/chat"), !listed.isEmpty {
-                documents = listed
-            } else {
+            guard AuthService.shared.isLoggedIn, FirebaseRESTService.shared.idToken != nil else { return }
+            isLoading = true
+
+            let docs: [[String: Any]]
+            do {
+                docs = try await FirebaseRESTService.shared.firestoreList(path: "parejas/\(coupleId)/chat")
+            } catch {
+                isLoading = false
                 return
             }
 
             var updated = self.messages
             var hasChanges = false
 
-            for doc in documents {
-                let f: [String: Any]
-                let msgId: String
-                let createTimeStr: String
-
-                if let fields = doc["fields"] as? [String: Any], let name = doc["name"] as? String {
-                    f = fields
-                    msgId = name.split(separator: "/").last.map(String.init) ?? UUID().uuidString
-                    createTimeStr = doc["createTime"] as? String ?? ""
-                } else if let id = doc["id"] as? String {
-                    f = doc
-                    msgId = id
-                    createTimeStr = doc["timestamp"] as? String ?? ""
-                } else { continue }
+            for doc in docs {
+                guard let fields = doc["fields"] as? [String: Any],
+                      let name = doc["name"] as? String else { continue }
+                let msgId = name.split(separator: "/").last.map(String.init) ?? UUID().uuidString
+                let createTimeStr = doc["createTime"] as? String ?? ""
 
                 let s = { (k: String) -> String? in
-                    if let v = f[k] as? String { return v }
-                    if let dict = f[k] as? [String: Any] {
+                    if let v = fields[k] as? String { return v }
+                    if let dict = fields[k] as? [String: Any] {
                         if let sv = dict["stringValue"] as? String { return sv }
                         if let tv = dict["timestampValue"] as? String { return tv }
                         if let iv = dict["integerValue"] as? String { return iv }
@@ -111,24 +103,21 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                     return nil
                 }
                 let b = { (k: String) -> Bool in
-                    if let v = f[k] as? Bool { return v }
-                    if let dict = f[k] as? [String: Any], let bv = dict["booleanValue"] as? Bool { return bv }
+                    if let v = fields[k] as? Bool { return v }
+                    if let dict = fields[k] as? [String: Any], let bv = dict["booleanValue"] as? Bool { return bv }
                     return false
                 }
-
-                let senderId = s("senderId") ?? ""
-                let text = s("text") ?? ""
-                let typeRaw = s("type") ?? "chat"
-                let rawTs = s("timestamp") ?? createTimeStr
-                let timestamp = Self.parseIsoDate(rawTs) ?? Date()
-
-                let mediaUrl = s("mediaUrl")
-                let isDisappearing = b("isDisappearing")
-                let disappearDuration = s("disappearDurationSeconds") ?? s("disappearDuration")
-                let readTsStr = s("readTimestamp")
-                let readTs = readTsStr.flatMap { Self.parseIsoDate($0) }
+                let dict = { (k: String) -> [String: Any]? in
+                    if let dict = fields[k] as? [String: Any] { return dict }
+                    if let nested = fields[k] as? [String: Any], let mv = nested["mapValue"] as? [String: Any] {
+                        return mv["fields"] as? [String: Any]
+                    }
+                    return nil
+                }
 
                 if let idx = updated.firstIndex(where: { $0.id == msgId }) {
+                    let readTsStr = s("readTimestamp")
+                    let readTs = readTsStr.flatMap { Self.parseIsoDate($0) }
                     if updated[idx].readTimestamp != readTs {
                         updated[idx].readTimestamp = readTs
                         hasChanges = true
@@ -136,15 +125,36 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                     continue
                 }
 
+                let senderId = s("senderId") ?? ""
+                let text = s("text") ?? ""
+                let typeRaw = s("type") ?? "chat"
+                let rawTs = s("timestamp") ?? createTimeStr
+                let timestamp = Self.parseIsoDate(rawTs) ?? Date()
+                let mediaUrl = s("mediaUrl")
+                let isDisappearing = b("isDisappearing")
+                let disappearDuration = s("disappearDurationSeconds") ?? s("disappearDuration")
+                let readTsStr = s("readTimestamp")
+                let readTs = readTsStr.flatMap { Self.parseIsoDate($0) }
                 let replyToId = s("replyToId")
                 let replyToText = s("replyToText")
                 let replyToSenderId = s("replyToSenderId")
 
+                var reactions: [String: String]?
+                if let rDict = dict("reactions"), let rFields = rDict as? [String: [String: Any]] {
+                    var r: [String: String] = [:]
+                    for (uid, val) in rFields {
+                        if let emoji = val["stringValue"] as? String {
+                            r[uid] = emoji
+                        }
+                    }
+                    if !r.isEmpty { reactions = r }
+                }
+
                 let msgType: MessageType
                 switch typeRaw {
-                case "chat","text": msgType = .text
+                case "chat", "text": msgType = .text
                 case "voice": msgType = .voice
-                case "image","photo": msgType = .image
+                case "image", "photo": msgType = .image
                 case "video": msgType = .video
                 case "gift": msgType = .gift
                 case "letter": msgType = .letter
@@ -163,7 +173,8 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                     mediaUrl: mediaUrl,
                     replyToId: replyToId,
                     replyToText: replyToText,
-                    replyToSenderId: replyToSenderId
+                    replyToSenderId: replyToSenderId,
+                    reactions: reactions
                 )
                 updated.append(msg)
                 hasChanges = true
@@ -174,12 +185,13 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 self.messages = updated
                 self.autoScrollToBottom.send()
             }
+            isLoaded = true
+            isLoading = false
         }
     }
 
     public func sendMessage(text: String) {
         let msgId = UUID().uuidString
-
         let msg = MessageModel(
             id: msgId,
             senderId: myUid,
@@ -196,17 +208,19 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         clearReply()
         didSendMessage.send()
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-
         saveMessage(msg: msg)
     }
 
     private func saveMessage(msg: MessageModel) {
         let path = "parejas/\(coupleId)/chat/\(msg.id)"
         let df = ISO8601DateFormatter()
+        let isMe = msg.senderId == CoupleService.diegoUid
+        let senderName = isMe ? CoupleService.diegoName : CoupleService.yosmariName
 
         var fields: [String: Any] = [
             "id": msg.id,
             "senderId": msg.senderId,
+            "senderName": senderName,
             "text": msg.text ?? "",
             "timestamp": df.string(from: msg.timestamp),
             "type": msg.type == .text ? "chat" : msg.type.rawValue,
@@ -229,7 +243,10 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         let now = ISO8601DateFormatter().string(from: Date())
         messages[idx].readTimestamp = ISO8601DateFormatter().date(from: now)
         Task {
-            try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)/chat/\(messageId)", fields: ["readTimestamp": now])
+            try? await FirebaseRESTService.shared.firestoreSet(
+                path: "parejas/\(coupleId)/chat/\(messageId)",
+                fields: ["readTimestamp": now]
+            )
         }
     }
 
@@ -239,8 +256,12 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         if reactions[myUid] == emoji { reactions.removeValue(forKey: myUid) }
         else { reactions[myUid] = emoji }
         messages[idx].reactions = reactions.isEmpty ? nil : reactions
+        let fields: [String: Any] = ["reactions": reactions]
         Task {
-            try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)/chat/\(messageId)", fields: ["reactions": reactions])
+            try? await FirebaseRESTService.shared.firestoreSet(
+                path: "parejas/\(coupleId)/chat/\(messageId)",
+                fields: fields
+            )
         }
     }
 
@@ -248,12 +269,22 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         let msgId = UUID().uuidString
         let compressed = Self.compressImage(imageData)
         Task {
-            try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)/chat/fotos/\(msgId)", fields: [
-                "data": compressed.base64EncodedString(),
-                "mimeType": "image/jpeg",
-                "timestamp": Date()
-            ])
-            let msg = MessageModel(id: msgId, senderId: myUid, text: "Foto", timestamp: Date(), type: .image, mediaUrl: "firestore://parejas/\(coupleId)/chat/fotos/\(msgId)")
+            try? await FirebaseRESTService.shared.firestoreSet(
+                path: "parejas/\(coupleId)/chat/fotos/\(msgId)",
+                fields: [
+                    "data": compressed.base64EncodedString(),
+                    "mimeType": "image/jpeg",
+                    "timestamp": Date()
+                ]
+            )
+            let msg = MessageModel(
+                id: msgId,
+                senderId: myUid,
+                text: "Foto",
+                timestamp: Date(),
+                type: .image,
+                mediaUrl: "firestore://parejas/\(coupleId)/chat/fotos/\(msgId)"
+            )
             await MainActor.run { self.messages.append(msg); self.didSendMessage.send() }
             self.saveMessage(msg: msg)
         }
@@ -265,8 +296,11 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         let maxSize: CGFloat = 1024
         var newSize = image.size
         if newSize.width > maxSize || newSize.height > maxSize {
-            if newSize.width > newSize.height { newSize = CGSize(width: maxSize, height: maxSize * newSize.height / newSize.width) }
-            else { newSize = CGSize(width: maxSize * newSize.width / newSize.height, height: maxSize) }
+            if newSize.width > newSize.height {
+                newSize = CGSize(width: maxSize, height: maxSize * newSize.height / newSize.width)
+            } else {
+                newSize = CGSize(width: maxSize * newSize.width / newSize.height, height: maxSize)
+            }
         }
         UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
         image.draw(in: CGRect(origin: .zero, size: newSize))
@@ -279,12 +313,22 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     public func sendVoiceNote(audioData: Data) {
         let msgId = UUID().uuidString
         Task {
-            try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)/chat/audio/\(msgId)", fields: [
-                "data": audioData.base64EncodedString(),
-                "mimeType": "audio/m4a",
-                "timestamp": Date()
-            ])
-            let msg = MessageModel(id: msgId, senderId: myUid, text: "Nota de voz", timestamp: Date(), type: .voice, mediaUrl: "firestore://parejas/\(coupleId)/chat/audio/\(msgId)")
+            try? await FirebaseRESTService.shared.firestoreSet(
+                path: "parejas/\(coupleId)/chat/audio/\(msgId)",
+                fields: [
+                    "data": audioData.base64EncodedString(),
+                    "mimeType": "audio/m4a",
+                    "timestamp": Date()
+                ]
+            )
+            let msg = MessageModel(
+                id: msgId,
+                senderId: myUid,
+                text: "Nota de voz",
+                timestamp: Date(),
+                type: .voice,
+                mediaUrl: "firestore://parejas/\(coupleId)/chat/audio/\(msgId)"
+            )
             await MainActor.run { self.messages.append(msg); self.didSendMessage.send() }
             self.saveMessage(msg: msg)
         }
@@ -292,13 +336,17 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     public func setReplyTo(message: MessageModel) { replyToMessage = message }
     public func clearReply() { replyToMessage = nil }
-    public func sendKissAction() { sendMessage(text: "💋") }
-    public func sendHugAction() { sendMessage(text: "🤗") }
+    public func sendKissAction() { sendMessage(text: "\u{1F48B}") }
+    public func sendHugAction() { sendMessage(text: "\u{1F917}") }
 
     public func startRecording() {
         switch AVAudioSession.sharedInstance().recordPermission {
         case .denied: return
-        case .undetermined: AVAudioSession.sharedInstance().requestRecordPermission { granted in if granted { DispatchQueue.main.async { self.startRecording() } } }; return
+        case .undetermined:
+            AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                if granted { DispatchQueue.main.async { self.startRecording() } }
+            }
+            return
         case .granted: break
         @unknown default: return
         }
@@ -307,17 +355,31 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             try session.setCategory(.playAndRecord, mode: .default)
             try session.setActive(true)
             let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("voice_\(Date().timeIntervalSince1970).m4a")
-            audioRecorder = try AVAudioRecorder(url: url, settings: [AVFormatIDKey: Int(kAudioFormatMPEG4AAC), AVSampleRateKey: 44100, AVNumberOfChannelsKey: 1, AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue])
+            audioRecorder = try AVAudioRecorder(
+                url: url,
+                settings: [
+                    AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+                    AVSampleRateKey: 44100,
+                    AVNumberOfChannelsKey: 1,
+                    AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+                ]
+            )
             audioRecorder?.delegate = self
             audioRecorder?.record()
             isRecording = true
             recordingDuration = 0
-            recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in self?.recordingDuration = self?.audioRecorder?.currentTime ?? 0 }
-        } catch { print("[Chat] record error: \(error)") }
+            recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+                self?.recordingDuration = self?.audioRecorder?.currentTime ?? 0
+            }
+        } catch {
+            print("[Chat] record error: \(error)")
+        }
     }
 
     public func stopRecording() -> Data? {
-        recordingTimer?.invalidate(); audioRecorder?.stop(); isRecording = false
+        recordingTimer?.invalidate()
+        audioRecorder?.stop()
+        isRecording = false
         guard let url = audioRecorder?.url, let data = try? Data(contentsOf: url) else { return nil }
         sendVoiceNote(audioData: data)
         return data

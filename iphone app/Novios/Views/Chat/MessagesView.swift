@@ -79,7 +79,10 @@ public struct MessagesView: View {
                     }
                 }
             }
-            .onAppear { Task { await loadDates() } }
+            .onAppear {
+                chatService.fetchMessages()
+                Task { await loadDates() }
+            }
             .sheet(isPresented: $showSettings) {
                 SettingsView()
             }
