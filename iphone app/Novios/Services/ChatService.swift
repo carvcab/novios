@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import UIKit
 import AVFoundation
+import FirebaseAuth
 import FirebaseFirestore
 
 public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
