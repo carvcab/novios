@@ -16,7 +16,6 @@ public struct MemoriesView: View {
     @State private var newStickers: [String] = []
     @State private var snapshotListener: ListenerRegistration?
     @State private var viewerImage: UIImage?
-    @State private var showViewer = false
 
     private let db = Firestore.firestore()
     private let theme = ThemeManager.shared
@@ -89,16 +88,14 @@ public struct MemoriesView: View {
         .onDisappear { stopListening() }
         .sheet(isPresented: $showAdd) { addSheet }
         .sheet(isPresented: $showDetail) { if let m = detailMemory { detailSheet(m) } }
-        .fullScreenCover(isPresented: $showViewer) {
-            if let img = viewerImage {
-                ZStack {
-                    Color.black.ignoresSafeArea()
-                    Button { showViewer = false } label: {
-                        Image(uiImage: img)
-                            .resizable().scaledToFit()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }.buttonStyle(.plain)
-                }
+        .fullScreenCover(item: $viewerImage) { img in
+            ZStack {
+                Color.black.ignoresSafeArea()
+                Button { viewerImage = nil } label: {
+                    Image(uiImage: img)
+                        .resizable().scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }.buttonStyle(.plain)
             }
         }
     }
@@ -139,18 +136,19 @@ public struct MemoriesView: View {
         }
     }
 
-    private func imageContent(_ m: MemoryItem) -> some View {
-        Group {
-            if let img = m.loadedImage {
-                Image(uiImage: img).resizable().scaledToFill()
-            } else {
-                theme.primaryPink.opacity(0.1)
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 28))
-                    .foregroundColor(theme.primaryPink.opacity(0.3))
-            }
+private func imageContent(_ m: MemoryItem) -> some View {
+    Group {
+        if let img = m.loadedImage {
+            Image(uiImage: img).resizable().scaledToFill()
+                .onTapGesture { viewerImage = img }
+        } else {
+            theme.primaryPink.opacity(0.1)
+            Image(systemName: "heart.fill")
+                .font(.system(size: 28))
+                .foregroundColor(theme.primaryPink.opacity(0.3))
         }
     }
+}
 
     private func stickerOverlay(size: CGFloat) -> some View {
         ZStack {
@@ -362,7 +360,7 @@ public struct MemoriesView: View {
                     HStack(spacing: 20) {
                         if let img = m.loadedImage {
                             Button {
-                                viewerImage = img; showViewer = true
+                                viewerImage = img
                             } label: {
                                 Label("Ver completo", systemImage: "arrow.up.left.and.arrow.down.right")
                                     .appFont(size: 13).foregroundColor(theme.primary)
