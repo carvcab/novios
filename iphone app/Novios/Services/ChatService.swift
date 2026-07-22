@@ -252,9 +252,15 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         let msgId = UUID().uuidString
         let compressed = Self.compressImage(imageData)
         let base64 = compressed.base64EncodedString()
-        guard base64.count <= 900_000 else {
-            errorMessage = "Imagen demasiado grande"
+        guard base64.count <= 730_000 else {
+            errorMessage = "Imagen demasiado grande (máx ~550KB)"
             return
+        }
+        Task {
+            try? await FirebaseRESTService.shared.firestoreSet(
+                path: "chat_media/\(msgId)",
+                fields: ["data": base64, "mimeType": "image/jpeg"]
+            )
         }
         let msg = MessageModel(
             id: msgId,
@@ -262,7 +268,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             text: "Foto",
             timestamp: Date(),
             type: .image,
-            mediaUrl: base64
+            mediaUrl: "firestore://chat_media/\(msgId)"
         )
         messages.append(msg)
         didSendMessage.send()
@@ -292,9 +298,15 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     public func sendVoiceNote(audioData: Data) {
         let msgId = UUID().uuidString
         let base64 = audioData.base64EncodedString()
-        guard base64.count <= 900_000 else {
-            errorMessage = "Audio demasiado largo (máx ~20s)"
+        guard base64.count <= 730_000 else {
+            errorMessage = "Audio demasiado largo (máx ~15s)"
             return
+        }
+        Task {
+            try? await FirebaseRESTService.shared.firestoreSet(
+                path: "chat_media/\(msgId)",
+                fields: ["data": base64, "mimeType": "audio/m4a"]
+            )
         }
         let msg = MessageModel(
             id: msgId,
@@ -302,7 +314,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             text: "Nota de voz",
             timestamp: Date(),
             type: .voice,
-            mediaUrl: base64
+            mediaUrl: "firestore://chat_media/\(msgId)"
         )
         messages.append(msg)
         didSendMessage.send()
@@ -318,13 +330,11 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         let session = AVAudioSession.sharedInstance()
         switch session.recordPermission {
         case .denied:
-            DispatchQueue.main.async {
-                self.errorMessage = "Permiso de micrófono denegado. Ve a Ajustes > Novios > Micrófono."
-            }
+            errorMessage = "Permiso de micrófono denegado. Ve a Ajustes > Novios > Micrófono."
             return
         case .undetermined:
-            session.requestRecordPermission { granted in
-                if granted { DispatchQueue.main.async { self.startRecording() } }
+            session.requestRecordPermission { [weak self] granted in
+                if granted { DispatchQueue.main.async { self?.startRecording() } }
             }
             return
         case .granted: break
@@ -334,7 +344,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             try session.setCategory(.playAndRecord, mode: .default)
             try session.setActive(true)
             let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("voice_\(Date().timeIntervalSince1970).m4a")
-            audioRecorder = try AVAudioRecorder(
+            let recorder = try AVAudioRecorder(
                 url: url,
                 settings: [
                     AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
@@ -343,28 +353,36 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                     AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
                 ]
             )
-            audioRecorder?.delegate = self
-            audioRecorder?.record()
+            recorder.delegate = self
+            guard recorder.record() else {
+                errorMessage = "No se pudo iniciar la grabación"
+                return
+            }
+            audioRecorder = recorder
             isRecording = true
             recordingDuration = 0
             recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
                 guard let self = self else { return }
-                let dur = self.audioRecorder?.currentTime ?? 0
-                DispatchQueue.main.async { self.recordingDuration = dur }
+                self.recordingDuration = self.audioRecorder?.currentTime ?? 0
             }
         } catch {
-            DispatchQueue.main.async {
-                print("[Chat] record error: \(error)")
-                self.errorMessage = "Error al grabar: \(error.localizedDescription)"
-            }
+            print("[Chat] record error: \(error)")
+            errorMessage = "Error al grabar: \(error.localizedDescription)"
         }
     }
 
     public func stopRecording() -> Data? {
         recordingTimer?.invalidate()
-        audioRecorder?.stop()
+        recordingTimer = nil
+        guard let recorder = audioRecorder else { return nil }
+        recorder.stop()
+        let url = recorder.url
+        audioRecorder = nil
         isRecording = false
-        guard let url = audioRecorder?.url, let data = try? Data(contentsOf: url) else { return nil }
+        guard let data = try? Data(contentsOf: url), !data.isEmpty else {
+            errorMessage = "No se pudo leer el audio grabado"
+            return nil
+        }
         sendVoiceNote(audioData: data)
         return data
     }

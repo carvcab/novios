@@ -42,19 +42,33 @@ class StorageService {
         cleanPath = '/$cleanPath';
       }
       final file = File(cleanPath);
-      if (!await file.exists()) return null;
+      if (!await file.exists()) {
+        LocalStorage().setString('last_upload_error', 'Archivo de foto no encontrado');
+        return null;
+      }
       final bytes = await _compressImage(file);
+      if (bytes.isEmpty) {
+        LocalStorage().setString('last_upload_error', 'Error al procesar la imagen');
+        return null;
+      }
+      if (bytes.length > 550 * 1024) {
+        final sizeKB = (bytes.length / 1024).toStringAsFixed(0);
+        LocalStorage().setString('last_upload_error', 'Imagen demasiado grande (${sizeKB}KB). Máx 550KB.');
+        return null;
+      }
       final b64 = base64Encode(bytes);
       final id = memoryId ?? DateTime.now().microsecondsSinceEpoch.toString();
-      final path = 'parejas/${CoupleService.parejaId}/chat/fotos/$id';
+      final path = 'chat_media/$id';
       await _db.doc(path).set({
         'data': b64,
         'mimeType': 'image/jpeg',
-        'createdAt': FieldValue.serverTimestamp(),
       });
+      LocalStorage().setString('last_upload_error', '');
       return 'firestore://$path';
     } catch (e) {
-      debugPrint("Error uploading photo: $e");
+      final err = e.toString();
+      debugPrint("Error uploading photo: $err");
+      LocalStorage().setString('last_upload_error', err);
       return null;
     }
   }
@@ -75,7 +89,6 @@ class StorageService {
 
       File file = File(cleanPath);
 
-      // Esperar hasta 1 segundo a que el sistema operativo finalice la escritura del archivo
       int retries = 0;
       while (!await file.exists() && retries < 10) {
         await Future.delayed(const Duration(milliseconds: 100));
@@ -83,19 +96,12 @@ class StorageService {
       }
 
       if (!await file.exists()) {
-        final altPath = localPath.replaceFirst('file://', '');
-        final altFile = File(altPath);
-        if (await altFile.exists()) {
-          file = altFile;
-        } else {
-          final err = 'File not found: $cleanPath';
-          debugPrint("[Storage] uploadAudio: $err");
-          LocalStorage().setString('last_upload_error', err);
-          return null;
-        }
+        final err = 'Archivo de audio no encontrado';
+        debugPrint("[Storage] uploadAudio: $err");
+        LocalStorage().setString('last_upload_error', err);
+        return null;
       }
 
-      // Reintentar lectura si los bytes aún están vacíos
       retries = 0;
       List<int> bytes = await file.readAsBytes();
       while (bytes.isEmpty && retries < 10) {
@@ -105,26 +111,25 @@ class StorageService {
       }
 
       if (bytes.isEmpty) {
-        final err = 'Audio file is empty';
+        final err = 'El audio grabado está vacío';
         debugPrint("[Storage] uploadAudio: $err");
         LocalStorage().setString('last_upload_error', err);
         return null;
       }
 
-      if (bytes.length > 750 * 1024) {
-        final sizeMB = (bytes.length / 1024).toStringAsFixed(1);
-        final err = 'Audio demasiado grande (${sizeMB}KB). Max: 750KB.';
+      if (bytes.length > 550 * 1024) {
+        final sizeKB = (bytes.length / 1024).toStringAsFixed(0);
+        final err = 'Audio demasiado grande (${sizeKB}KB). Máx 550KB.';
         debugPrint("[Storage] uploadAudio: $err");
         LocalStorage().setString('last_upload_error', err);
         return null;
       }
       final b64 = base64Encode(bytes);
       final id = messageId ?? DateTime.now().microsecondsSinceEpoch.toString();
-      final path = 'parejas/${CoupleService.parejaId}/chat/audio/$id';
+      final path = 'chat_media/$id';
       await _db.doc(path).set({
         'data': b64,
         'mimeType': 'audio/m4a',
-        'createdAt': FieldValue.serverTimestamp(),
       });
       LocalStorage().setString('last_upload_error', '');
       return 'firestore://$path';
@@ -158,11 +163,10 @@ class StorageService {
       }
       final b64 = base64Encode(bytes);
       final id = memoryId ?? DateTime.now().microsecondsSinceEpoch.toString();
-      final path = 'parejas/${CoupleService.parejaId}/chat/videos/$id';
+      final path = 'chat_media/$id';
       await _db.doc(path).set({
         'data': b64,
         'mimeType': 'video/mp4',
-        'createdAt': FieldValue.serverTimestamp(),
       });
       return 'firestore://$path';
     } catch (e) {
@@ -259,21 +263,29 @@ class StorageService {
   Future<Uint8List> _compressImage(File file) async {
     try {
       final bytes = await file.readAsBytes();
-      if (bytes.length < 500 * 1024) return bytes;
-
       final image = img.decodeImage(bytes);
       if (image == null) return bytes;
 
       img.Image resized = image;
-      if (image.width > 1024 || image.height > 1024) {
+      if (image.width > 800 || image.height > 800) {
         resized = img.copyResize(
           image,
-          width: image.width > image.height ? 1024 : null,
-          height: image.height >= image.width ? 1024 : null,
+          width: image.width > image.height ? 800 : null,
+          height: image.height >= image.width ? 800 : null,
         );
       }
 
-      final compressed = img.encodeJpg(resized, quality: 60);
+      List<int> compressed = img.encodeJpg(resized, quality: 55);
+
+      if (compressed.length > 400 * 1024) {
+        resized = img.copyResize(
+          image,
+          width: image.width > image.height ? 600 : null,
+          height: image.height >= image.width ? 600 : null,
+        );
+        compressed = img.encodeJpg(resized, quality: 45);
+      }
+
       return Uint8List.fromList(compressed);
     } catch (e) {
       debugPrint("Error compressing image: $e");
