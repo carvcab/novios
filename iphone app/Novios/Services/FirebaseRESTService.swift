@@ -321,8 +321,8 @@ public class FirebaseRESTService {
         while base64.count % 4 != 0 { base64 += "=" }
         guard let data = Data(base64Encoded: base64),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let exp = json["exp"] as? TimeInterval else { return nil }
-        return exp
+              let exp = json["exp"] as? NSNumber else { return nil }
+        return exp.doubleValue
     }
 }
 

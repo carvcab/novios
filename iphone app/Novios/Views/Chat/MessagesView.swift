@@ -2,7 +2,7 @@ import SwiftUI
 import PhotosUI
 
 public struct MessagesView: View {
-    @StateObject private var chatService = ChatService.shared
+    @ObservedObject private var chatService = ChatService.shared
     @EnvironmentObject var authService: AuthService
     @State private var textInput = ""
     @State private var showImagePicker = false
@@ -30,17 +30,58 @@ public struct MessagesView: View {
                 VStack(spacing: 0) {
                     dateBanner
 
-                    ScrollViewReader { proxy in
-                        ScrollView {
-                            LazyVStack(spacing: 6) {
-                                ForEach(chatService.messages) { msg in
-                                    self.messageBubble(msg)
-                                        .id(msg.id)
-                                }
-                                Color.clear.frame(height: 4).id("bottom")
-                            }
-                            .padding(.horizontal, 10).padding(.vertical, 6)
+                    if let error = chatService.errorMessage {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Text(error)
+                                .appFont(size: 13)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Button("Reintentar") { chatService.fetchMessages() }
+                                .appFont(size: 13, weight: .semibold)
+                                .foregroundColor(ThemeManager.shared.primary)
                         }
+                        .padding(.horizontal, 14).padding(.vertical, 8)
+                        .background(.ultraThinMaterial)
+                    }
+
+                    if chatService.messages.isEmpty && chatService.isLoading {
+                        Spacer()
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                            Text("Cargando mensajes...")
+                                .appFont(size: 14)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    } else if chatService.messages.isEmpty && chatService.isLoaded {
+                        Spacer()
+                        VStack(spacing: 12) {
+                            Image(systemName: "message.fill")
+                                .appFont(size: 36)
+                                .foregroundColor(.secondary.opacity(0.4))
+                            Text("No hay mensajes aún")
+                                .appFont(size: 14)
+                                .foregroundColor(.secondary.opacity(0.6))
+                            Text("Envía tu primer mensaje 💕")
+                                .appFont(size: 12)
+                                .foregroundColor(.secondary.opacity(0.4))
+                        }
+                        Spacer()
+                    } else {
+                        ScrollViewReader { proxy in
+                            ScrollView {
+                                LazyVStack(spacing: 6) {
+                                    ForEach(chatService.messages) { msg in
+                                        self.messageBubble(msg)
+                                            .id(msg.id)
+                                    }
+                                    Color.clear.frame(height: 4).id("bottom")
+                                }
+                                .padding(.horizontal, 10).padding(.vertical, 6)
+                            }
                         .scrollIndicators(.hidden)
                         .onReceive(chatService.autoScrollToBottom) { _ in
                             withAnimation(.spring(duration: 0.45)) { proxy.scrollTo("bottom", anchor: .bottom) }
@@ -58,6 +99,7 @@ public struct MessagesView: View {
                                 chatService.markAsRead(messageId: msg.id)
                                 break
                             }
+                        }
                         }
                     }
 

@@ -13,6 +13,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     @Published public var recordingDuration: TimeInterval = 0
     @Published public var isLoaded = false
     @Published public var isLoading = false
+    @Published public var errorMessage: String?
 
     public let didSendMessage = PassthroughSubject<Void, Never>()
     public let autoScrollToBottom = PassthroughSubject<Void, Never>()
@@ -73,23 +74,43 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     public func fetchMessages() {
         Task { @MainActor in
-            guard AuthService.shared.isLoggedIn, FirebaseRESTService.shared.idToken != nil else { return }
+            guard AuthService.shared.isLoggedIn else {
+                print("[Chat] fetchMessages skipped: not logged in")
+                return
+            }
+            guard FirebaseRESTService.shared.idToken != nil else {
+                print("[Chat] fetchMessages skipped: no idToken")
+                return
+            }
+            guard !isLoading else { return }
             isLoading = true
+            errorMessage = nil
 
             let docs: [[String: Any]]
             do {
                 docs = try await FirebaseRESTService.shared.firestoreList(path: "parejas/\(coupleId)/chat")
             } catch {
+                print("[Chat] fetchMessages error: \(error.localizedDescription)")
+                errorMessage = "Error al cargar mensajes: \(error.localizedDescription)"
                 isLoading = false
                 return
             }
 
+            print("[Chat] firestoreList returned \(docs.count) documents")
+            if docs.isEmpty {
+                print("[Chat] WARNING: chat subcollection is empty in Firestore!")
+            }
+
             var updated = self.messages
             var hasChanges = false
+            var parsedCount = 0
 
             for doc in docs {
                 guard let fields = doc["fields"] as? [String: Any],
-                      let name = doc["name"] as? String else { continue }
+                      let name = doc["name"] as? String else {
+                    print("[Chat] SKIP doc: missing fields or name. keys=\(doc.keys)")
+                    continue
+                }
                 let msgId = name.split(separator: "/").last.map(String.init) ?? UUID().uuidString
                 let createTimeStr = doc["createTime"] as? String ?? ""
 
@@ -178,7 +199,10 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 )
                 updated.append(msg)
                 hasChanges = true
+                parsedCount += 1
             }
+
+            print("[Chat] parsed \(parsedCount) messages, hasChanges=\(hasChanges), total=\(updated.count)")
 
             if hasChanges {
                 updated.sort { $0.timestamp < $1.timestamp }
@@ -187,6 +211,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             }
             isLoaded = true
             isLoading = false
+            print("[Chat] fetchMessages done: isLoaded=true, count=\(self.messages.count)")
         }
     }
 
