@@ -144,7 +144,7 @@ public struct MemoriesView: View {
             if let img = m.loadedImage {
                 Image(uiImage: img).resizable().scaledToFill()
             } else {
-                Color(theme.primaryPink.opacity(0.1))
+                theme.primaryPink.opacity(0.1)
                 Image(systemName: "heart.fill")
                     .font(.system(size: 28))
                     .foregroundColor(theme.primaryPink.opacity(0.3))
@@ -263,6 +263,28 @@ public struct MemoriesView: View {
             .padding(6)
     }
 
+    private var stylePicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(styles, id: \.id) { st in
+                    VStack(spacing: 4) {
+                        let isSelected = newStyle == st.id
+                        Image(systemName: st.icon)
+                            .font(.system(size: 20))
+                            .foregroundColor(isSelected ? theme.primary : .secondary)
+                            .frame(width: 44, height: 44)
+                            .background(isSelected ? theme.primary.opacity(0.15) : .ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        Text(st.name)
+                            .appFont(size: 9)
+                            .foregroundColor(isSelected ? theme.primary : .secondary)
+                    }
+                    .onTapGesture { newStyle = st.id }
+                }
+            }
+        }
+    }
+
     // MARK: - Add Sheet
 
     private var addSheet: some View {
@@ -280,23 +302,7 @@ public struct MemoriesView: View {
                 }
                 Section("Título") { TextField("Lugar o momento...", text: $newTitle) }
                 Section("Descripción") { TextField("Detalles...", text: $newDesc) }
-                Section("Estilo") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(styles, id: \.id) { st in
-                                VStack(spacing: 4) {
-                                    Image(systemName: st.icon).font(.system(size: 20))
-                                        .foregroundColor(newStyle == st.id ? theme.primary : .secondary)
-                                        .frame(width: 44, height: 44)
-                                        .background(newStyle == st.id ? theme.primary.opacity(0.15) : .ultraThinMaterial)
-                                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                                    Text(st.name).appFont(size: 9).foregroundColor(newStyle == st.id ? theme.primary : .secondary)
-                                }
-                                .onTapGesture { newStyle = st.id }
-                            }
-                        }
-                    }
-                }
+                Section("Estilo") { stylePicker }
                 Section("Stickers") {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 36))], spacing: 8) {
                         ForEach(stickers, id: \.id) { st in
