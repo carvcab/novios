@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import FirebaseAuth
 
 public class AuthService: ObservableObject {
     public static let shared = AuthService()
@@ -80,23 +81,29 @@ public class AuthService: ObservableObject {
     // MARK: - Session Restore & Initialization
 
     private func loadSession() {
-        FirebaseRESTService.shared.loadSavedConfig()
-        guard defaults.bool(forKey: "auth_logged_in"),
-              let uid = defaults.string(forKey: "auth_user_id"),
-              (uid == Self.diegoUid || uid == Self.yosmariUid) else {
+        if let user = Auth.auth().currentUser {
+            let uid = user.uid
+            guard uid == Self.diegoUid || uid == Self.yosmariUid else {
+                try? Auth.auth().signOut()
+                clearUserDefaults()
+                isRestoringSession = false
+                return
+            }
+            let email = user.email ?? ""
+            let name = uid == Self.diegoUid ? "Diego" : "Yosmari"
+            currentUser = UserModel(id: uid, nombre: name, correo: email, parejaId: "pareja_001")
+            isLoggedIn = true
+            saveSession(user: currentUser!)
+            Task {
+                try? await ensureUserAndCoupleCreated(uid: uid, name: name, email: email)
+                await CoupleService.shared.loadCouple()
+                await MainActor.run { self.isRestoringSession = false }
+            }
+        } else if defaults.bool(forKey: "auth_logged_in") {
+            clearUserDefaults()
             isRestoringSession = false
-            return
-        }
-        let email = defaults.string(forKey: "auth_user_email") ?? ""
-        let name = defaults.string(forKey: "auth_user_name") ?? (uid == Self.diegoUid ? "Diego" : "Yosmari")
-        currentUser = UserModel(id: uid, nombre: name, correo: email, parejaId: "pareja_001")
-        isLoggedIn = true
-
-        Task {
-            _ = try? await FirebaseRESTService.shared.refreshIdToken()
-            try? await ensureUserAndCoupleCreated(uid: uid, name: name, email: email)
-            await CoupleService.shared.loadCouple()
-            await MainActor.run { self.isRestoringSession = false }
+        } else {
+            isRestoringSession = false
         }
     }
 

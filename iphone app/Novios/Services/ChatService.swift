@@ -35,7 +35,8 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     private func startListening() {
         guard Auth.auth().currentUser != nil else {
-            print("[Chat] startListening skipped: not logged in")
+            errorMessage = "Sesión expirada. Vuelve a iniciar sesión."
+            isLoading = false
             return
         }
         isLoading = true
