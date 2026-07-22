@@ -86,6 +86,13 @@ public struct MessagesView: View {
                         .onReceive(chatService.autoScrollToBottom) { _ in
                             withAnimation(.spring(duration: 0.45)) { proxy.scrollTo("bottom", anchor: .bottom) }
                         }
+                        .onReceive(chatService.$isLoaded) { loaded in
+                            if loaded && !chatService.messages.isEmpty {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    withAnimation(.spring(duration: 0.45)) { proxy.scrollTo("bottom", anchor: .bottom) }
+                                }
+                            }
+                        }
                         .onChange(of: scrollTargetId) { id in
                             if let id = id {
                                 withAnimation(.spring(duration: 0.45)) {
