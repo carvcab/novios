@@ -55,10 +55,10 @@ public struct ChatBubbleView: View {
             Button { onReact("😂") } label: { Label("😂 Jaja", systemImage: "face.smiling") }
             Button { onReact("😢") } label: { Label("😢 Triste", systemImage: "hand.raised") }
             Divider()
-            Button { onReply() } label: { Label("Responder", systemImage: "arrowshape.turn.up.left") }
+            Button { onReply() } label: { Label("Responder", systemImage: "arrowshape.turnup.left") }
         }
-        .onAppear { loadMediaIfNeeded() }
-        .task(id: message.id) { loadMediaIfNeeded() }
+        .onAppear { loadMedia() }
+        .task(id: message.id) { loadMedia() }
     }
 
     private var theme: ThemeManager { ThemeManager.shared }
@@ -208,7 +208,7 @@ public struct ChatBubbleView: View {
                     .frame(width: 180, height: 150)
                     .background(isFromMe ? Color.white.opacity(0.1) : Color(.systemGray6))
                     .cornerRadius(12)
-                    .onTapGesture { loadMediaIfNeeded() }
+                    .onTapGesture { loadMedia() }
             }
         }
     }
@@ -225,78 +225,94 @@ public struct ChatBubbleView: View {
     }
 
     private func togglePlay() {
-        if isPlaying { audioPlayer?.stop(); isPlaying = false }
-        else if let player = audioPlayer { player.currentTime = 0; player.play(); isPlaying = true }
-        else { loadAndPlayAudio() }
+        if isPlaying {
+            audioPlayer?.stop()
+            isPlaying = false
+        } else if let player = audioPlayer {
+            player.currentTime = 0
+            player.play()
+            isPlaying = true
+        } else {
+            playAudio()
+        }
     }
 
-    private func loadAndPlayAudio() {
+    private func playAudio() {
         guard let urlStr = message.mediaUrl, !urlStr.isEmpty else { return }
         Task {
-            var audioData: Data? = nil
-            if urlStr.hasPrefix("firestore://") {
+            let audioData: Data?
+            if urlStr.hasPrefix("http") {
+                guard let url = URL(string: urlStr) else { return }
+                audioData = try? Data(contentsOf: url)
+            } else if urlStr.hasPrefix("firestore://") {
                 let path = urlStr.replacingOccurrences(of: "firestore://", with: "")
-                if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
-                   let fields = doc["fields"] as? [String: Any],
-                   let rawB64 = (fields["data"] as? [String: Any])?["stringValue"] as? String {
-                    let cleanB64 = rawB64.replacingOccurrences(of: "\n", with: "").replacingOccurrences(of: "\r", with: "").replacingOccurrences(of: " ", with: "")
-                    audioData = Data(base64Encoded: cleanB64, options: .ignoreUnknownCharacters)
-                }
-            } else if let httpURL = URL(string: urlStr), urlStr.hasPrefix("http") {
-                audioData = try? (await URLSession.shared.data(from: httpURL)).0
+                guard let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
+                      let fields = doc["fields"] as? [String: Any],
+                      let rawB64 = (fields["data"] as? [String: Any])?["stringValue"] as? String else { return }
+                audioData = Data(base64Encoded: rawB64, options: .ignoreUnknownCharacters)
             } else {
                 audioData = Data(base64Encoded: urlStr, options: .ignoreUnknownCharacters)
             }
-
             guard let data = audioData, !data.isEmpty else { return }
-            try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
-            try? AVAudioSession.sharedInstance().setActive(true)
-            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("audio_\(message.id).m4a")
-            try? data.write(to: tempURL)
-            if let player = try? AVAudioPlayer(contentsOf: tempURL) {
-                audioPlayer = player
-                player.numberOfLoops = 0
-                player.play()
-                await MainActor.run { isPlaying = true }
-                while player.isPlaying { try? await Task.sleep(nanoseconds: 100_000_000) }
-                await MainActor.run { isPlaying = false }
+
+            let session = AVAudioSession.sharedInstance()
+            try? session.setCategory(.playback)
+            try? session.setActive(true)
+
+            guard let player = try? AVAudioPlayer(data: data) else { return }
+            player.delegate = PlayerDelegateShared
+            player.numberOfLoops = 0
+            player.prepareToPlay()
+            if player.play() {
+                self.audioPlayer = player
+                await MainActor.run { self.isPlaying = true }
+                _ = await withCheckedContinuation { c in
+                    PlayerDelegateShared.onFinish = { c.resume() }
+                }
+                await MainActor.run { self.isPlaying = false }
             }
         }
     }
 
-    private func loadMediaIfNeeded() {
+    private func loadMedia() {
         guard let urlStr = message.mediaUrl, !urlStr.isEmpty else { return }
         guard (message.type == .image || message.type == .video), loadedImage == nil, !isLoadingMedia else { return }
         isLoadingMedia = true
         Task {
-            if urlStr.hasPrefix("firestore://") {
+            var result: UIImage?
+            if urlStr.hasPrefix("http") {
+                if let url = URL(string: urlStr), let data = try? Data(contentsOf: url) {
+                    result = UIImage(data: data)
+                }
+            } else if urlStr.hasPrefix("firestore://") {
                 let path = urlStr.replacingOccurrences(of: "firestore://", with: "")
                 if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
                    let fields = doc["fields"] as? [String: Any],
-                   let rawB64 = (fields["data"] as? [String: Any])?["stringValue"] as? String {
-                    let cleanB64 = rawB64.replacingOccurrences(of: "\n", with: "").replacingOccurrences(of: "\r", with: "").replacingOccurrences(of: " ", with: "")
-                    if let data = Data(base64Encoded: cleanB64, options: .ignoreUnknownCharacters),
-                       let image = UIImage(data: data) {
-                        await MainActor.run { loadedImage = image; isLoadingMedia = false }
-                        return
-                    }
+                   let rawB64 = (fields["data"] as? [String: Any])?["stringValue"] as? String,
+                   let data = Data(base64Encoded: rawB64, options: .ignoreUnknownCharacters) {
+                    result = UIImage(data: data)
                 }
-            } else if let httpURL = URL(string: urlStr), urlStr.hasPrefix("http") {
-                if let (data, _) = try? await URLSession.shared.data(from: httpURL),
-                   let image = UIImage(data: data) {
-                    await MainActor.run { loadedImage = image; isLoadingMedia = false }
-                    return
+            } else {
+                if let data = Data(base64Encoded: urlStr, options: .ignoreUnknownCharacters) {
+                    result = UIImage(data: data)
                 }
-            } else if let data = Data(base64Encoded: urlStr, options: .ignoreUnknownCharacters),
-                      let image = UIImage(data: data) {
-                await MainActor.run { loadedImage = image; isLoadingMedia = false }
-                return
             }
-
-            await MainActor.run { isLoadingMedia = false }
+            await MainActor.run {
+                if let img = result { loadedImage = img }
+                isLoadingMedia = false
+            }
         }
     }
 }
+
+private class PlayerDelegate: NSObject, AVAudioPlayerDelegate {
+    var onFinish: (() -> Void)?
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        onFinish?()
+    }
+}
+
+private let PlayerDelegateShared = PlayerDelegate()
 
 private struct BubbleAppearModifier: ViewModifier {
     @Binding var isAppeared: Bool

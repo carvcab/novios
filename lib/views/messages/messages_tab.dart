@@ -167,51 +167,60 @@ class _MessagesTabState extends State<MessagesTab>
 
   Future<void> _toggleRecording() async {
     if (_isRecording) {
-    try {
-      final path = await _audioRecorder.stop();
-      if (path != null && path.isNotEmpty) {
-        final userId = _userId;
-        final uploaded = await StorageService().uploadAudio(path);
-        if (!mounted) return;
-        if (uploaded == null) {
-          final lastErr = LocalStorage().getString('last_upload_error') ?? 'Error desconocido';
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error al subir audio: $lastErr')),
+      try {
+        final stopPath = await _audioRecorder.stop();
+        setState(() => _isRecording = false);
+        if (stopPath != null && stopPath.isNotEmpty) {
+          final userId = _userId;
+          final uploaded = await StorageService().uploadAudio(stopPath);
+          if (!mounted) return;
+          if (uploaded == null) {
+            final lastErr = LocalStorage().getString('last_upload_error') ?? 'Error desconocido';
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error al subir audio: $lastErr')),
+            );
+            return;
+          }
+          final msg = MessageModel(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            senderId: userId,
+            text: 'Nota de voz',
+            timestamp: DateTime.now(),
+            type: 'voice',
+            mediaUrl: uploaded,
+            isDisappearing: _disappearingMode,
+            disappearDurationSeconds: _disappearingMode ? 15 : 0,
           );
-          setState(() => _isRecording = false);
-          return;
+          await FirebaseService().sendMessage(msg);
         }
-        final msg = MessageModel(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          senderId: userId,
-          text: 'Nota de voz',
-          timestamp: DateTime.now(),
-          type: 'voice',
-          mediaUrl: uploaded,
-          isDisappearing: _disappearingMode,
-          disappearDurationSeconds: _disappearingMode ? 15 : 0,
-        );
-        await FirebaseService().sendMessage(msg);
+      } catch (e) {
+        debugPrint("[AudioRecord] Error stopping/uploading recording: $e");
+        if (mounted) setState(() => _isRecording = false);
       }
-    } catch (_) {}
-    if (!mounted) return;
-    setState(() => _isRecording = false);
     } else {
       try {
-        final dir = await getApplicationDocumentsDirectory();
-        final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        if (!await _audioRecorder.hasPermission()) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Permiso de micrófono no concedido.')),
+            );
+          }
+          return;
+        }
         await _audioRecorder.start(
           const RecordConfig(
             encoder: AudioEncoder.aacLc,
-            sampleRate: 16000,
-            bitRate: 12000,
+            sampleRate: 22050,
+            bitRate: 24000,
             numChannels: 1,
           ),
-          path: path,
+          path: '',
         );
         if (!mounted) return;
         setState(() => _isRecording = true);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint("[AudioRecord] Error starting recording: $e");
+      }
     }
   }
 

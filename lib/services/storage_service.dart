@@ -31,6 +31,13 @@ class StorageService {
   Future<String?> uploadPhoto(String localPath, {String? memoryId}) async {
     try {
       String cleanPath = localPath;
+      if (cleanPath.startsWith('file://')) {
+        try {
+          cleanPath = Uri.parse(cleanPath).toFilePath();
+        } catch (_) {
+          cleanPath = cleanPath.replaceFirst('file://', '');
+        }
+      }
       if (!cleanPath.startsWith('/') && (cleanPath.contains('data/user/') || cleanPath.contains('storage/'))) {
         cleanPath = '/$cleanPath';
       }
@@ -55,17 +62,48 @@ class StorageService {
   Future<String?> uploadAudio(String localPath, {String? messageId}) async {
     try {
       String cleanPath = localPath;
+      if (cleanPath.startsWith('file://')) {
+        try {
+          cleanPath = Uri.parse(cleanPath).toFilePath();
+        } catch (_) {
+          cleanPath = cleanPath.replaceFirst('file://', '');
+        }
+      }
       if (!cleanPath.startsWith('/') && (cleanPath.contains('data/user/') || cleanPath.contains('storage/'))) {
         cleanPath = '/$cleanPath';
       }
-      final file = File(cleanPath);
-      if (!await file.exists()) {
-        final err = 'File not found: $cleanPath';
-        debugPrint("[Storage] uploadAudio: $err");
-        LocalStorage().setString('last_upload_error', err);
-        return null;
+
+      File file = File(cleanPath);
+
+      // Esperar hasta 1 segundo a que el sistema operativo finalice la escritura del archivo
+      int retries = 0;
+      while (!await file.exists() && retries < 10) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        retries++;
       }
-      final bytes = await file.readAsBytes();
+
+      if (!await file.exists()) {
+        final altPath = localPath.replaceFirst('file://', '');
+        final altFile = File(altPath);
+        if (await altFile.exists()) {
+          file = altFile;
+        } else {
+          final err = 'File not found: $cleanPath';
+          debugPrint("[Storage] uploadAudio: $err");
+          LocalStorage().setString('last_upload_error', err);
+          return null;
+        }
+      }
+
+      // Reintentar lectura si los bytes aún están vacíos
+      retries = 0;
+      List<int> bytes = await file.readAsBytes();
+      while (bytes.isEmpty && retries < 10) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        bytes = await file.readAsBytes();
+        retries++;
+      }
+
       if (bytes.isEmpty) {
         final err = 'Audio file is empty';
         debugPrint("[Storage] uploadAudio: $err");
@@ -101,6 +139,13 @@ class StorageService {
   Future<String?> uploadVideo(String localPath, {String? memoryId}) async {
     try {
       String cleanPath = localPath;
+      if (cleanPath.startsWith('file://')) {
+        try {
+          cleanPath = Uri.parse(cleanPath).toFilePath();
+        } catch (_) {
+          cleanPath = cleanPath.replaceFirst('file://', '');
+        }
+      }
       if (!cleanPath.startsWith('/') && (cleanPath.contains('data/user/') || cleanPath.contains('storage/'))) {
         cleanPath = '/$cleanPath';
       }
