@@ -5,7 +5,7 @@ import FirebaseFirestore
 public class FirebaseRESTService {
     public static let shared = FirebaseRESTService()
 
-    public private(set) var localId: String? { Auth.auth().currentUser?.uid }
+    public var localId: String? { Auth.auth().currentUser?.uid }
     public private(set) var idToken: String?
 
     private let db = Firestore.firestore()
