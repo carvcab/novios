@@ -50,6 +50,7 @@
 		9A0050U2C00000000000006E /* CoupleModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C00000000000006F /* CoupleModel.swift */; };
 		9A0050W2C000000000000070 /* MemoriesAndLettersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050X2C000000000000071 /* MemoriesAndLettersView.swift */; };
 		9A0050Y2C000000000000072 /* DreamsAndGoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050Z2C000000000000073 /* DreamsAndGoalsView.swift */; };
+		9A7000022C00000000000002 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9A004382C0000000000000438 /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -110,6 +111,17 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9A7000012C00000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9A7000022C00000000000002 /* GoogleService-Info.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXGroup section */
 		9A4000002C00000000000000 = {
@@ -189,6 +201,7 @@
 			buildPhases = (
 				9A7000002C00000000000000 /* Sources */,
 				9A3000002C00000000000000 /* Frameworks */,
+				9A7000012C00000000000001 /* Resources */,
 			);
 			buildRules = (
 			);
