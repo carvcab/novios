@@ -220,6 +220,8 @@ class _MessagesTabState extends State<MessagesTab>
           }
           return;
         }
+        final tempDir = await getTemporaryDirectory();
+        final audioPath = '${tempDir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
         await _audioRecorder.start(
           const RecordConfig(
             encoder: AudioEncoder.aacLc,
@@ -227,7 +229,7 @@ class _MessagesTabState extends State<MessagesTab>
             bitRate: 24000,
             numChannels: 1,
           ),
-          path: '',
+          path: audioPath,
         );
         if (!mounted) return;
         setState(() => _isRecording = true);
