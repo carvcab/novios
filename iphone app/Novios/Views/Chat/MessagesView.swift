@@ -65,7 +65,7 @@ public struct MessagesView: View {
                     inputBar
                 }
             }
-            .navigationTitle("Chat")
+            .navigationTitle("Diego 💞 Yosmari (v1.2.0)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden)
             .toolbar {
