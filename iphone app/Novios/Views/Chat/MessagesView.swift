@@ -38,7 +38,7 @@ public struct MessagesView: View {
                                 .appFont(size: 13)
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Button("Reintentar") { chatService.fetchMessages() }
+                            Button("Reintentar") { chatService.retry() }
                                 .appFont(size: 13, weight: .semibold)
                                 .foregroundColor(ThemeManager.shared.primary)
                         }
@@ -122,7 +122,7 @@ public struct MessagesView: View {
                 }
             }
             .onAppear {
-                chatService.fetchMessages()
+                chatService.retry()
                 Task { await loadDates() }
             }
             .sheet(isPresented: $showSettings) {

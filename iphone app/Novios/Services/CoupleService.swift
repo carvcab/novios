@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import FirebaseFirestore
 
 public class CoupleService: ObservableObject {
     public static let shared = CoupleService()
@@ -15,7 +16,6 @@ public class CoupleService: ObservableObject {
     @Published public var isLoaded = false
     @Published public var data: [String: Any]?
 
-    // Subcollections state for real-time reactivity
     @Published public var cartas: [LetterModel] = []
     @Published public var recuerdos: [MemoryModel] = []
     @Published public var eventos: [EventModel] = []
@@ -34,7 +34,6 @@ public class CoupleService: ObservableObject {
 
     public var parejaPath: String { "parejas/\(Self.parejaId)" }
 
-    // All 16 subcollection paths
     public var chatPath: String { "\(parejaPath)/chat" }
     public var cartasPath: String { "\(parejaPath)/cartas" }
     public var albumPath: String { "\(parejaPath)/album" }
@@ -56,7 +55,8 @@ public class CoupleService: ObservableObject {
     public var rutasPath: String { "\(parejaPath)/rutas" }
     public var todoPath: String { "\(parejaPath)/todo" }
 
-    private var pollingTimer: Timer?
+    private var coupleListener: ListenerRegistration?
+    private let db = Firestore.firestore()
 
     private init() {}
 
@@ -71,7 +71,17 @@ public class CoupleService: ObservableObject {
             await ensureParejaDocExists()
             await MainActor.run { self.isLoaded = true }
         }
-        await refreshSubcollections()
+        startCoupleListener()
+    }
+
+    private func startCoupleListener() {
+        coupleListener?.remove()
+        coupleListener = db.document(parejaPath).addSnapshotListener { [weak self] snapshot, _ in
+            guard let self = self, let data = snapshot?.data() else { return }
+            if let name = data["nombre"] as? String {
+                self.coupleName = name
+            }
+        }
     }
 
     public func refreshSubcollections() async {
@@ -86,23 +96,6 @@ public class CoupleService: ObservableObject {
         await fetchCapsulas()
     }
 
-    public func startPolling() {
-        pollingTimer?.invalidate()
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            Task {
-                await self.loadCouple()
-            }
-        }
-    }
-
-    public func stopPolling() {
-        pollingTimer?.invalidate()
-        pollingTimer = nil
-    }
-
-    // MARK: - Cartas (Love Letters)
-
     public func fetchCartas() async {
         guard let docs = try? await FirebaseRESTService.shared.firestoreList(path: cartasPath) else { return }
         let items: [LetterModel] = docs.compactMap { doc in
@@ -116,22 +109,6 @@ public class CoupleService: ObservableObject {
         await MainActor.run { self.cartas = items }
     }
 
-    public func addCarta(titulo: String, contenido: String) async {
-        let id = UUID().uuidString
-        let fields: [String: Any] = [
-            "titulo": titulo,
-            "contenido": contenido,
-            "deUid": currentUid,
-            "paraUid": partnerUid,
-            "leida": false,
-            "fecha": ISO8601DateFormatter().string(from: Date())
-        ]
-        try? await FirebaseRESTService.shared.firestoreSet(path: "\(cartasPath)/\(id)", fields: fields)
-        await fetchCartas()
-    }
-
-    // MARK: - Recuerdos (Album)
-
     public func fetchRecuerdos() async {
         guard let docs = try? await FirebaseRESTService.shared.firestoreList(path: recuerdosPath) else { return }
         let items: [MemoryModel] = docs.compactMap { doc in
@@ -144,21 +121,6 @@ public class CoupleService: ObservableObject {
         await MainActor.run { self.recuerdos = items }
     }
 
-    public func addRecuerdo(titulo: String, descripcion: String, fotoBase64: String) async {
-        let id = UUID().uuidString
-        let fields: [String: Any] = [
-            "titulo": titulo,
-            "descripcion": descripcion,
-            "fotoUrl": fotoBase64,
-            "lugar": "Nuestro lugar",
-            "fecha": ISO8601DateFormatter().string(from: Date())
-        ]
-        try? await FirebaseRESTService.shared.firestoreSet(path: "\(recuerdosPath)/\(id)", fields: fields)
-        await fetchRecuerdos()
-    }
-
-    // MARK: - Eventos (Calendario)
-
     public func fetchEventos() async {
         guard let docs = try? await FirebaseRESTService.shared.firestoreList(path: eventosPath) else { return }
         let items: [EventModel] = docs.compactMap { doc in
@@ -170,20 +132,6 @@ public class CoupleService: ObservableObject {
         }
         await MainActor.run { self.eventos = items }
     }
-
-    public func addEvento(titulo: String, categoria: String, descripcion: String) async {
-        let id = UUID().uuidString
-        let fields: [String: Any] = [
-            "titulo": titulo,
-            "categoria": categoria,
-            "descripcion": descripcion,
-            "fecha": ISO8601DateFormatter().string(from: Date())
-        ]
-        try? await FirebaseRESTService.shared.firestoreSet(path: "\(eventosPath)/\(id)", fields: fields)
-        await fetchEventos()
-    }
-
-    // MARK: - Logros (Metas)
 
     public func fetchLogros() async {
         guard let docs = try? await FirebaseRESTService.shared.firestoreList(path: logrosPath) else { return }
@@ -198,25 +146,6 @@ public class CoupleService: ObservableObject {
         await MainActor.run { self.logros = items }
     }
 
-    public func addLogro(titulo: String, descripcion: String) async {
-        let id = UUID().uuidString
-        let fields: [String: Any] = [
-            "titulo": titulo,
-            "descripcion": descripcion,
-            "completado": false,
-            "fecha": ISO8601DateFormatter().string(from: Date())
-        ]
-        try? await FirebaseRESTService.shared.firestoreSet(path: "\(logrosPath)/\(id)", fields: fields)
-        await fetchLogros()
-    }
-
-    public func toggleLogro(id: String, completado: Bool) async {
-        try? await FirebaseRESTService.shared.firestoreSet(path: "\(logrosPath)/\(id)", fields: ["completado": !completado])
-        await fetchLogros()
-    }
-
-    // MARK: - Diario
-
     public func fetchDiario() async {
         guard let docs = try? await FirebaseRESTService.shared.firestoreList(path: diarioPath) else { return }
         let items: [JournalModel] = docs.compactMap { doc in
@@ -229,21 +158,6 @@ public class CoupleService: ObservableObject {
         await MainActor.run { self.diarioEntries = items }
     }
 
-    public func addDiarioEntry(titulo: String, contenido: String, emocion: String) async {
-        let id = UUID().uuidString
-        let fields: [String: Any] = [
-            "titulo": titulo,
-            "contenido": contenido,
-            "emocion": emocion,
-            "autorUid": currentUid,
-            "fecha": ISO8601DateFormatter().string(from: Date())
-        ]
-        try? await FirebaseRESTService.shared.firestoreSet(path: "\(diarioPath)/\(id)", fields: fields)
-        await fetchDiario()
-    }
-
-    // MARK: - Musica
-
     public func fetchMusica() async {
         guard let docs = try? await FirebaseRESTService.shared.firestoreList(path: musicaPath) else { return }
         let items: [SongModel] = docs.compactMap { doc in
@@ -255,21 +169,6 @@ public class CoupleService: ObservableObject {
         }
         await MainActor.run { self.musica = items }
     }
-
-    public func addSong(titulo: String, artista: String, url: String) async {
-        let id = UUID().uuidString
-        let fields: [String: Any] = [
-            "titulo": titulo,
-            "artista": artista,
-            "url": url,
-            "agregadoPor": currentName,
-            "fecha": ISO8601DateFormatter().string(from: Date())
-        ]
-        try? await FirebaseRESTService.shared.firestoreSet(path: "\(musicaPath)/\(id)", fields: fields)
-        await fetchMusica()
-    }
-
-    // MARK: - Citas
 
     public func fetchCitas() async {
         guard let docs = try? await FirebaseRESTService.shared.firestoreList(path: citasPath) else { return }
@@ -284,19 +183,6 @@ public class CoupleService: ObservableObject {
         await MainActor.run { self.citas = items }
     }
 
-    public func addCita(titulo: String, descripcion: String) async {
-        let id = UUID().uuidString
-        let fields: [String: Any] = [
-            "titulo": titulo,
-            "descripcion": descripcion,
-            "realizada": false
-        ]
-        try? await FirebaseRESTService.shared.firestoreSet(path: "\(citasPath)/\(id)", fields: fields)
-        await fetchCitas()
-    }
-
-    // MARK: - Todo
-
     public func fetchTodo() async {
         guard let docs = try? await FirebaseRESTService.shared.firestoreList(path: todoPath) else { return }
         let items: [TodoItemModel] = docs.compactMap { doc in
@@ -309,19 +195,6 @@ public class CoupleService: ObservableObject {
         }
         await MainActor.run { self.todoItems = items }
     }
-
-    public func addTodoItem(tarea: String, asignadoA: String) async {
-        let id = UUID().uuidString
-        let fields: [String: Any] = [
-            "tarea": tarea,
-            "completada": false,
-            "asignadoA": asignadoA
-        ]
-        try? await FirebaseRESTService.shared.firestoreSet(path: "\(todoPath)/\(id)", fields: fields)
-        await fetchTodo()
-    }
-
-    // MARK: - Capsula
 
     public func fetchCapsulas() async {
         guard let docs = try? await FirebaseRESTService.shared.firestoreList(path: capsulaPath) else { return }
@@ -336,18 +209,6 @@ public class CoupleService: ObservableObject {
         await MainActor.run { self.capsulas = items }
     }
 
-    public func addCapsula(titulo: String, mensaje: String, fechaApertura: Date) async {
-        let id = UUID().uuidString
-        let fields: [String: Any] = [
-            "titulo": titulo,
-            "mensaje": mensaje,
-            "fechaApertura": ISO8601DateFormatter().string(from: fechaApertura),
-            "revelada": false
-        ]
-        try? await FirebaseRESTService.shared.firestoreSet(path: "\(capsulaPath)/\(id)", fields: fields)
-        await fetchCapsulas()
-    }
-
     public func ensureParejaDocExists() async {
         let now = ISO8601DateFormatter().string(from: Date())
         try? await FirebaseRESTService.shared.firestoreSet(path: parejaPath, fields: [
@@ -355,6 +216,80 @@ public class CoupleService: ObservableObject {
             "fechaRelacion": now,
             "miembros": [Self.diegoUid, Self.yosmariUid],
             "creado": now,
+        ])
+    }
+
+    public func addCarta(titulo: String, contenido: String) async {
+        let id = UUID().uuidString
+        try? await FirebaseRESTService.shared.firestoreSet(path: "\(cartasPath)/\(id)", fields: [
+            "titulo": titulo, "contenido": contenido, "deUid": currentUid, "paraUid": partnerUid,
+            "leida": false, "fecha": ISO8601DateFormatter().string(from: Date())
+        ])
+    }
+
+    public func addRecuerdo(titulo: String, descripcion: String, fotoBase64: String) async {
+        let id = UUID().uuidString
+        try? await FirebaseRESTService.shared.firestoreSet(path: "\(recuerdosPath)/\(id)", fields: [
+            "titulo": titulo, "descripcion": descripcion, "fotoUrl": fotoBase64, "lugar": "Nuestro lugar",
+            "fecha": ISO8601DateFormatter().string(from: Date())
+        ])
+    }
+
+    public func addEvento(titulo: String, categoria: String, descripcion: String) async {
+        let id = UUID().uuidString
+        try? await FirebaseRESTService.shared.firestoreSet(path: "\(eventosPath)/\(id)", fields: [
+            "titulo": titulo, "categoria": categoria, "descripcion": descripcion,
+            "fecha": ISO8601DateFormatter().string(from: Date())
+        ])
+    }
+
+    public func addLogro(titulo: String, descripcion: String) async {
+        let id = UUID().uuidString
+        try? await FirebaseRESTService.shared.firestoreSet(path: "\(logrosPath)/\(id)", fields: [
+            "titulo": titulo, "descripcion": descripcion, "completado": false,
+            "fecha": ISO8601DateFormatter().string(from: Date())
+        ])
+    }
+
+    public func toggleLogro(id: String, completado: Bool) async {
+        try? await FirebaseRESTService.shared.firestoreSet(path: "\(logrosPath)/\(id)", fields: ["completado": !completado])
+    }
+
+    public func addDiarioEntry(titulo: String, contenido: String, emocion: String) async {
+        let id = UUID().uuidString
+        try? await FirebaseRESTService.shared.firestoreSet(path: "\(diarioPath)/\(id)", fields: [
+            "titulo": titulo, "contenido": contenido, "emocion": emocion, "autorUid": currentUid,
+            "fecha": ISO8601DateFormatter().string(from: Date())
+        ])
+    }
+
+    public func addSong(titulo: String, artista: String, url: String) async {
+        let id = UUID().uuidString
+        try? await FirebaseRESTService.shared.firestoreSet(path: "\(musicaPath)/\(id)", fields: [
+            "titulo": titulo, "artista": artista, "url": url, "agregadoPor": currentName,
+            "fecha": ISO8601DateFormatter().string(from: Date())
+        ])
+    }
+
+    public func addCita(titulo: String, descripcion: String) async {
+        let id = UUID().uuidString
+        try? await FirebaseRESTService.shared.firestoreSet(path: "\(citasPath)/\(id)", fields: [
+            "titulo": titulo, "descripcion": descripcion, "realizada": false
+        ])
+    }
+
+    public func addTodoItem(tarea: String, asignadoA: String) async {
+        let id = UUID().uuidString
+        try? await FirebaseRESTService.shared.firestoreSet(path: "\(todoPath)/\(id)", fields: [
+            "tarea": tarea, "completada": false, "asignadoA": asignadoA
+        ])
+    }
+
+    public func addCapsula(titulo: String, mensaje: String, fechaApertura: Date) async {
+        let id = UUID().uuidString
+        try? await FirebaseRESTService.shared.firestoreSet(path: "\(capsulaPath)/\(id)", fields: [
+            "titulo": titulo, "mensaje": mensaje,
+            "fechaApertura": ISO8601DateFormatter().string(from: fechaApertura), "revelada": false
         ])
     }
 }

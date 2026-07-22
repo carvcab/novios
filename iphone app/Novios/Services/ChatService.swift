@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import UIKit
 import AVFoundation
+import FirebaseFirestore
 
 public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     public static let shared = ChatService()
@@ -18,33 +19,131 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     public let didSendMessage = PassthroughSubject<Void, Never>()
     public let autoScrollToBottom = PassthroughSubject<Void, Never>()
 
-    private var pollingTimer: Timer?
+    private var listener: ListenerRegistration?
     private var audioRecorder: AVAudioRecorder?
     private var recordingTimer: Timer?
 
     private var coupleId: String { "pareja_001" }
     private var myUid: String { AuthService.shared.currentUser?.id ?? (CoupleService.shared.currentUid) }
+    private let db = Firestore.firestore()
 
     override public init() {
         super.init()
-        startPolling()
+        startListening()
     }
 
-    public func startPolling() {
-        stopPolling()
-        let t = Timer(timeInterval: 60, repeats: true) { [weak self] _ in
-            self?.fetchMessages()
+    private func startListening() {
+        guard Auth.auth().currentUser != nil else {
+            print("[Chat] startListening skipped: not logged in")
+            return
         }
-        RunLoop.main.add(t, forMode: .common)
-        pollingTimer = t
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-            self?.fetchMessages()
+        isLoading = true
+        errorMessage = nil
+        let path = "parejas/\(coupleId)/chat"
+        listener = db.collection(path)
+            .order(by: "timestamp", descending: false)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self else { return }
+                if let error = error {
+                    print("[Chat] snapshot error: \(error.localizedDescription)")
+                    self.errorMessage = "Error: \(error.localizedDescription)"
+                    self.isLoading = false
+                    return
+                }
+                guard let snapshot = snapshot else {
+                    self.errorMessage = "No se pudo conectar al chat"
+                    self.isLoading = false
+                    return
+                }
+                for change in snapshot.documentChanges {
+                    switch change.type {
+                    case .added: self.addMessage(from: change.document)
+                    case .modified: self.updateMessage(from: change.document)
+                    case .removed: self.removeMessage(with: change.document.documentID)
+                    }
+                }
+                self.messages.sort { $0.timestamp < $1.timestamp }
+                self.isLoaded = true
+                self.isLoading = false
+                self.errorMessage = nil
+                print("[Chat] snapshot: \(snapshot.documentChanges.count) changes, total=\(self.messages.count)")
+            }
+    }
+
+    public func stopListening() {
+        listener?.remove()
+        listener = nil
+    }
+
+    public func retry() {
+        stopListening()
+        startListening()
+    }
+
+    private func addMessage(from doc: DocumentSnapshot) {
+        guard let data = doc.data() else { return }
+        let msg = parseMessage(id: doc.documentID, data: data)
+        if !messages.contains(where: { $0.id == doc.documentID }) {
+            messages.append(msg)
+            autoScrollToBottom.send()
         }
     }
 
-    public func stopPolling() {
-        pollingTimer?.invalidate()
-        pollingTimer = nil
+    private func updateMessage(from doc: DocumentSnapshot) {
+        guard let data = doc.data(),
+              let idx = messages.firstIndex(where: { $0.id == doc.documentID }) else { return }
+        let updated = parseMessage(id: doc.documentID, data: data)
+        messages[idx] = updated
+    }
+
+    private func removeMessage(with id: String) {
+        messages.removeAll(where: { $0.id == id })
+    }
+
+    private func parseMessage(id: String, data: [String: Any]) -> MessageModel {
+        let senderId = data["senderId"] as? String ?? ""
+        let text = data["text"] as? String
+        let typeRaw = data["type"] as? String ?? "chat"
+        let timestamp = (data["timestamp"] as? Timestamp)?.dateValue()
+            ?? ISO8601DateFormatter().date(from: data["timestamp"] as? String ?? "")
+            ?? Date()
+        let mediaUrl = data["mediaUrl"] as? String
+        let isDisappearing = data["isDisappearing"] as? Bool ?? false
+        let disappearDuration = data["disappearDurationSeconds"] as? Int ?? Int(data["disappearDuration"] as? String ?? "0") ?? 0
+        let readTsStr = data["readTimestamp"] as? String
+        let readTs = readTsStr.flatMap { Self.parseIsoDate($0) }
+            ?? (data["readTimestamp"] as? Timestamp)?.dateValue()
+        let replyToId = data["replyToId"] as? String
+        let replyToText = data["replyToText"] as? String
+        let replyToSenderId = data["replyToSenderId"] as? String
+        let reactions = data["reactions"] as? [String: String]
+
+        let msgType: MessageType
+        switch typeRaw {
+        case "chat", "text": msgType = .text
+        case "voice": msgType = .voice
+        case "image", "photo": msgType = .image
+        case "video": msgType = .video
+        case "gift": msgType = .gift
+        case "letter": msgType = .letter
+        default: msgType = .text
+        }
+
+        return MessageModel(
+            id: id,
+            senderId: senderId,
+            text: text,
+            timestamp: timestamp,
+            type: msgType,
+            isDisappearing: isDisappearing,
+            disappearDurationSeconds: disappearDuration,
+            readTimestamp: readTs,
+            mediaUrl: mediaUrl,
+            replyToId: replyToId,
+            replyToText: replyToText,
+            replyToSenderId: replyToSenderId,
+            reactions: reactions
+        )
     }
 
     private static func parseIsoDate(_ str: String) -> Date? {
@@ -70,161 +169,6 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         df.dateFormat = "yyyy-MM-dd HH:mm:ss"
         if let d = df.date(from: noZ) { return d }
         return nil
-    }
-
-    public func fetchMessages() {
-        Task { @MainActor in
-            guard AuthService.shared.isLoggedIn else {
-                print("[Chat] fetchMessages skipped: not logged in")
-                return
-            }
-            guard FirebaseRESTService.shared.idToken != nil else {
-                print("[Chat] fetchMessages skipped: no idToken")
-                return
-            }
-            guard !isLoading else { return }
-            isLoading = true
-            errorMessage = nil
-
-            let docs: [[String: Any]]
-            do {
-                docs = try await FirebaseRESTService.shared.firestoreList(path: "parejas/\(coupleId)/chat")
-            } catch {
-                let msg = error.localizedDescription.lowercased()
-                print("[Chat] fetchMessages error: \(error.localizedDescription)")
-                if msg.contains("quota") || msg.contains("429") || msg.contains("too many") || msg.contains("resource exhausted") {
-                    print("[Chat] quota exceeded, slowing down polling")
-                    stopPolling()
-                    let t = Timer(timeInterval: 120, repeats: true) { [weak self] _ in
-                        self?.fetchMessages()
-                    }
-                    RunLoop.main.add(t, forMode: .common)
-                    pollingTimer = t
-                    errorMessage = "Límite de lectura excedido. Esperando 2 minutos para reintentar..."
-                } else {
-                    errorMessage = "Error al cargar mensajes: \(error.localizedDescription)"
-                }
-                isLoading = false
-                return
-            }
-
-            print("[Chat] firestoreList returned \(docs.count) documents")
-            if docs.isEmpty {
-                print("[Chat] WARNING: chat subcollection is empty in Firestore!")
-            }
-
-            var updated = self.messages
-            var hasChanges = false
-            var parsedCount = 0
-
-            for doc in docs {
-                guard let fields = doc["fields"] as? [String: Any],
-                      let name = doc["name"] as? String else {
-                    print("[Chat] SKIP doc: missing fields or name. keys=\(doc.keys)")
-                    continue
-                }
-                let msgId = name.split(separator: "/").last.map(String.init) ?? UUID().uuidString
-                let createTimeStr = doc["createTime"] as? String ?? ""
-
-                let s = { (k: String) -> String? in
-                    if let v = fields[k] as? String { return v }
-                    if let dict = fields[k] as? [String: Any] {
-                        if let sv = dict["stringValue"] as? String { return sv }
-                        if let tv = dict["timestampValue"] as? String { return tv }
-                        if let iv = dict["integerValue"] as? String { return iv }
-                    }
-                    return nil
-                }
-                let b = { (k: String) -> Bool in
-                    if let v = fields[k] as? Bool { return v }
-                    if let dict = fields[k] as? [String: Any], let bv = dict["booleanValue"] as? Bool { return bv }
-                    return false
-                }
-                let dict = { (k: String) -> [String: Any]? in
-                    if let dict = fields[k] as? [String: Any] { return dict }
-                    if let nested = fields[k] as? [String: Any], let mv = nested["mapValue"] as? [String: Any] {
-                        return mv["fields"] as? [String: Any]
-                    }
-                    return nil
-                }
-
-                if let idx = updated.firstIndex(where: { $0.id == msgId }) {
-                    let readTsStr = s("readTimestamp")
-                    let readTs = readTsStr.flatMap { Self.parseIsoDate($0) }
-                    if updated[idx].readTimestamp != readTs {
-                        updated[idx].readTimestamp = readTs
-                        hasChanges = true
-                    }
-                    continue
-                }
-
-                let senderId = s("senderId") ?? ""
-                let text = s("text") ?? ""
-                let typeRaw = s("type") ?? "chat"
-                let rawTs = s("timestamp") ?? createTimeStr
-                let timestamp = Self.parseIsoDate(rawTs) ?? Date()
-                let mediaUrl = s("mediaUrl")
-                let isDisappearing = b("isDisappearing")
-                let disappearDuration = s("disappearDurationSeconds") ?? s("disappearDuration")
-                let readTsStr = s("readTimestamp")
-                let readTs = readTsStr.flatMap { Self.parseIsoDate($0) }
-                let replyToId = s("replyToId")
-                let replyToText = s("replyToText")
-                let replyToSenderId = s("replyToSenderId")
-
-                var reactions: [String: String]?
-                if let rDict = dict("reactions"), let rFields = rDict as? [String: [String: Any]] {
-                    var r: [String: String] = [:]
-                    for (uid, val) in rFields {
-                        if let emoji = val["stringValue"] as? String {
-                            r[uid] = emoji
-                        }
-                    }
-                    if !r.isEmpty { reactions = r }
-                }
-
-                let msgType: MessageType
-                switch typeRaw {
-                case "chat", "text": msgType = .text
-                case "voice": msgType = .voice
-                case "image", "photo": msgType = .image
-                case "video": msgType = .video
-                case "gift": msgType = .gift
-                case "letter": msgType = .letter
-                default: msgType = .text
-                }
-
-                let msg = MessageModel(
-                    id: msgId,
-                    senderId: senderId,
-                    text: text,
-                    timestamp: timestamp,
-                    type: msgType,
-                    isDisappearing: isDisappearing,
-                    disappearDurationSeconds: Int(disappearDuration ?? "0") ?? 0,
-                    readTimestamp: readTs,
-                    mediaUrl: mediaUrl,
-                    replyToId: replyToId,
-                    replyToText: replyToText,
-                    replyToSenderId: replyToSenderId,
-                    reactions: reactions
-                )
-                updated.append(msg)
-                hasChanges = true
-                parsedCount += 1
-            }
-
-            print("[Chat] parsed \(parsedCount) messages, hasChanges=\(hasChanges), total=\(updated.count)")
-
-            if hasChanges {
-                updated.sort { $0.timestamp < $1.timestamp }
-                self.messages = updated
-                self.autoScrollToBottom.send()
-            }
-            isLoaded = true
-            isLoading = false
-            print("[Chat] fetchMessages done: isLoaded=true, count=\(self.messages.count)")
-        }
     }
 
     public func sendMessage(text: String) {
@@ -422,5 +366,5 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         return data
     }
 
-    deinit { stopPolling() }
+    deinit { stopListening() }
 }

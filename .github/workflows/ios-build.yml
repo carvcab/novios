@@ -42,6 +42,16 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Install CocoaPods dependencies
+        env:
+          IOS_PATH: ${{ inputs.ios_path }}
+        run: |
+          cd "$IOS_PATH"
+          if ! command -v pod &> /dev/null; then
+            gem install cocoapods --no-document
+          fi
+          pod install
+
       - name: Build IPA
         env:
           BUILD_ID: ${{ inputs.build_id }}
@@ -54,14 +64,20 @@ jobs:
           cd "$IOS_PATH"
 
           PROJECT=$(find . -maxdepth 1 -name "*.xcodeproj" | head -1)
+          WORKSPACE=$(find . -maxdepth 1 -name "*.xcworkspace" | head -1)
           echo "Project: $PROJECT"
+          echo "Workspace: $WORKSPACE"
           echo "Scheme: $SCHEME"
           echo "Configuration: $CONFIGURATION"
           echo "Signing: $USE_SIGNING"
 
           DERIVED_DATA_PATH="${GITHUB_WORKSPACE}/DerivedData"
 
-          BUILD_CMD="xcodebuild -project $PROJECT"
+          if [ -n "$WORKSPACE" ]; then
+            BUILD_CMD="xcodebuild -workspace $WORKSPACE"
+          else
+            BUILD_CMD="xcodebuild -project $PROJECT"
+          fi
           BUILD_CMD="$BUILD_CMD -scheme $SCHEME"
           BUILD_CMD="$BUILD_CMD -configuration $CONFIGURATION"
           BUILD_CMD="$BUILD_CMD -destination 'generic/platform=iOS'"
