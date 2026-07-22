@@ -3,12 +3,14 @@ import Firebase
 
 @main
 struct NoviosApp: App {
-    @StateObject private var authService = AuthService.shared
+    @StateObject private var authService: AuthService
+    @StateObject private var themeManager: ThemeManager
 
     init() {
         FirebaseApp.configure()
+        _authService = StateObject(wrappedValue: AuthService.shared)
+        _themeManager = StateObject(wrappedValue: ThemeManager.shared)
     }
-    @StateObject private var themeManager = ThemeManager.shared
     
     var body: some Scene {
         WindowGroup {
