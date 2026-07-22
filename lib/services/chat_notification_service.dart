@@ -33,6 +33,12 @@ class ChatNotificationService {
   final Set<String> _notifiedPartnerNotifIds = {};
   int _lastPartnerNotifTime = 0;
 
+  String get _currentUserId {
+    final uid = LocalStorage().getUserId();
+    if (uid != null && uid.isNotEmpty) return uid;
+    return '';
+  }
+
   static bool isTesting = false;
 
   Future<void> init() async {
@@ -137,7 +143,7 @@ class ChatNotificationService {
       _notifiedMessageIds.add(msg.id);
       if (_notifiedMessageIds.length > 100) _notifiedMessageIds.clear();
 
-      if (msg.senderId == LocalStorage().getUserId()) return;
+      if (msg.senderId == _currentUserId) return;
       if (MessagesTab.isChatOpen) return;
 
       _showMessageNotification(msg);
@@ -171,8 +177,8 @@ class ChatNotificationService {
       for (final change in snapshot.docChanges) {
         final data = change.doc.data();
         if (data == null) continue;
-        if (data['senderId'] == userId) continue;
-        if (_notifiedGameIds.contains(change.doc.id)) continue;
+      if (data['senderId'] == _currentUserId) continue;
+      if (_notifiedGameIds.contains(change.doc.id)) continue;
         _notifiedGameIds.add(change.doc.id);
 
         final senderName = data['senderName'] as String? ?? data['sender'] as String? ?? 'Tu pareja';
@@ -271,8 +277,8 @@ class ChatNotificationService {
     _partnerNotifSub?.cancel();
     debugPrint("[ChatNotif] Starting partner notification listener...");
 
-    final userId = LocalStorage().getUserId();
-    if (userId == null) {
+    final userId = _currentUserId;
+    if (userId.isEmpty) {
       debugPrint("[ChatNotif] Partner notif: no userId");
       return;
     }
@@ -496,7 +502,8 @@ class ChatNotificationService {
     final input = response.input;
 
     if (actionId == 'reply_text' && input != null && input.trim().isNotEmpty) {
-      final userId = LocalStorage().getUserId() ?? 'local_user_id';
+      final userId = _currentUserId;
+      if (userId.isEmpty) return;
       final msg = MessageModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         senderId: userId,
@@ -517,7 +524,8 @@ class ChatNotificationService {
       }
 
       if (text.isNotEmpty) {
-        final userId = LocalStorage().getUserId() ?? 'local_user_id';
+        final userId = _currentUserId;
+        if (userId.isEmpty) return;
         final msg = MessageModel(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           senderId: userId,
