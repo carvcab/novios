@@ -20,7 +20,7 @@ public class FirebaseRESTService {
         tokenListener = Auth.auth().addIDTokenDidChangeListener { [weak self] _, user in
             Task {
                 if let user = user {
-                    self?.idToken = try? await user.idToken()
+                    self?.idToken = try? await user.getIDToken()
                 } else {
                     self?.idToken = nil
                 }
@@ -31,7 +31,7 @@ public class FirebaseRESTService {
     public func loadSavedConfig() {
         if let user = Auth.auth().currentUser {
             Task {
-                idToken = try? await user.idToken()
+                idToken = try? await user.getIDToken()
             }
         }
     }
@@ -40,7 +40,7 @@ public class FirebaseRESTService {
 
     public func signIn(email: String, password: String) async throws -> (localId: String, idToken: String, refreshToken: String) {
         let result = try await Auth.auth().signIn(withEmail: email, password: password)
-        let token = try await result.user.idToken()
+        let token = try await result.user.getIDToken()
         self.idToken = token
         saveTokens()
         return (result.user.uid, token, "")
@@ -48,7 +48,7 @@ public class FirebaseRESTService {
 
     public func refreshIdToken() async throws -> String {
         guard let user = Auth.auth().currentUser else { throw FirebaseError.notAuthenticated }
-        let token = try await user.idToken(forcingRefresh: true)
+        let token = try await user.getIDTokenForcingRefresh(true)
         idToken = token
         return token
     }
@@ -76,7 +76,7 @@ public class FirebaseRESTService {
             return [
                 "fields": encodeRESTFields(data),
                 "name": "\(doc.reference.path)",
-                "createTime": (doc.metadata.updateTime ?? doc.metadata.createTime)?.description ?? ""
+                "createTime": (doc.updateTime ?? doc.createTime)?.description ?? ""
             ]
         }
     }

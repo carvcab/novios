@@ -44,9 +44,6 @@ public struct MainTabView: View {
                 .tag(4)
         }
         .tint(ThemeManager.shared.primary)
-        .onAppear {
-            CoupleService.shared.startPolling()
-        }
         .task {
             await CoupleService.shared.refreshSubcollections()
         }
