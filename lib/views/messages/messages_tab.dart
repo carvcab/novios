@@ -176,9 +176,12 @@ class _MessagesTabState extends State<MessagesTab>
           if (!mounted) return;
           if (uploaded == null) {
             final lastErr = LocalStorage().getString('last_upload_error') ?? 'Error desconocido';
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error al subir audio: $lastErr')),
-            );
+            debugPrint("[AudioRecord] upload failed: $lastErr");
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error: $lastErr')),
+              );
+            }
             return;
           }
           final msg = MessageModel(
@@ -305,8 +308,9 @@ class _MessagesTabState extends State<MessagesTab>
         );
         await FirebaseService().sendMessage(msg);
       } else {
+        final lastErr = LocalStorage().getString('last_upload_error') ?? 'El archivo es demasiado grande o no hay conexión';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al subir archivo. El archivo es demasiado grande o no hay conexion.')),
+          SnackBar(content: Text('Error: $lastErr')),
         );
       }
     } catch (e) {
