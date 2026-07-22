@@ -255,22 +255,19 @@ public struct ChatBubbleView: View {
             }
             guard let data = audioData, !data.isEmpty else { return }
 
-            let session = AVAudioSession.sharedInstance()
-            try? session.setCategory(.playback)
-            try? session.setActive(true)
+            try? AVAudioSession.sharedInstance().setCategory(.playback)
+            try? AVAudioSession.sharedInstance().setActive(true)
 
             guard let player = try? AVAudioPlayer(data: data) else { return }
-            player.delegate = PlayerDelegateShared
+            audioPlayer = player
             player.numberOfLoops = 0
-            player.prepareToPlay()
-            if player.play() {
-                self.audioPlayer = player
-                await MainActor.run { self.isPlaying = true }
-                _ = await withCheckedContinuation { c in
-                    PlayerDelegateShared.onFinish = { c.resume() }
-                }
-                await MainActor.run { self.isPlaying = false }
+            player.play()
+            await MainActor.run { self.isPlaying = true }
+            while true {
+                try? await Task.sleep(nanoseconds: 200_000_000)
+                if !player.isPlaying { break }
             }
+            await MainActor.run { self.isPlaying = false }
         }
     }
 
@@ -304,15 +301,6 @@ public struct ChatBubbleView: View {
         }
     }
 }
-
-private class PlayerDelegate: NSObject, AVAudioPlayerDelegate {
-    var onFinish: (() -> Void)?
-    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        onFinish?()
-    }
-}
-
-private let PlayerDelegateShared = PlayerDelegate()
 
 private struct BubbleAppearModifier: ViewModifier {
     @Binding var isAppeared: Bool
