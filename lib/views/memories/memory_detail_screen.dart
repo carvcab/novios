@@ -83,37 +83,6 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> with SingleTick
     super.dispose();
   }
 
-  void _showFullScreenImage() {
-    if (widget.memory.mediaPaths.isEmpty || widget.memory.mediaPaths.first.isEmpty) return;
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.black,
-        insetPadding: EdgeInsets.zero,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Hero(
-              tag: 'memory_image_${widget.memory.id}',
-              child: FirestoreImage(
-                path: widget.memory.mediaPaths.first,
-                fit: BoxFit.contain,
-              ),
-            ),
-            Positioned(
-              top: 40,
-              right: 16,
-              child: IconButton(
-                icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
-                onPressed: () => Navigator.pop(ctx),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -242,37 +211,50 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> with SingleTick
         child: Column(
           children: [
             const SizedBox(height: 16),
-              GestureDetector(
-                onTap: () => _showFullScreenImage(),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 400),
-                  transitionBuilder: (child, animation) {
-                    return FadeTransition(
-                      opacity: animation,
-                      child: ScaleTransition(
-                        scale: Tween<double>(begin: 0.92, end: 1.0).animate(
-                          CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
-                        ),
-                        child: child,
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 400),
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: Tween<double>(begin: 0.92, end: 1.0).animate(
+                        CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
                       ),
-                    );
-                  },
-                  child: KeyedSubtree(
-                    key: ValueKey<String>('${_decorStyle}_${_decorStickers.join(',')}_${_decorFrameColor ?? ''}_${_titleCtrl.text}_${_descCtrl.text}'),
-                    child: _buildDecoratedPreview(frameColor, dateStr),
-                  ),
+                      child: child,
+                    ),
+                  );
+                },
+                child: KeyedSubtree(
+                  key: ValueKey<String>('${_decorStyle}_${_decorStickers.join(',')}_${_decorFrameColor ?? ''}_${_titleCtrl.text}_${_descCtrl.text}'),
+                  child: _buildDecoratedPreview(frameColor, dateStr),
                 ),
               ),
               const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  _titleCtrl.text.isEmpty ? 'Recuerdo Especial' : _titleCtrl.text,
+                  style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: cs.onSurface),
+                  textAlign: TextAlign.center,
+                ),
+              ),
               if (_descCtrl.text.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
                   child: Text(
                     _descCtrl.text,
                     style: TextStyle(fontSize: 14, color: cs.onSurface.withValues(alpha: 0.7)),
                     textAlign: TextAlign.center,
                   ),
                 ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 2),
+                child: Text(
+                  dateStr,
+                  style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.4)),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             const SizedBox(height: 24),
             Container(
               decoration: BoxDecoration(
