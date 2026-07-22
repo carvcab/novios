@@ -165,11 +165,16 @@ class _MessagesTabState extends State<MessagesTab>
     });
   }
 
+  bool _stoppingRecording = false;
+
   Future<void> _toggleRecording() async {
     if (_isRecording) {
+      if (_stoppingRecording) return;
+      _stoppingRecording = true;
       try {
-        final stopPath = await _audioRecorder.stop();
-        setState(() => _isRecording = false);
+        final stopPath = await _audioRecorder.stop().timeout(const Duration(seconds: 5));
+        if (mounted) setState(() => _isRecording = false);
+        _stoppingRecording = false;
         if (stopPath != null && stopPath.isNotEmpty) {
           final userId = _userId;
           final uploaded = await StorageService().uploadAudio(stopPath);
@@ -196,8 +201,13 @@ class _MessagesTabState extends State<MessagesTab>
           );
           await FirebaseService().sendMessage(msg);
         }
+      } on TimeoutException {
+        debugPrint("[AudioRecord] stop timed out, forcing reset");
+        _stoppingRecording = false;
+        if (mounted) setState(() => _isRecording = false);
       } catch (e) {
         debugPrint("[AudioRecord] Error stopping/uploading recording: $e");
+        _stoppingRecording = false;
         if (mounted) setState(() => _isRecording = false);
       }
     } else {
