@@ -212,8 +212,8 @@ struct AddEventView: View {
                             .font(.system(size: 20))
                             .foregroundColor(isSel ? col : .secondary)
                             .frame(width: 44, height: 44)
-                            .background(isSel ? col.opacity(0.15) : .ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .background(RoundedRectangle(cornerRadius: 10).fill(.ultraThinMaterial))
+                            .background(isSel ? col.opacity(0.15) : Color.clear)
                         Text(cat.1).appFont(size: 9).foregroundColor(isSel ? .primary : .secondary)
                     }
                     .onTapGesture { selectedCategory = cat.0; selectedColor = cat.2 }
