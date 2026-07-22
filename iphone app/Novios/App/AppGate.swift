@@ -64,7 +64,6 @@ public struct AppGate: View {
             await CoupleService.shared.loadCouple()
             await MainActor.run {
                 isLoadingCouple = false
-                CoupleService.shared.startPolling()
             }
         }
     }
