@@ -74,7 +74,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     private func fetchMessages() {
         Task { @MainActor in
             let documents: [[String: Any]]
-            if let queried = try? await FirebaseRESTService.shared.firestoreQuery(parent: "parejas/\(coupleId)", collectionId: "chat", limit: 150), !queried.isEmpty {
+            if let queried = try? await FirebaseRESTService.shared.firestoreQuery(parent: "parejas/\(coupleId)", collectionId: "chat", limit: 200), !queried.isEmpty {
                 documents = queried
             } else if let listed = try? await FirebaseRESTService.shared.firestoreList(path: "parejas/\(coupleId)/chat"), !listed.isEmpty {
                 documents = listed

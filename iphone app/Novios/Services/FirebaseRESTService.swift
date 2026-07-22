@@ -207,6 +207,7 @@ public class FirebaseRESTService {
         let body: [String: Any] = [
             "structuredQuery": [
                 "from": [["collectionId": collectionId]],
+                "orderBy": [["field": ["fieldPath": "timestamp"], "direction": "DESCENDING"]],
                 "limit": limit
             ]
         ]
