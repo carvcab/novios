@@ -357,7 +357,10 @@ class LoveViewModel: ObservableObject {
 
     private func parseDate(_ val: Any?) -> Date? {
         if let ts = val as? Timestamp { return ts.dateValue() }
-        if let s = val as? String { return ISO8601DateFormatter().date(from: s) ?? DateFormatter.yyyyMMdd.date(from: s) }
+        if let s = val as? String {
+            let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
+            return ISO8601DateFormatter().date(from: s) ?? f.date(from: s)
+        }
         return nil
     }
 
@@ -457,29 +460,4 @@ struct TimelineEvent {
     let description: String; let date: String; let dateISO: String; let color: String; let createdBy: String
 }
 
-// MARK: - DateFormatter Extension
 
-extension DateFormatter {
-    static let yyyyMMdd: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX"); return f
-    }()
-}
-
-// MARK: - GlassCard
-
-struct GlassCard<Content: View>: View {
-    let cornerRadius: CGFloat
-    let content: Content
-
-    init(cornerRadius: CGFloat = 16, @ViewBuilder content: () -> Content) {
-        self.cornerRadius = cornerRadius; self.content = content()
-    }
-
-    var body: some View {
-        content
-            .padding(14)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-            .overlay(RoundedRectangle(cornerRadius: cornerRadius).stroke(Color.white.opacity(0.15)))
-    }
-}
