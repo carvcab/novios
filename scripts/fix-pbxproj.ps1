@@ -4,8 +4,8 @@ $content = Get-Content $projFile -Raw
 $baseDir = "C:\Users\diego\Documents\Nueva carpeta\iphone app\Novios"
 $swiftFiles = Get-ChildItem -Path $baseDir -Recurse -Filter "*.swift" | Where-Object { $_.Name -ne "NoviosApp.swift" }
 
-$counter = 2
-$refAddr = 0x3EA
+$counter = 0x200
+$refAddr = 0x10000
 
 $buildFileEntries = @()
 $fileRefEntries = @()
