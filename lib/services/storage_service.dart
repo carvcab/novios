@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:path_provider/path_provider.dart';
 import 'local_storage.dart';
-import 'firebase_service.dart';
 import 'couple_service.dart';
 import 'package:image/image.dart' as img;
 

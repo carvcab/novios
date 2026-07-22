@@ -14,7 +14,6 @@ import '../../services/firebase_service.dart';
 import '../../services/geofence_service.dart';
 import '../../services/local_storage.dart';
 import '../../services/couple_service.dart';
-import '../../models/user_model.dart';
 import '../../models/place_model.dart';
 import '../../models/zone_model.dart';
 import '../../models/memory_model.dart';
@@ -39,7 +38,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
   int _myBattery = -1;
   bool _partnerOnline = false;
   String _partnerName = '';
-  String _partnerScreen = '';
+  final String _partnerScreen = '';
   DateTime? _lastPartnerUpdate;
   bool _areTogether = false;
   bool _satelliteMode = false;

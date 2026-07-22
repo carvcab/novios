@@ -9,6 +9,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
 import '../../models/message_model.dart';
+import '../../services/auth_service.dart';
+import '../../services/couple_service.dart';
 import '../../services/firebase_service.dart';
 import '../../services/local_storage.dart';
 import '../../services/storage_service.dart';
@@ -97,7 +99,7 @@ class _MessagesTabState extends State<MessagesTab>
     final text = _msgCtrl.text.trim();
     if (text.isEmpty) return;
 
-    final userId = _userId ?? 'local_user_id';
+    final userId = _userId;
     final msg = MessageModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       senderId: userId,
@@ -168,7 +170,7 @@ class _MessagesTabState extends State<MessagesTab>
     try {
       final path = await _audioRecorder.stop();
       if (path != null && path.isNotEmpty) {
-        final userId = _userId ?? 'local_user_id';
+        final userId = _userId;
         final uploaded = await StorageService().uploadAudio(path);
         if (!mounted) return;
         if (uploaded == null) {
@@ -281,7 +283,7 @@ class _MessagesTabState extends State<MessagesTab>
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
       if (mediaUrl != null) {
-        final userId = _userId ?? 'local_user_id';
+        final userId = _userId;
         final msg = MessageModel(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           senderId: userId,
@@ -312,7 +314,7 @@ class _MessagesTabState extends State<MessagesTab>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final userId = _userId ?? 'local_user_id';
+    final userId = _userId;
     final fbAvailable = FirebaseService().isFirebaseAvailable;
     debugPrint("[MessagesTab] Firebase available: $fbAvailable | userId: $userId");
 

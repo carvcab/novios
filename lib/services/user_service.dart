@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'local_storage.dart';
-import 'firebase_service.dart';
 import 'couple_service.dart';
 
 class UserService extends ChangeNotifier {
@@ -36,9 +35,4 @@ class UserService extends ChangeNotifier {
   }
 
   void stopListening() {}
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }

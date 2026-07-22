@@ -1209,9 +1209,13 @@ class FirebaseService {
       final partnerUid = CoupleService().partnerUid;
       if (partnerUid.isEmpty) return;
       String preview = msg.text;
-      if (msg.type == 'voice') preview = '🎤 Nota de voz';
-      else if (msg.type == 'photo' || msg.type == 'image') preview = '🖼️ Foto';
-      else if (msg.type == 'video') preview = '🎬 Video';
+      if (msg.type == 'voice') {
+        preview = '🎤 Nota de voz';
+      } else if (msg.type == 'photo' || msg.type == 'image') {
+        preview = '🖼️ Foto';
+      } else if (msg.type == 'video') {
+        preview = '🎬 Video';
+      }
       if (preview.length > 100) preview = '${preview.substring(0, 97)}...';
       await _db.collection('usuarios').doc(partnerUid).set({
         'lastNotification': {

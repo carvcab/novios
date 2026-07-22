@@ -24,8 +24,8 @@ void main() async {
     debugPrint('Firebase init error: $e');
   }
   await LocalStorage().init().catchError((_) => false);
-  try { await FirebaseService().init().catchError((_) {}); } catch (e) {}
-  try { WidgetService().init().catchError((_) {}); } catch (e) {}
+  try { await FirebaseService().init(); } catch (e) { debugPrint("FirebaseService init error: $e"); }
+  try { WidgetService().init(); } catch (e) { debugPrint("WidgetService init error: $e"); }
   try { await GeofenceService().init(); } catch (e) { debugPrint("Geofence init error: $e"); }
 
   FlutterError.onError = (details) {

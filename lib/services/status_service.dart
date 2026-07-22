@@ -26,7 +26,7 @@ class StatusService {
     }
   }
 
-  void _syncUserToLocalStorage(UserModel user) {
+  void syncUserToLocalStorage(UserModel user) {
     final ls = LocalStorage();
     if (user.name.isNotEmpty) ls.setString('user_name', user.name);
     if (user.partnerName != null && user.partnerName!.isNotEmpty) ls.setString('partner_name', user.partnerName!);
