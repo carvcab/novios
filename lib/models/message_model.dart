@@ -69,7 +69,7 @@ class MessageModel {
       'id': id,
       'senderId': senderId,
       'text': text,
-      'timestamp': timestamp.toIso8601String(),
+      'timestamp': timestamp.toUtc().toIso8601String(),
       'type': type,
       'isDisappearing': isDisappearing,
       'disappearDurationSeconds': disappearDurationSeconds,

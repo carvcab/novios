@@ -211,6 +211,9 @@ public class FirebaseRESTService {
         let (data, response) = try await session.data(for: req)
         guard let httpResp = response as? HTTPURLResponse else { throw FirebaseError.networkError }
         if httpResp.statusCode == 200 || httpResp.statusCode == 201 { return data }
+        if httpResp.statusCode == 401 || httpResp.statusCode == 403 {
+            throw FirebaseError.serverError("401_UNAUTHENTICATED")
+        }
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let error = json["error"] as? [String: Any],
            let message = error["message"] as? String {
@@ -265,9 +268,11 @@ public class FirebaseRESTService {
     private func parseJWTExp(_ token: String) -> TimeInterval? {
         let parts = token.split(separator: ".")
         guard parts.count >= 2 else { return nil }
-        var padded = String(parts[1])
-        while padded.count % 4 != 0 { padded += "=" }
-        guard let data = Data(base64Encoded: padded),
+        var base64 = String(parts[1])
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        while base64.count % 4 != 0 { base64 += "=" }
+        guard let data = Data(base64Encoded: base64),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let exp = json["exp"] as? TimeInterval else { return nil }
         return exp
