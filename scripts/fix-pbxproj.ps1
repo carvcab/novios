@@ -11,11 +11,16 @@ $buildFileEntries = @()
 $fileRefEntries = @()
 $sourceFileEntries = @()
 $groupChildEntries = @()
+$addedCount = 0
 
 foreach ($file in $swiftFiles) {
     $relPath = $file.DirectoryName.Replace($baseDir, "").TrimStart('\').Replace('\', '/')
     $fullPath = if ($relPath) { "$relPath/$($file.Name)" } else { $file.Name }
     $fileName = $file.Name
+    
+    if ($content -match [regex]::Escape($fullPath)) {
+        continue
+    }
     
     $fid = "9A$('{0:X5}' -f $counter)2C000000000000$('{0:X2}' -f $counter)"
     $rid = "9A$('{0:X5}' -f $refAddr)2C000000000000$('{0:X4}' -f $refAddr)"
@@ -27,6 +32,7 @@ foreach ($file in $swiftFiles) {
     
     $counter++
     $refAddr++
+    $addedCount++
 }
 
 # 1. Insert SDKROOT in Debug config
@@ -48,4 +54,4 @@ $content = $content -replace '(9A1000012C00000100000001 /\* NoviosApp\.swift in 
 $content = $content -replace '(9A2000012C00000100000001 /\* NoviosApp\.swift \*/,)', "`$1`n$($groupChildEntries -join "`n")"
 
 Set-Content -Path $projFile -Value $content -NoNewline
-Write-Host "Done - $($swiftFiles.Count) files added"
+Write-Host "Done - $addedCount files added (skipped $($swiftFiles.Count - $addedCount) existing)"
