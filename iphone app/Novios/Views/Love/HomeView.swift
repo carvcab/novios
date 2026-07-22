@@ -331,7 +331,7 @@ struct HomeFeature: Identifiable {
     let action: () -> Void
 }
 
-private struct HeartParticle: Identifiable {
+struct HeartParticle: Identifiable {
     let id = UUID()
     var x: CGFloat
     var y: CGFloat
