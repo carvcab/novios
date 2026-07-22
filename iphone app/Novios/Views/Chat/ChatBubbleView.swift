@@ -231,13 +231,22 @@ public struct ChatBubbleView: View {
     }
 
     private func loadAndPlayAudio() {
-        guard let url = message.mediaUrl, url.hasPrefix("firestore://") else { return }
+        guard let urlStr = message.mediaUrl, !urlStr.isEmpty else { return }
         Task {
-            let path = url.replacingOccurrences(of: "firestore://", with: "")
-            guard let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
-                  let fields = doc["fields"] as? [String: Any],
-                  let b64 = (fields["data"] as? [String: Any])?["stringValue"] as? String,
-                  let data = Data(base64Encoded: b64) else { return }
+            var audioData: Data? = nil
+            if urlStr.hasPrefix("firestore://") {
+                let path = urlStr.replacingOccurrences(of: "firestore://", with: "")
+                if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
+                   let fields = doc["fields"] as? [String: Any],
+                   let rawB64 = (fields["data"] as? [String: Any])?["stringValue"] as? String {
+                    let cleanB64 = rawB64.replacingOccurrences(of: "\n", with: "").replacingOccurrences(of: "\r", with: "").replacingOccurrences(of: " ", with: "")
+                    audioData = Data(base64Encoded: cleanB64, options: .ignoreUnknownCharacters)
+                }
+            } else if let httpURL = URL(string: urlStr), urlStr.hasPrefix("http") {
+                audioData = try? (await URLSession.shared.data(from: httpURL)).0
+            }
+
+            guard let data = audioData, !data.isEmpty else { return }
             try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
             try? AVAudioSession.sharedInstance().setActive(true)
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("audio_\(message.id).m4a")
@@ -254,19 +263,32 @@ public struct ChatBubbleView: View {
     }
 
     private func loadMediaIfNeeded(retrying: Bool = false) {
-        guard let url = message.mediaUrl, url.hasPrefix("firestore://") else { return }
-        guard message.type == .image, loadedImage == nil, !isLoadingMedia else { return }
+        guard let urlStr = message.mediaUrl, !urlStr.isEmpty else { return }
+        guard (message.type == .image || message.type == .video), loadedImage == nil, !isLoadingMedia else { return }
         isLoadingMedia = true
         Task {
-            let path = url.replacingOccurrences(of: "firestore://", with: "")
-            if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
-               let fields = doc["fields"] as? [String: Any],
-               let b64 = (fields["data"] as? [String: Any])?["stringValue"] as? String,
-               let data = Data(base64Encoded: b64),
-               let image = UIImage(data: data) {
-                await MainActor.run { loadedImage = image; isLoadingMedia = false }
-            } else if !retrying {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+            if urlStr.hasPrefix("firestore://") {
+                let path = urlStr.replacingOccurrences(of: "firestore://", with: "")
+                if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
+                   let fields = doc["fields"] as? [String: Any],
+                   let rawB64 = (fields["data"] as? [String: Any])?["stringValue"] as? String {
+                    let cleanB64 = rawB64.replacingOccurrences(of: "\n", with: "").replacingOccurrences(of: "\r", with: "").replacingOccurrences(of: " ", with: "")
+                    if let data = Data(base64Encoded: cleanB64, options: .ignoreUnknownCharacters),
+                       let image = UIImage(data: data) {
+                        await MainActor.run { loadedImage = image; isLoadingMedia = false }
+                        return
+                    }
+                }
+            } else if let httpURL = URL(string: urlStr), urlStr.hasPrefix("http") {
+                if let (data, _) = try? await URLSession.shared.data(from: httpURL),
+                   let image = UIImage(data: data) {
+                    await MainActor.run { loadedImage = image; isLoadingMedia = false }
+                    return
+                }
+            }
+
+            if !retrying {
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
                 await MainActor.run { isLoadingMedia = false }
                 loadMediaIfNeeded(retrying: true)
             } else {
