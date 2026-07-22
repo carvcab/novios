@@ -48,7 +48,7 @@ public class FirebaseRESTService {
 
     public func refreshIdToken() async throws -> String {
         guard let user = Auth.auth().currentUser else { throw FirebaseError.notAuthenticated }
-        let token = try await user.getIDTokenForcingRefresh(true)
+        let token = try await user.getIDToken()
         idToken = token
         return token
     }
@@ -75,8 +75,7 @@ public class FirebaseRESTService {
             let data = doc.data()
             return [
                 "fields": encodeRESTFields(data),
-                "name": "\(doc.reference.path)",
-                "createTime": (doc.updateTime ?? doc.createTime)?.description ?? ""
+                "name": "\(doc.reference.path)"
             ]
         }
     }
