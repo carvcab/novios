@@ -153,29 +153,39 @@ public class FirebaseRESTService {
     public func firestoreList(path: String) async throws -> [[String: Any]] {
         try await ensureAuth()
         var headers = try await getAuthHeader()
-        var urlStr = firestoreURL(path)
-        if !urlStr.contains("?") {
-            urlStr += "?pageSize=300"
-        } else {
-            urlStr += "&pageSize=300"
-        }
-        let url = URL(string: urlStr)!
-        var req = URLRequest(url: url)
-        req.allHTTPHeaderFields = headers
-        do {
-            let data = try await performRequest(req)
-            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let documents = json["documents"] as? [[String: Any]] else { return [] }
-            return documents
-        } catch FirebaseError.serverError(let msg) where msg.contains("401") || msg.contains("403") || msg.contains("unauthenticated") || msg.contains("UNAUTHENTICATED") {
-            _ = try await refreshIdToken()
-            headers = try await getAuthHeader()
+        var allDocs: [[String: Any]] = []
+        var nextPageToken: String? = nil
+
+        repeat {
+            var urlStr = firestoreURL(path)
+            var params: [String] = ["pageSize=100"]
+            if let token = nextPageToken, !token.isEmpty {
+                params.append("pageToken=\(token)")
+            }
+            urlStr += "?\(params.joined(separator: "&"))"
+
+            let url = URL(string: urlStr)!
+            var req = URLRequest(url: url)
             req.allHTTPHeaderFields = headers
-            let data = try await performRequest(req)
-            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let documents = json["documents"] as? [[String: Any]] else { return [] }
-            return documents
-        }
+
+            let data: Data
+            do {
+                data = try await performRequest(req)
+            } catch FirebaseError.serverError(let msg) where msg.contains("401") || msg.contains("403") || msg.contains("unauthenticated") || msg.contains("UNAUTHENTICATED") {
+                _ = try await refreshIdToken()
+                headers = try await getAuthHeader()
+                req.allHTTPHeaderFields = headers
+                data = try await performRequest(req)
+            }
+
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { break }
+            if let docs = json["documents"] as? [[String: Any]] {
+                allDocs.append(contentsOf: docs)
+            }
+            nextPageToken = json["nextPageToken"] as? String
+        } while nextPageToken != nil && !nextPageToken!.isEmpty && allDocs.count < 500
+
+        return allDocs
     }
 
     public func firestoreDelete(path: String) async throws {

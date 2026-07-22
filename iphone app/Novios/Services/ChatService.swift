@@ -29,9 +29,11 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     public func startPolling() {
         stopPolling()
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+        let t = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
             self?.fetchMessages()
         }
+        RunLoop.main.add(t, forMode: .common)
+        pollingTimer = t
     }
 
     public func stopPolling() {
@@ -40,7 +42,9 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     }
 
     private static func parseIsoDate(_ str: String) -> Date? {
-        var cleanStr = str
+        var cleanStr = str.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleanStr.isEmpty { return nil }
+
         let hasTimezone = cleanStr.contains("Z") || cleanStr.contains("+") || (cleanStr.count > 10 && cleanStr.dropFirst(10).contains("-"))
         if !hasTimezone {
             cleanStr += "Z"
@@ -49,14 +53,21 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         f1.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let d = f1.date(from: cleanStr) { return d }
         let f2 = ISO8601DateFormatter()
+        f2.formatOptions = [.withInternetDateTime]
         if let d = f2.date(from: cleanStr) { return d }
 
         let df = DateFormatter()
         df.locale = Locale(identifier: "en_US_POSIX")
-        df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSZ"
-        if let d = df.date(from: cleanStr) { return d }
-        df.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-        if let d = df.date(from: cleanStr) { return d }
+
+        let noZ = cleanStr.hasSuffix("Z") ? String(cleanStr.dropLast()) : cleanStr
+        df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+        if let d = df.date(from: noZ) { return d }
+        df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+        if let d = df.date(from: noZ) { return d }
+        df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        if let d = df.date(from: noZ) { return d }
+        df.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        if let d = df.date(from: noZ) { return d }
         return nil
     }
 
