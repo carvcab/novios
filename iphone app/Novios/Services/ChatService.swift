@@ -202,12 +202,13 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     private func saveMessage(msg: MessageModel) {
         let path = "parejas/\(coupleId)/chat/\(msg.id)"
+        let df = ISO8601DateFormatter()
 
         var fields: [String: Any] = [
             "id": msg.id,
             "senderId": msg.senderId,
             "text": msg.text ?? "",
-            "timestamp": msg.timestamp, // Passed as Date to convert to timestampValue in Firestore
+            "timestamp": df.string(from: msg.timestamp),
             "type": msg.type == .text ? "chat" : msg.type.rawValue,
             "isDisappearing": msg.isDisappearing,
             "disappearDurationSeconds": msg.disappearDurationSeconds
@@ -216,7 +217,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         if let rt = msg.replyToText { fields["replyToText"] = rt }
         if let rs = msg.replyToSenderId { fields["replyToSenderId"] = rs }
         if let mu = msg.mediaUrl { fields["mediaUrl"] = mu }
-        if let rt = msg.readTimestamp { fields["readTimestamp"] = rt }
+        if let rt = msg.readTimestamp { fields["readTimestamp"] = df.string(from: rt) }
 
         Task {
             try? await FirebaseRESTService.shared.firestoreSet(path: path, fields: fields)
@@ -225,8 +226,8 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     public func markAsRead(messageId: String) {
         guard let idx = messages.firstIndex(where: { $0.id == messageId }) else { return }
-        let now = Date()
-        messages[idx].readTimestamp = now
+        let now = ISO8601DateFormatter().string(from: Date())
+        messages[idx].readTimestamp = ISO8601DateFormatter().date(from: now)
         Task {
             try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)/chat/\(messageId)", fields: ["readTimestamp": now])
         }
