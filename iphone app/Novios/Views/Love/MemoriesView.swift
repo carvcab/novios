@@ -2,6 +2,10 @@ import SwiftUI
 import FirebaseFirestore
 import PhotosUI
 
+extension UIImage: @retroactive Identifiable {
+    public var id: ObjectIdentifier { ObjectIdentifier(self) }
+}
+
 public struct MemoriesView: View {
     @State private var memories: [MemoryItem] = []
     @State private var showAdd = false
