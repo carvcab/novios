@@ -600,14 +600,14 @@ struct AddEventView: View {
                 }
             }
             .sheet(isPresented: $showDatePicker) {
-                DatePickerView(selectedDate: $selectedDate)
+                EventDatePicker(selectedDate: $selectedDate)
             }
         }
     }
 }
 
 // MARK: - Date Picker Sheet
-struct DatePickerView: View {
+struct EventDatePicker: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selectedDate: Date
     @State private var tempDate: Date
