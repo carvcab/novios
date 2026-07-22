@@ -65,18 +65,19 @@ public class FirebaseRESTService {
         let url = URL(string: "https://securetoken.googleapis.com/v1/token?key=\(currentAPIKey)")!
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONSerialization.data(withJSONObject: [
-            "grant_type": "refresh_token",
-            "refresh_token": refreshToken
-        ])
+        req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        let encodedToken = refreshToken.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? refreshToken
+        let bodyStr = "grant_type=refresh_token&refresh_token=\(encodedToken)"
+        req.httpBody = bodyStr.data(using: .utf8)
+
         let data = try await performRequest(req)
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let newIdToken = json["id_token"] as? String,
               let newRefreshToken = json["refresh_token"] as? String else {
             throw FirebaseError.invalidResponse
         }
-        idToken = newIdToken; self.refreshToken = newRefreshToken
+        idToken = newIdToken
+        self.refreshToken = newRefreshToken
         saveTokens()
         return newIdToken
     }
