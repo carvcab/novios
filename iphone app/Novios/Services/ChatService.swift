@@ -295,28 +295,36 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     public func sendVoiceNote(audioData: Data) {
         let msgId = UUID().uuidString
-        let base64 = audioData.base64EncodedString()
-        if base64.count > 900_000 {
-            errorMessage = "Audio demasiado largo"
-            return
-        }
         Task {
-            try? await FirebaseRESTService.shared.firestoreSet(
-                path: "chat_media/\(msgId)",
-                fields: ["data": base64, "mimeType": "audio/m4a"]
+            let base64 = audioData.base64EncodedString()
+            guard base64.count <= 900_000 else {
+                await MainActor.run { self.errorMessage = "Audio demasiado largo" }
+                return
+            }
+            do {
+                try await FirebaseRESTService.shared.firestoreSet(
+                    path: "chat_media/\(msgId)",
+                    fields: ["data": base64, "mimeType": "audio/m4a"]
+                )
+            } catch {
+                print("[Chat] voice save error: \(error)")
+                await MainActor.run { self.errorMessage = "Error al guardar audio" }
+                return
+            }
+            let msg = MessageModel(
+                id: msgId,
+                senderId: myUid,
+                text: "Nota de voz",
+                timestamp: Date(),
+                type: .voice,
+                mediaUrl: "audio_b64://\(msgId)"
             )
+            await MainActor.run {
+                self.messages.append(msg)
+                self.didSendMessage.send()
+                self.saveMessage(msg: msg)
+            }
         }
-        let msg = MessageModel(
-            id: msgId,
-            senderId: myUid,
-            text: "Nota de voz",
-            timestamp: Date(),
-            type: .voice,
-            mediaUrl: "audio_b64://\(msgId)"
-        )
-        messages.append(msg)
-        didSendMessage.send()
-        saveMessage(msg: msg)
     }
 
     public func setReplyTo(message: MessageModel) { replyToMessage = message }
