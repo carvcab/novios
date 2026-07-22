@@ -89,7 +89,7 @@ public struct ProfileView: View {
             .sheet(isPresented: $showCalendar) {
                 calendarSheet
             }
-            .onChange(of: photoPickerItem) { _, newItem in
+            .onChange(of: photoPickerItem) { newItem in
                 Task {
                     guard let data = try? await newItem?.loadTransferable(type: Data.self) else { return }
                     profileImageData = data
