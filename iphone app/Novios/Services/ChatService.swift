@@ -16,6 +16,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     @Published public var isLoaded = false
     @Published public var isLoading = false
     @Published public var errorMessage: String?
+    @Published public var unreadCount = 0
 
     public let didSendMessage = PassthroughSubject<Void, Never>()
     public let autoScrollToBottom = PassthroughSubject<Void, Never>()
@@ -65,6 +66,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                     }
                 }
                 self.messages.sort { $0.timestamp < $1.timestamp }
+                self.updateUnreadCount()
                 if !self.isLoaded && !self.messages.isEmpty {
                     self.autoScrollToBottom.send()
                 }
@@ -83,6 +85,11 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     public func retry() {
         stopListening()
         startListening()
+    }
+
+    public func updateUnreadCount() {
+        let myId = AuthService.shared.currentUser?.id ?? ""
+        unreadCount = messages.filter { $0.senderId != myId && $0.readTimestamp == nil }.count
     }
 
     private func addMessage(from doc: DocumentSnapshot) {
@@ -226,12 +233,12 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
 
     public func markAsRead(messageId: String) {
         guard let idx = messages.firstIndex(where: { $0.id == messageId }) else { return }
-        let now = ISO8601DateFormatter().string(from: Date())
-        messages[idx].readTimestamp = ISO8601DateFormatter().date(from: now)
+        messages[idx].readTimestamp = Date()
+        updateUnreadCount()
         Task {
             try? await FirebaseRESTService.shared.firestoreSet(
                 path: "parejas/\(coupleId)/chat/\(messageId)",
-                fields: ["readTimestamp": now]
+                fields: ["readTimestamp": ISO8601DateFormatter().string(from: Date())]
             )
         }
     }

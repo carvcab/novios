@@ -3,6 +3,7 @@ import SwiftUI
 public struct MainTabView: View {
     @State private var selectedTab = 0
     @ObservedObject private var coupleService = CoupleService.shared
+    @ObservedObject private var chatService = ChatService.shared
 
     public init() {}
 
@@ -20,6 +21,7 @@ public struct MainTabView: View {
                     Image(systemName: "message.fill")
                     Text("Nuestro Chat")
                 }
+                .badge(chatService.unreadCount > 0 ? chatService.unreadCount : 0)
                 .tag(1)
 
             LoveView()
@@ -46,6 +48,9 @@ public struct MainTabView: View {
         .tint(ThemeManager.shared.primary)
         .task {
             await CoupleService.shared.refreshSubcollections()
+        }
+        .onChange(of: selectedTab) { tab in
+            if tab == 1 { chatService.unreadCount = 0 }
         }
     }
 }
