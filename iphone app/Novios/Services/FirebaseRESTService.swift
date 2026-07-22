@@ -3,7 +3,7 @@ import Foundation
 public class FirebaseRESTService {
     public static let shared = FirebaseRESTService()
 
-    private let primaryAPIKey = "AIzaSyASvpCiEJzuuCg31pVw7qDxnp26LKrJhJA"
+    private let primaryAPIKey = "AIzaSyAgZLZSshhuHpUi62b9UZsLOchjM9G-xWc"
     private let secondaryAPIKey = "AIzaSyAgZLZSshhuHpUi62b9UZsLOchjM9G-xWc"
     private let primaryProjectID = "novios-everus"
 
