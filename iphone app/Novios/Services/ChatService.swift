@@ -72,9 +72,15 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     }
 
     private func fetchMessages() {
-        let path = "parejas/\(coupleId)/chat"
         Task { @MainActor in
-            guard let documents = try? await FirebaseRESTService.shared.firestoreList(path: path) else { return }
+            let documents: [[String: Any]]
+            if let queried = try? await FirebaseRESTService.shared.firestoreQuery(parent: "parejas/\(coupleId)", collectionId: "chat", limit: 150), !queried.isEmpty {
+                documents = queried
+            } else if let listed = try? await FirebaseRESTService.shared.firestoreList(path: "parejas/\(coupleId)/chat"), !listed.isEmpty {
+                documents = listed
+            } else {
+                return
+            }
 
             var updated = self.messages
             var hasChanges = false

@@ -188,6 +188,51 @@ public class FirebaseRESTService {
         return allDocs
     }
 
+    public func firestoreQuery(parent: String, collectionId: String, limit: Int = 150) async throws -> [[String: Any]] {
+        try await ensureAuth()
+        var headers = try await getAuthHeader()
+
+        let parentEncoded = parent.split(separator: "/").map {
+            $0.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? String($0)
+        }.joined(separator: "/")
+
+        let urlStr = "https://firestore.googleapis.com/v1/projects/\(currentProjectID)/databases/(default)/documents/\(parentEncoded):runQuery"
+        let url = URL(string: urlStr)!
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.allHTTPHeaderFields = headers
+
+        let body: [String: Any] = [
+            "structuredQuery": [
+                "from": [["collectionId": collectionId]],
+                "limit": limit
+            ]
+        ]
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let data: Data
+        do {
+            data = try await performRequest(req)
+        } catch {
+            _ = try? await refreshIdToken()
+            headers = try await getAuthHeader()
+            req.allHTTPHeaderFields = headers
+            req.httpBody = try JSONSerialization.data(withJSONObject: body)
+            data = try await performRequest(req)
+        }
+
+        guard let jsonArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return [] }
+
+        var docs: [[String: Any]] = []
+        for item in jsonArray {
+            if let doc = item["document"] as? [String: Any] {
+                docs.append(doc)
+            }
+        }
+        return docs
+    }
+
     public func firestoreDelete(path: String) async throws {
         try await ensureAuth()
         var headers = try await getAuthHeader()
