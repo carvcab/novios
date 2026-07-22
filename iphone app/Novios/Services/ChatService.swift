@@ -251,26 +251,22 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     public func sendImage(imageData: Data) {
         let msgId = UUID().uuidString
         let compressed = Self.compressImage(imageData)
-        Task {
-            try? await FirebaseRESTService.shared.firestoreSet(
-                path: "parejas/\(coupleId)/chat/fotos/\(msgId)",
-                fields: [
-                    "data": compressed.base64EncodedString(),
-                    "mimeType": "image/jpeg",
-                    "timestamp": Date()
-                ]
-            )
-            let msg = MessageModel(
-                id: msgId,
-                senderId: myUid,
-                text: "Foto",
-                timestamp: Date(),
-                type: .image,
-                mediaUrl: "firestore://parejas/\(coupleId)/chat/fotos/\(msgId)"
-            )
-            await MainActor.run { self.messages.append(msg); self.didSendMessage.send() }
-            self.saveMessage(msg: msg)
+        let base64 = compressed.base64EncodedString()
+        guard base64.count <= 900_000 else {
+            errorMessage = "Imagen demasiado grande"
+            return
         }
+        let msg = MessageModel(
+            id: msgId,
+            senderId: myUid,
+            text: "Foto",
+            timestamp: Date(),
+            type: .image,
+            mediaUrl: base64
+        )
+        messages.append(msg)
+        didSendMessage.send()
+        saveMessage(msg: msg)
     }
 
     private static func compressImage(_ data: Data) -> Data {

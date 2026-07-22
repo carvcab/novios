@@ -264,7 +264,7 @@ public struct ChatBubbleView: View {
         }
     }
 
-    private func loadMediaIfNeeded(retrying: Bool = false) {
+    private func loadMediaIfNeeded() {
         guard let urlStr = message.mediaUrl, !urlStr.isEmpty else { return }
         guard (message.type == .image || message.type == .video), loadedImage == nil, !isLoadingMedia else { return }
         isLoadingMedia = true
@@ -287,15 +287,13 @@ public struct ChatBubbleView: View {
                     await MainActor.run { loadedImage = image; isLoadingMedia = false }
                     return
                 }
+            } else if let data = Data(base64Encoded: urlStr, options: .ignoreUnknownCharacters),
+                      let image = UIImage(data: data) {
+                await MainActor.run { loadedImage = image; isLoadingMedia = false }
+                return
             }
 
-            if !retrying {
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
-                await MainActor.run { isLoadingMedia = false }
-                loadMediaIfNeeded(retrying: true)
-            } else {
-                await MainActor.run { isLoadingMedia = false }
-            }
+            await MainActor.run { isLoadingMedia = false }
         }
     }
 }
