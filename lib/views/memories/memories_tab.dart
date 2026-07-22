@@ -1081,6 +1081,26 @@ class _MemoryTileState extends State<_MemoryTile> {
           ),
         );
       },
+      onLongPress: () {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Eliminar Recuerdo?'),
+            content: Text('¿Deseas eliminar "${widget.memory.title}" del álbum?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  FirebaseService().deleteMemory(widget.memory.id);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                child: const Text('Eliminar'),
+              ),
+            ],
+          ),
+        );
+      },
       child: AnimatedScale(
         scale: _isPressed ? 0.95 : 1.0,
         duration: const Duration(milliseconds: 150),
