@@ -12,7 +12,7 @@ public struct ChatBubbleView: View {
     @State private var isLoadingMedia = false
     @State private var audioPlayer: AVAudioPlayer?
     @State private var isPlaying = false
-    @State private var isAppeared = false
+    @State private var isAppeared = true
     @State private var showImageViewer = false
 
     private let reactions = ["❤️", "😘", "😂", "😮", "😢", "🔥", "💖", "👍", "👎"]
@@ -282,11 +282,11 @@ private struct BubbleAppearModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .scaleEffect(isAppeared ? 1 : (isFromMe ? 0.85 : 0.92))
-            .opacity(isAppeared ? 1 : 0)
-            .offset(x: isAppeared ? 0 : (isFromMe ? 15 : -15))
+            .scaleEffect(isAppeared ? 1 : 0.96)
+            .opacity(1)
+            .offset(x: isAppeared ? 0 : (isFromMe ? 5 : -5))
             .onAppear {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.7).delay(0.04)) { isAppeared = true }
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { isAppeared = true }
             }
     }
 }

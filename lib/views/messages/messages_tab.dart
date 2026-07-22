@@ -79,11 +79,16 @@ class _MessagesTabState extends State<MessagesTab>
     super.dispose();
   }
 
-  String? get _userId => LocalStorage().getUserId();
+  String get _userId {
+    final uid = LocalStorage().getUserId();
+    if (uid != null && uid.isNotEmpty) return uid;
+    final authUid = AuthService().userId;
+    if (authUid.isNotEmpty) return authUid;
+    return CoupleService().currentUid;
+  }
   String? get _partnerId => LocalStorage().getString('partner_uid');
 
   bool _isMyMessage(String senderId) {
-    if (_userId == null) return false;
     if (senderId == _partnerId) return false;
     return senderId == _userId;
   }

@@ -74,7 +74,10 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     private func fetchMessages() {
         let path = "parejas/\(coupleId)/chat"
         Task { @MainActor in
-            guard let documents = try? await FirebaseRESTService.shared.firestoreList(path: path), !documents.isEmpty else { return }
+            guard let documents = try? await FirebaseRESTService.shared.firestoreList(path: path) else { return }
+
+            var updated = self.messages
+            var hasChanges = false
 
             for doc in documents {
                 let f: [String: Any]
@@ -118,8 +121,11 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 let readTsStr = s("readTimestamp")
                 let readTs = readTsStr.flatMap { Self.parseIsoDate($0) }
 
-                if let idx = messages.firstIndex(where: { $0.id == msgId }) {
-                    if messages[idx].readTimestamp != readTs { messages[idx].readTimestamp = readTs }
+                if let idx = updated.firstIndex(where: { $0.id == msgId }) {
+                    if updated[idx].readTimestamp != readTs {
+                        updated[idx].readTimestamp = readTs
+                        hasChanges = true
+                    }
                     continue
                 }
 
@@ -152,10 +158,15 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                     replyToText: replyToText,
                     replyToSenderId: replyToSenderId
                 )
-                messages.append(msg)
+                updated.append(msg)
+                hasChanges = true
             }
-            messages.sort { $0.timestamp < $1.timestamp }
-            autoScrollToBottom.send()
+
+            if hasChanges {
+                updated.sort { $0.timestamp < $1.timestamp }
+                self.messages = updated
+                self.autoScrollToBottom.send()
+            }
         }
     }
 
