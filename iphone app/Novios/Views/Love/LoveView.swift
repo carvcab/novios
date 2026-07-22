@@ -182,18 +182,7 @@ struct AddEventView: View {
                 Section("Descripción") { TextField("Cuenta los detalles...", text: $description) }
                 Section("Fecha") { DatePicker("", selection: $selectedDate, displayedComponents: .date).datePickerStyle(.graphical) }
                 Section("Categoría") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(categories, id: \.0) { cat in
-                                VStack(spacing: 4) {
-                                    Image(systemName: iconName(cat.0)).font(.system(size: 20)).foregroundColor(selectedCategory == cat.0 ? parseColor(cat.2) : .secondary)
-                                        .frame(width: 44, height: 44).background(selectedCategory == cat.0 ? parseColor(cat.2).opacity(0.15) : .ultraThinMaterial).clipShape(RoundedRectangle(cornerRadius: 10))
-                                    Text(cat.1).appFont(size: 9).foregroundColor(selectedCategory == cat.0 ? .primary : .secondary)
-                                }
-                                .onTapGesture { selectedCategory = cat.0; selectedColor = cat.2 }
-                            }
-                        }
-                    }
+                    categoryPicker
                 }
             }
             .navigationTitle("Nuevo Momento ✨")
@@ -210,6 +199,27 @@ struct AddEventView: View {
             }
         }
         .presentationDetents([.large])
+    }
+
+    private var categoryPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(categories, id: \.0) { cat in
+                    let isSel = selectedCategory == cat.0
+                    let col = parseColor(cat.2)
+                    VStack(spacing: 4) {
+                        Image(systemName: iconName(cat.0))
+                            .font(.system(size: 20))
+                            .foregroundColor(isSel ? col : .secondary)
+                            .frame(width: 44, height: 44)
+                            .background(isSel ? col.opacity(0.15) : .ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        Text(cat.1).appFont(size: 9).foregroundColor(isSel ? .primary : .secondary)
+                    }
+                    .onTapGesture { selectedCategory = cat.0; selectedColor = cat.2 }
+                }
+            }
+        }
     }
 
     private func parseColor(_ hex: String) -> Color {
@@ -422,7 +432,8 @@ class LoveViewModel: ObservableObject {
             if let d = self.anniversaryDate { tf.text = ISO8601DateFormatter().string(from: d).prefix(10).description }
         }
         alert.addAction(UIAlertAction(title: "Guardar", style: .default) { _ in
-            if let text = alert.textFields?.first?.text, let date = DateFormatter.yyyyMMdd.date(from: text) {
+            let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
+            if let text = alert.textFields?.first?.text, let date = f.date(from: text) {
                 Task { try? await self.coupleDocRef.setData(["anniversaryDate": Timestamp(date: date)], merge: true) }
             }
         })
