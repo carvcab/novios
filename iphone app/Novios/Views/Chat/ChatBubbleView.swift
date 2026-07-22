@@ -234,7 +234,15 @@ public struct ChatBubbleView: View {
         guard let urlStr = message.mediaUrl, !urlStr.isEmpty else { return }
         Task {
             var audioData: Data? = nil
-            if urlStr.hasPrefix("firestore://") {
+            if urlStr.hasPrefix("audio_b64://") {
+                let mediaId = urlStr.replacingOccurrences(of: "audio_b64://", with: "")
+                if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "chat_media/\(mediaId)"),
+                   let fields = doc["fields"] as? [String: Any],
+                   let rawB64 = (fields["data"] as? [String: Any])?["stringValue"] as? String {
+                    let cleanB64 = rawB64.replacingOccurrences(of: "\n", with: "").replacingOccurrences(of: "\r", with: "").replacingOccurrences(of: " ", with: "")
+                    audioData = Data(base64Encoded: cleanB64, options: .ignoreUnknownCharacters)
+                }
+            } else if urlStr.hasPrefix("firestore://") {
                 let path = urlStr.replacingOccurrences(of: "firestore://", with: "")
                 if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: path),
                    let fields = doc["fields"] as? [String: Any],

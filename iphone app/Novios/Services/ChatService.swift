@@ -300,13 +300,19 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
             errorMessage = "Audio demasiado largo"
             return
         }
+        Task {
+            try? await FirebaseRESTService.shared.firestoreSet(
+                path: "chat_media/\(msgId)",
+                fields: ["data": base64, "mimeType": "audio/m4a"]
+            )
+        }
         let msg = MessageModel(
             id: msgId,
             senderId: myUid,
             text: "Nota de voz",
             timestamp: Date(),
             type: .voice,
-            mediaUrl: base64
+            mediaUrl: "audio_b64://\(msgId)"
         )
         messages.append(msg)
         didSendMessage.send()
