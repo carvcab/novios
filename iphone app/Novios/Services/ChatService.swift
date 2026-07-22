@@ -65,6 +65,9 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
                     }
                 }
                 self.messages.sort { $0.timestamp < $1.timestamp }
+                if !self.isLoaded && !self.messages.isEmpty {
+                    self.autoScrollToBottom.send()
+                }
                 self.isLoaded = true
                 self.isLoading = false
                 self.errorMessage = nil
