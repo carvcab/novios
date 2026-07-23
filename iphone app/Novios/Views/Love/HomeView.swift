@@ -42,6 +42,7 @@ public struct HomeView: View {
                 case .memories: MemoriesView()
                 case .games: GamesView()
                 case .music: MusicView()
+                case .notifications: NotificationsView()
                 }
             }
             .sheet(isPresented: $vm.showPhotoPicker) {
@@ -105,7 +106,7 @@ public struct HomeView: View {
                 subtitle: "Actividad",
                 color: theme.primary
             )
-            .onTapGesture { vm.showComingSoon("Notificaciones") }
+            .onTapGesture { vm.navPath.append(HomeNavDest.notifications) }
 
             statusCard(
                 icon: location.partnerOnline ? "heart.fill" : "heart",
@@ -320,7 +321,7 @@ public struct HomeView: View {
 }
 
 enum HomeNavDest: Hashable {
-    case letters, memories, games, music
+    case letters, memories, games, music, notifications
 }
 
 struct HomeFeature: Identifiable {
