@@ -475,7 +475,7 @@ private struct ChallengePreviewView: View {
                     Text(type == "verdad" ? "Verdad" : "Reto")
                         .appFont(size: 14, weight: .semibold)
                         .foregroundColor(level.color)
-                    GlassCard(cornerRadius: 20, padding: 24) {
+                    GlassCard(cornerRadius: 20) {
                         VStack(spacing: 12) {
                             Image(systemName: type == "verdad" ? "face.smiling" : "flame.fill")
                                 .font(.system(size: 24))
@@ -552,7 +552,7 @@ private struct PhotoChallengeView: View {
                 LiquidBackgroundView()
                 ScrollView {
                     VStack(spacing: 20) {
-                        GlassCard(cornerRadius: 20, padding: 24) {
+                        GlassCard(cornerRadius: 20) {
                             VStack(spacing: 12) {
                                 Image(systemName: "camera.fill").font(.system(size: 32)).foregroundColor(level.color)
                                 Text(content).appFont(size: 16, weight: .semibold).multilineTextAlignment(.center).foregroundColor(theme.textPrimary)
@@ -717,7 +717,7 @@ private struct ChallengeCardView: View {
     }
 
     var body: some View {
-        GlassCard(cornerRadius: 16, padding: 14) {
+        GlassCard(cornerRadius: 16) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Image(systemName: type == "verdad" ? "face.smiling" : type == "foto" ? "camera.fill" : "flame.fill")
@@ -777,7 +777,7 @@ private struct RespondView: View {
                 LiquidBackgroundView()
                 ScrollView {
                     VStack(spacing: 16) {
-                        GlassCard(cornerRadius: 16, padding: 14) {
+                        GlassCard(cornerRadius: 16) {
                             Text(content).appFont(size: 14).foregroundColor(theme.textPrimary).frame(maxWidth: .infinity, alignment: .leading)
                         }
 

@@ -101,7 +101,7 @@ public struct GameHistoryView: View {
         let myPct = totalWins > 0 ? CGFloat(myWins) / CGFloat(totalWins) : 0.5
         let partnerPct = totalWins > 0 ? CGFloat(partnerWins) / CGFloat(totalWins) : 0.5
 
-        return GlassCard(cornerRadius: 24, padding: 20) {
+        return GlassCard(cornerRadius: 24) {
             VStack(spacing: 16) {
                 Text("BALANCE GENERAL DE VICTORIAS").appFont(size: 11, weight: .black).foregroundColor(.white.opacity(0.8)).tracking(1.2)
                 HStack {
@@ -236,7 +236,7 @@ public struct GameHistoryView: View {
         let result = gameOutcome(g, gameType: gameType, spicyType: spicyType, sender: sender)
         let isCompleted = result.statusColor == .green
 
-        return GlassCard(cornerRadius: 16, padding: 12) {
+        return GlassCard(cornerRadius: 16) {
             HStack(spacing: 14) {
                 Image(systemName: gameIcon(type)).font(.system(size: 20)).foregroundColor(.white).frame(width: 44, height: 44).background(LinearGradient(colors: gameColors(type), startPoint: .topLeading, endPoint: .bottomTrailing)).clipShape(RoundedRectangle(cornerRadius: 12))
                 VStack(alignment: .leading, spacing: 4) {
