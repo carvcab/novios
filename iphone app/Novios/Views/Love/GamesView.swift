@@ -68,6 +68,7 @@ public struct GamesView: View {
                 }
             }
         }
+        .sheet(isPresented: $showGamePicker) { gamePickerSheet }
         .onAppear { startListening() }
         .onDisappear { stopListening() }
     }

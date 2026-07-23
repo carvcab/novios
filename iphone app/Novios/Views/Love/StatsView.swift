@@ -94,7 +94,12 @@ public struct StatsView: View {
     }
 
     private func calculateDays() {
-        let ref = Calendar.current.date(from: DateComponents(year: 2024, month: 1, day: 1)) ?? Date()
+        let defaults = UserDefaults.standard
+        let dateStr = defaults.string(forKey: "anniversary_date") ?? defaults.string(forKey: "couple_anniversary_date") ?? ""
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        df.locale = Locale(identifier: "en_US_POSIX")
+        let ref = df.date(from: dateStr) ?? Calendar.current.date(from: DateComponents(year: 2024, month: 1, day: 1)) ?? Date()
         let comps = Calendar.current.dateComponents([.day], from: ref, to: Date())
         daysTogether = comps.day ?? 0
     }
