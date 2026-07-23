@@ -521,9 +521,15 @@ private struct ChallengePreviewView: View {
     private func sendToFirestore() {
         sending = true
         Task {
-            try? await gamesRef.document(UUID().uuidString).setData([
+            let id = UUID().uuidString
+            let cid = [CoupleService.diegoUid, CoupleService.yosmariUid].sorted().joined(separator: "_")
+            try? await gamesRef.document(id).setData([
                 "type": type, "content": content, "level": level.rawValue,
                 "senderId": myUid, "senderName": myName, "status": "pending", "timestamp": FieldValue.serverTimestamp()
+            ])
+            try? await Firestore.firestore().collection("couples").document(cid).collection("activities").addDocument(data: [
+                "text": "\(myName) te envió un reto: \"\(content)\" 🌶️",
+                "type": "game", "icon": "game", "timestamp": FieldValue.serverTimestamp()
             ])
             await MainActor.run { dismiss() }
         }
@@ -731,6 +737,14 @@ private struct ChallengeCardView: View {
                 }
                 Text(content).appFont(size: 14).foregroundColor(theme.textPrimary).lineSpacing(4)
 
+                if !photoUrl.isEmpty {
+                    AsyncImage(url: URL(string: photoUrl)) { img in
+                        img.resizable().scaledToFit().cornerRadius(8).frame(maxHeight: 150)
+                    } placeholder: {
+                        Color.gray.opacity(0.2).frame(height: 100).cornerRadius(8)
+                    }
+                }
+
                 if !response.isEmpty || !responsePhotoUrl.isEmpty {
                     Divider()
                     HStack(spacing: 4) {
@@ -738,6 +752,13 @@ private struct ChallengeCardView: View {
                         Text("Respuesta:").appFont(size: 11, weight: .semibold).foregroundColor(.green)
                     }
                     if !response.isEmpty { Text(response).appFont(size: 13).foregroundColor(.secondary) }
+                    if !responsePhotoUrl.isEmpty {
+                        AsyncImage(url: URL(string: responsePhotoUrl)) { img in
+                            img.resizable().scaledToFit().cornerRadius(8).frame(maxHeight: 120)
+                        } placeholder: {
+                            Color.gray.opacity(0.2).frame(height: 80).cornerRadius(8)
+                        }
+                    }
                 }
 
                 if !isMine && isPending {
@@ -822,6 +843,11 @@ private struct RespondView: View {
                 fields["responsePhotoUrl"] = "firestore://chat_media/\(mid)"
             }
             try? await gamesRef.document(challengeId).updateData(fields)
+            let cid = [CoupleService.diegoUid, CoupleService.yosmariUid].sorted().joined(separator: "_")
+            try? await Firestore.firestore().collection("couples").document(cid).collection("activities").addDocument(data: [
+                "text": "Respondió al reto con: \"\(textResponse.prefix(50))\" 🌶️💌",
+                "type": "game", "icon": "game", "timestamp": FieldValue.serverTimestamp()
+            ])
             await MainActor.run { dismiss() }
         }
     }
