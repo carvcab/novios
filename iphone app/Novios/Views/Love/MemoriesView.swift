@@ -180,18 +180,19 @@ public struct MemoriesView: View {
 
     private func stickerOverlay(_ selected: [String]) -> some View {
         let selectedEmojis = stickers.filter { selected.contains($0.id) }.map(\.emoji)
-        let positions: [Alignment] = [.topLeading, .topTrailing, .bottomLeading, .bottomTrailing, .center]
+        let offsets: [CGSize] = [
+            CGSize(width: -30, height: -30),
+            CGSize(width: 30, height: -30),
+            CGSize(width: -30, height: 30),
+            CGSize(width: 30, height: 30),
+            CGSize(width: 0, height: 0),
+        ]
         return ZStack {
             ForEach(Array(selectedEmojis.enumerated()), id: \.offset) { i, emoji in
                 Text(emoji)
                     .font(.system(size: i == 4 ? 28 : 20))
                     .shadow(color: .black.opacity(0.2), radius: 1)
-                    .alignmentGuide(positions[i % positions.count].horizontal) { d in
-                        positions[i % positions.count] == .topLeading || positions[i % positions.count] == .bottomLeading ? d.width * 0.3 : -d.width * 0.3
-                    }
-                    .alignmentGuide(positions[i % positions.count].vertical) { d in
-                        positions[i % positions.count] == .topLeading || positions[i % positions.count] == .topTrailing ? d.height * 0.3 : -d.height * 0.3
-                    }
+                    .offset(offsets[i % offsets.count])
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -580,9 +581,12 @@ public struct MemoriesView: View {
     private func loadImages() {
         for i in memories.indices {
             guard let urlStr = memories[i].mediaUrl, memories[i].loadedImage == nil else { continue }
-            Task {
+            let idx = i
+            Task { @MainActor in
                 let img = await fetchImage(urlStr)
-                await MainActor.run { if i < self.memories.count { self.memories[i].loadedImage = img } }
+                if idx < self.memories.count {
+                    self.memories[idx].loadedImage = img
+                }
             }
         }
     }

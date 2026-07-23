@@ -403,7 +403,7 @@ public struct PlannerView: View {
     }
 
     private func refreshSurpriseIdea() {
-        let idea = dateIdeas.randomElement()!
+        guard let idea = dateIdeas.randomElement() else { return }
         surpriseIdea = idea
     }
 

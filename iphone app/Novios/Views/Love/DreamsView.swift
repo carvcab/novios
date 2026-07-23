@@ -4,6 +4,9 @@ import FirebaseFirestore
 public struct DreamsView: View {
     @State private var dreams: [[String: Any]] = []
     @State private var snapshotListener: ListenerRegistration?
+    @State private var showAddSheet = false
+    @State private var showEditSheet = false
+    @State private var editingIndex: Int?
     @ObservedObject private var theme = ThemeManager.shared
     private let db = Firestore.firestore()
 
@@ -52,7 +55,7 @@ public struct DreamsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showAddSheet() } label: {
+                    Button { showAddSheet = true } label: {
                         Image(systemName: "plus.circle.fill")
                             .foregroundColor(theme.primary)
                             .appFont(size: 22)
@@ -60,7 +63,7 @@ public struct DreamsView: View {
                 }
             }
             .overlay(alignment: .bottomTrailing) {
-                Button(action: showAddSheet) {
+                Button(action: { showAddSheet = true }) {
                     Image(systemName: "plus")
                         .appFont(size: 20, weight: .semibold)
                         .foregroundColor(.white)
@@ -73,6 +76,14 @@ public struct DreamsView: View {
             }
             .onAppear { startListening() }
             .onDisappear { stopListening() }
+            .sheet(isPresented: $showAddSheet) {
+                addDreamSheet(mode: .add, dream: nil)
+            }
+            .sheet(isPresented: $showEditSheet) {
+                if let idx = editingIndex, idx < dreams.count {
+                    addDreamSheet(mode: .edit, dream: dreams[idx])
+                }
+            }
         }
     }
 
@@ -222,7 +233,8 @@ public struct DreamsView: View {
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.5)
                 .onEnded { _ in
-                    showEditSheet(for: index)
+                    editingIndex = index
+                    showEditSheet = true
                 }
         )
     }
@@ -264,23 +276,24 @@ public struct DreamsView: View {
         saveDreams()
     }
 
-    // MARK: - Add Sheet
+    // MARK: - Add/Edit Sheet
 
-    private func showAddSheet() {
-        var titleInput = ""
-        var descInput = ""
-        var selectedIcon = "star"
-        var proposedBy = "both"
+    @ViewBuilder
+    private func addDreamSheet(mode: DreamFormMode, dream: [String: Any]?) -> some View {
+        let titleInit = dream?["title"] as? String ?? ""
+        let descInit = dream?["desc"] as? String ?? ""
+        let iconInit = dream?["icon"] as? String ?? "star"
+        let proposedInit = dream?["proposedBy"] as? String ?? "both"
 
-        let hostingController = UIHostingController(
-            rootView: DreamFormView(
-                mode: .add,
-                titleInput: titleInput,
-                descInput: descInput,
-                selectedIcon: selectedIcon,
-                proposedBy: proposedBy,
-                dreamIcons: dreamIcons,
-                onSave: { title, desc, icon, proposer in
+        DreamFormView(
+            mode: mode,
+            titleInput: titleInit,
+            descInput: descInit,
+            selectedIcon: iconInit,
+            proposedBy: proposedInit,
+            dreamIcons: dreamIcons,
+            onSave: { title, desc, icon, proposer in
+                if mode == .add {
                     self.dreams.insert([
                         "id": "\(Date().timeIntervalSince1970 * 1000)",
                         "title": title,
@@ -289,56 +302,25 @@ public struct DreamsView: View {
                         "proposedBy": proposer,
                         "done": false
                     ], at: 0)
-                    self.saveDreams()
-                },
-                onDelete: nil
-            )
-        )
-        present(hostingController)
-    }
-
-    private func showEditSheet(for index: Int) {
-        let dream = dreams[index]
-        let titleInput = dream["title"] as? String ?? ""
-        let descInput = dream["desc"] as? String ?? ""
-        let selectedIcon = dream["icon"] as? String ?? "star"
-        let proposedBy = dream["proposedBy"] as? String ?? "both"
-
-        let hostingController = UIHostingController(
-            rootView: DreamFormView(
-                mode: .edit,
-                titleInput: titleInput,
-                descInput: descInput,
-                selectedIcon: selectedIcon,
-                proposedBy: proposedBy,
-                dreamIcons: dreamIcons,
-                onSave: { title, desc, icon, proposer in
-                    guard index < self.dreams.count else { return }
-                    var updated = self.dreams[index]
+                } else if let idx = editingIndex, idx < self.dreams.count {
+                    var updated = self.dreams[idx]
                     updated["title"] = title
                     updated["desc"] = desc
                     updated["icon"] = icon
                     updated["proposedBy"] = proposer
-                    self.dreams[index] = updated
-                    self.saveDreams()
-                },
-                onDelete: {
-                    self.deleteDream(at: index)
+                    self.dreams[idx] = updated
                 }
-            )
+                self.saveDreams()
+                self.showAddSheet = false
+                self.showEditSheet = false
+            },
+            onDelete: mode == .edit ? {
+                if let idx = editingIndex {
+                    self.deleteDream(at: idx)
+                }
+                self.showEditSheet = false
+            } : nil
         )
-        present(hostingController)
-    }
-
-    private func present(_ controller: UIHostingController<some View>) {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let root = windowScene.windows.first?.rootViewController else { return }
-        controller.modalPresentationStyle = .pageSheet
-        if let sheet = controller.sheetPresentationController {
-            sheet.detents = [.large()]
-            sheet.prefersGrabberVisible = true
-        }
-        root.present(controller, animated: true)
     }
 }
 

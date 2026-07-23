@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import FirebaseFirestore
 
 struct MoreFeature: Identifiable {
     let id = UUID()
@@ -10,23 +9,26 @@ struct MoreFeature: Identifiable {
     let action: MoreAction
 }
 
-enum MoreAction: Hashable {
+enum MoreAction {
     case navigate(MoreNavDest)
     case comingSoon
     case download
 }
 
-enum MoreNavDest: Hashable {
+enum MoreNavDest {
     case music, loveAI, dates, planner
 }
 
 public struct MoreView: View {
     @ObservedObject private var theme = ThemeManager.shared
-    @State private var navPath = NavigationPath()
     @State private var showComingSoon = false
     @State private var comingSoonTitle = ""
     @State private var showDownloadAlert = false
     @State private var showBackupSuccess = false
+    @State private var showMusic = false
+    @State private var showLoveAI = false
+    @State private var showDates = false
+    @State private var showPlanner = false
 
     private let features: [MoreFeature] = [
         MoreFeature(icon: "music.note.list", title: "Música Favorita", subtitle: "Canción, playlist, fondo", action: .navigate(.music)),
@@ -47,45 +49,38 @@ public struct MoreView: View {
     public init() {}
 
     public var body: some View {
-        NavigationStack(path: $navPath) {
-            ZStack {
-                LiquidBackgroundView()
-
-                ScrollView {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 12) {
-                        ForEach(features) { feature in
-                            featureCard(feature)
-                        }
+        ZStack {
+            LiquidBackgroundView()
+            ScrollView {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 12) {
+                    ForEach(features) { feature in
+                        featureCard(feature)
                     }
-                    .padding(12)
                 }
+                .padding(12)
             }
-            .navigationTitle("Más Funciones")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: MoreNavDest.self) { dest in
-                switch dest {
-                case .music: MusicView()
-                case .loveAI: LoveAIView()
-                case .dates: DatesView()
-                case .planner: PlannerView()
-                }
-            }
-            .alert(comingSoonTitle, isPresented: $showComingSoon) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text("Esta función estará disponible próximamente.")
-            }
-            .alert("Descargar Contenido", isPresented: $showDownloadAlert) {
-                Button("OK", role: .cancel) { }
-                Button("Exportar Backup") { exportBackup() }
-            } message: {
-                Text("Puedes descargar todas tus fotos y recuerdos desde la sección de Recuerdos. Toca \"Compartir\" en cualquier foto para guardarla.")
-            }
-            .alert("Backup Exportado", isPresented: $showBackupSuccess) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text("El backup se ha guardado correctamente en los documentos de la app.")
-            }
+        }
+        .navigationTitle("Más Funciones")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showMusic) { MusicView() }
+        .sheet(isPresented: $showLoveAI) { LoveAIView() }
+        .sheet(isPresented: $showDates) { DatesView() }
+        .sheet(isPresented: $showPlanner) { PlannerView() }
+        .alert(comingSoonTitle, isPresented: $showComingSoon) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Esta función estará disponible próximamente.")
+        }
+        .alert("Descargar Contenido", isPresented: $showDownloadAlert) {
+            Button("OK", role: .cancel) { }
+            Button("Exportar Backup") { exportBackup() }
+        } message: {
+            Text("Puedes descargar todas tus fotos y recuerdos desde la sección de Recuerdos. Toca \"Compartir\" en cualquier foto para guardarla.")
+        }
+        .alert("Backup Exportado", isPresented: $showBackupSuccess) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("El backup se ha guardado correctamente en los documentos de la app.")
         }
     }
 
@@ -100,13 +95,11 @@ public struct MoreView: View {
                         .font(.system(size: 22))
                         .foregroundColor(theme.primary)
                 }
-
                 Text(feature.title)
                     .appFont(size: 12, weight: .bold)
                     .foregroundColor(theme.textPrimary)
                     .multilineTextAlignment(.center)
                     .lineLimit(1)
-
                 Text(feature.subtitle)
                     .appFont(size: 9)
                     .foregroundColor(theme.textSecondary)
@@ -120,7 +113,12 @@ public struct MoreView: View {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             switch feature.action {
             case .navigate(let dest):
-                navPath.append(dest)
+                switch dest {
+                case .music: showMusic = true
+                case .loveAI: showLoveAI = true
+                case .dates: showDates = true
+                case .planner: showPlanner = true
+                }
             case .comingSoon:
                 comingSoonTitle = feature.title
                 showComingSoon = true
