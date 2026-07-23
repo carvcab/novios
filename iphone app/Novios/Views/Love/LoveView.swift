@@ -432,7 +432,7 @@ class LoveViewModel: ObservableObject {
     private let db = Firestore.firestore()
 
     private var coupleId: String { [CoupleService.diegoUid, CoupleService.yosmariUid].sorted().joined(separator: "_") }
-    private var coupleDocRef: DocumentReference { db.collection("couples").document(coupleId) }
+    var coupleDocRef: DocumentReference { db.collection("couples").document(coupleId) }
     private var timelineDocRef: DocumentReference { db.collection("couples").document(coupleId).collection("lists").document("timeline_events") }
 
     init() {
