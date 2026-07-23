@@ -14,13 +14,13 @@ public class AIService: ObservableObject {
     private let defaults = UserDefaults.standard
 
     private init() {
-        let savedMode = defaults.string(forKey: "ai_mode")
         let key = defaults.string(forKey: "deepseek_api_key") ?? ""
         hasApiKey = !key.isEmpty
-        if let modeStr = savedMode {
-            currentMode = AIMode(rawValue: modeStr) ?? (hasApiKey ? .deepseek : .local)
+        if hasApiKey {
+            currentMode = .deepseek
         } else {
-            currentMode = hasApiKey ? .deepseek : .local
+            currentMode = .local
+            defaults.set(AIMode.local.rawValue, forKey: "ai_mode")
         }
     }
 

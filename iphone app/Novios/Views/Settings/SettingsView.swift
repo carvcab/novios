@@ -410,19 +410,79 @@ public struct SettingsView: View {
                         VStack(spacing: 10) {
                             HStack(spacing: 8) {
                                 Image(systemName: "iphone.gen3").foregroundColor(theme.pastelMint)
-                                Text("Modo Local — respuestas románticas predefinidas sin internet")
+                                Text("DeepSeek R1 1.5B — corre 100% offline en el iPhone")
                                     .appFont(size: 11).foregroundColor(theme.pastelMint)
                             }
-                            HStack(spacing: 6) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .appFont(size: 12).foregroundColor(theme.pastelMint)
-                                Text("Siempre disponible, sin necesidad de descargar nada")
-                                    .appFont(size: 11).foregroundColor(theme.textSecondary)
+                            if localAI.isLoading {
+                                VStack(spacing: 8) {
+                                    ProgressView(value: localAI.downloadProgress)
+                                        .progressViewStyle(LinearProgressViewStyle(tint: theme.pastelMint))
+                                    Text(localAI.statusText)
+                                        .appFont(size: 11).foregroundColor(theme.textSecondary)
+                                    Button {
+                                        localAI.cancelDownload()
+                                    } label: {
+                                        Text("Cancelar descarga")
+                                            .appFont(size: 12).foregroundColor(.red)
+                                    }
+                                }
+                            } else if localAI.isDownloaded {
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill").foregroundColor(theme.pastelMint)
+                                    Text("Modelo instalado y listo").appFont(size: 12, weight: .bold).foregroundColor(theme.pastelMint)
+                                }
+                                Button {
+                                    localAI.deleteModel()
+                                } label: {
+                                    Label("Eliminar modelo", systemImage: "trash")
+                                        .appFont(size: 13).foregroundColor(.red)
+                                        .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.3)))
+                                }
+                            } else if let err = localAI.errorMessage {
+                                VStack(spacing: 8) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .appFont(size: 12).foregroundColor(.orange)
+                                        Text("Error: \(err)")
+                                            .appFont(size: 11).foregroundColor(.red).lineLimit(2)
+                                    }
+                                    Button {
+                                        localAI.startDownload()
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "arrow.clockwise")
+                                            Text("Reintentar descarga")
+                                        }
+                                        .appFont(size: 13, weight: .semibold).foregroundColor(.white)
+                                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                        .background(LinearGradient(colors: [theme.pastelMint, Color(red: 0.5, green: 0.8, blue: 0.5)], startPoint: .leading, endPoint: .trailing)).cornerRadius(10)
+                                    }
+                                }
+                            } else {
+                                VStack(spacing: 6) {
+                                    Text("Requiere ~1.1 GB de espacio. La descarga se realiza en segundo plano.")
+                                        .appFont(size: 10).foregroundColor(theme.textSecondary).multilineTextAlignment(.center)
+                                    Button {
+                                        localAI.startDownload()
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "arrow.down.circle.fill")
+                                            Text("Descargar Modelo Local")
+                                        }
+                                        .appFont(size: 13, weight: .semibold).foregroundColor(.white)
+                                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                        .background(
+                                            LinearGradient(colors: [theme.pastelMint, Color(red: 0.5, green: 0.8, blue: 0.5)],
+                                                startPoint: .leading, endPoint: .trailing)
+                                        ).cornerRadius(10)
+                                    }
+                                }
                             }
-                            Text("Las respuestas son plantillas fijas (no usan IA real). Para respuestas con IA real, selecciona DeepSeek API Online y configura una API key.")
+                            Text("Cuando el modelo esté descargado, se usará para generar respuestas de IA reales sin internet.")
                                 .appFont(size: 10).foregroundColor(theme.textSecondary).multilineTextAlignment(.center)
                         }
-                        .padding(14)
+                        .padding(10)
                         .background(.ultraThinMaterial)
                         .background(theme.pastelMint.opacity(0.06))
                         .cornerRadius(10)
