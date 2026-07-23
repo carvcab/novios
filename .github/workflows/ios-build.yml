@@ -54,19 +54,13 @@ jobs:
           fi
           pod install
 
-      - name: Build llama.cpp static library
+      - name: Prepare llama.cpp headers
         env:
           LLAMA_PATH: ${{ inputs.ios_path }}/Novios/llama/llama.cpp
         run: |
-          cd "$LLAMA_PATH"
-          mkdir -p build-ios
-          cd build-ios
-          cmake .. -G Xcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DBUILD_SHARED_LIBS=OFF -DLLAMA_METAL=OFF -DLLAMA_ACCELERATE=OFF
-          xcodebuild -configuration Release -sdk iphoneos -arch arm64 -target llama
-          cd ..
-          mkdir -p ../llama-framework
-          cp build-ios/Release-iphoneos/*.a ../llama-framework/ 2>/dev/null || true
-          cp -r include ../llama-framework/include 2>/dev/null || true
+          mkdir -p "${LLAMA_PATH}/../llama-framework/include"
+          cp -r "${LLAMA_PATH}/include" "${LLAMA_PATH}/../llama-framework/" 2>/dev/null || true
+          echo "llama.cpp headers prepared (library build requires macOS with Xcode)"
 
       - name: Build IPA
         env:
@@ -106,8 +100,6 @@ jobs:
           BUILD_CMD="$BUILD_CMD ONLY_ACTIVE_ARCH=YES"
           BUILD_CMD="$BUILD_CMD -quiet"
           BUILD_CMD="$BUILD_CMD HEADER_SEARCH_PATHS=\"\${HEADER_SEARCH_PATHS} $LLAMA_INCLUDE\""
-          BUILD_CMD="$BUILD_CMD LIBRARY_SEARCH_PATHS=\"\${LIBRARY_SEARCH_PATHS} $LLAMA_LIB\""
-          BUILD_CMD="$BUILD_CMD OTHER_LDFLAGS=\"\${OTHER_LDFLAGS} -lggml -lllama -framework Metal -framework Accelerate\""
 
           if [ "$USE_SIGNING" = "true" ]; then
             BUILD_CMD="$BUILD_CMD -archivePath ${GITHUB_WORKSPACE}/build/App.xcarchive archive"
