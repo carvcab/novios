@@ -20,6 +20,12 @@ public struct MemoriesView: View {
     @State private var newStickers: [String] = []
     @State private var snapshotListener: ListenerRegistration?
     @State private var viewerImage: UIImage?
+    @State private var detailTab: DetailTab = .frames
+    @State private var editTitle = ""
+    @State private var editDesc = ""
+    @State private var editStyle = "standard"
+    @State private var editStickers: [String] = []
+    @State private var editFrameColor: Color = .white
 
     private let db = Firestore.firestore()
     private let theme = ThemeManager.shared
@@ -72,6 +78,13 @@ public struct MemoriesView: View {
                         ForEach(memories) { memory in
                             memoryCard(memory)
                                 .onTapGesture { openDetail(memory) }
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        deleteMemory(memory)
+                                    } label: {
+                                        Label("Eliminar", systemImage: "trash")
+                                    }
+                                }
                         }
                     }
                     .padding(16)
@@ -95,11 +108,7 @@ public struct MemoriesView: View {
         .fullScreenCover(item: $viewerImage) { img in
             ZStack {
                 Color.black.ignoresSafeArea()
-                Button { viewerImage = nil } label: {
-                    Image(uiImage: img)
-                        .resizable().scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }.buttonStyle(.plain)
+                InteractiveViewer(img: img) { viewerImage = nil }
             }
         }
     }
@@ -116,11 +125,25 @@ public struct MemoriesView: View {
         }
     }
 
+    // MARK: - Full-Screen Viewer with Zoom
+
+    private struct InteractiveViewer: View {
+        let img: UIImage
+        let onDismiss: () -> Void
+
+        var body: some View {
+            Image(uiImage: img)
+                .resizable().scaledToFit()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onTapGesture { onDismiss() }
+        }
+    }
+
     // MARK: - Memory Card with Styles
 
     private func memoryCard(_ m: MemoryItem) -> some View {
         let style = m.style
-        let hasImage = m.loadedImage != nil
+        let rotation = Double.random(in: -2...2)
         let frameColor = m.frameColor.flatMap { c in
             pastelColors.first { colorString($0) == c }
         } ?? defaultFrameColor(style)
@@ -138,28 +161,40 @@ public struct MemoriesView: View {
             default: standardCard(m, frameColor)
             }
         }
+        .rotationEffect(.degrees(rotation))
     }
 
-private func imageContent(_ m: MemoryItem) -> some View {
-    Group {
-        if let img = m.loadedImage {
-            Image(uiImage: img).resizable().scaledToFill()
-                .onTapGesture { viewerImage = img }
-        } else {
-            theme.primaryPink.opacity(0.1)
-            Image(systemName: "heart.fill")
-                .font(.system(size: 28))
-                .foregroundColor(theme.primaryPink.opacity(0.3))
+    private func imageContent(_ m: MemoryItem) -> some View {
+        ZStack {
+            if let img = m.loadedImage {
+                Image(uiImage: img).resizable().scaledToFill()
+            } else {
+                theme.primaryPink.opacity(0.1)
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 28))
+                    .foregroundColor(theme.primaryPink.opacity(0.3))
+            }
+            stickerOverlay(m.stickers)
         }
     }
-}
 
-    private func stickerOverlay(size: CGFloat) -> some View {
-        ZStack {
-            ForEach(Array(stickers.enumerated()), id: \.offset) { i, st in
-                Text(st.emoji).font(.system(size: size))
+    private func stickerOverlay(_ selected: [String]) -> some View {
+        let selectedEmojis = stickers.filter { selected.contains($0.id) }.map(\.emoji)
+        let positions: [Alignment] = [.topLeading, .topTrailing, .bottomLeading, .bottomTrailing, .center]
+        return ZStack {
+            ForEach(Array(selectedEmojis.enumerated()), id: \.offset) { i, emoji in
+                Text(emoji)
+                    .font(.system(size: i == 4 ? 28 : 20))
+                    .shadow(color: .black.opacity(0.2), radius: 1)
+                    .alignmentGuide(positions[i % positions.count].horizontal) { d in
+                        positions[i % positions.count] == .topLeading || positions[i % positions.count] == .bottomLeading ? d.width * 0.3 : -d.width * 0.3
+                    }
+                    .alignmentGuide(positions[i % positions.count].vertical) { d in
+                        positions[i % positions.count] == .topLeading || positions[i % positions.count] == .topTrailing ? d.height * 0.3 : -d.height * 0.3
+                    }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func defaultFrameColor(_ style: String) -> Color {
@@ -265,6 +300,8 @@ private func imageContent(_ m: MemoryItem) -> some View {
             .padding(6)
     }
 
+    // MARK: - Style & Sticker Pickers
+
     private var stylePicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
@@ -287,6 +324,82 @@ private func imageContent(_ m: MemoryItem) -> some View {
         }
     }
 
+    private var stickerGrid: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 36))], spacing: 8) {
+            ForEach(stickers, id: \.id) { st in
+                Text(st.emoji).font(.system(size: 24))
+                    .padding(4)
+                    .background(newStickers.contains(st.id) ? theme.primary.opacity(0.2) : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .onTapGesture {
+                        if newStickers.contains(st.id) { newStickers.removeAll { $0 == st.id } }
+                        else { newStickers.append(st.id) }
+                    }
+            }
+        }
+    }
+
+    private var colorPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(Array(pastelColors.enumerated()), id: \.offset) { _, color in
+                    Circle().fill(color).frame(width: 36, height: 36)
+                        .overlay(Circle().stroke(colorString(selectedFrameColor) == colorString(color) ? theme.primary : Color.gray.opacity(0.3), lineWidth: 2))
+                        .onTapGesture { selectedFrameColor = color }
+                }
+            }
+        }
+    }
+
+    private var editStylePicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(styles, id: \.id) { st in
+                    VStack(spacing: 4) {
+                        let isSelected = editStyle == st.id
+                        Image(systemName: st.icon)
+                            .font(.system(size: 20))
+                            .foregroundColor(isSelected ? theme.primary : .secondary)
+                            .frame(width: 44, height: 44)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Material.ultraThinMaterial))
+                            .background(isSelected ? theme.primary.opacity(0.15) : Color.clear)
+                        Text(st.name)
+                            .appFont(size: 9)
+                            .foregroundColor(isSelected ? theme.primary : .secondary)
+                    }
+                    .onTapGesture { editStyle = st.id }
+                }
+            }
+        }
+    }
+
+    private var editStickerGrid: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 36))], spacing: 8) {
+            ForEach(stickers, id: \.id) { st in
+                Text(st.emoji).font(.system(size: 24))
+                    .padding(4)
+                    .background(editStickers.contains(st.id) ? theme.primary.opacity(0.2) : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .onTapGesture {
+                        if editStickers.contains(st.id) { editStickers.removeAll { $0 == st.id } }
+                        else { editStickers.append(st.id) }
+                    }
+            }
+        }
+    }
+
+    private var editColorPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(Array(pastelColors.enumerated()), id: \.offset) { _, color in
+                    Circle().fill(color).frame(width: 36, height: 36)
+                        .overlay(Circle().stroke(colorString(editFrameColor) == colorString(color) ? theme.primary : Color.gray.opacity(0.3), lineWidth: 2))
+                        .onTapGesture { editFrameColor = color }
+                }
+            }
+        }
+    }
+
     // MARK: - Add Sheet
 
     private var addSheet: some View {
@@ -304,32 +417,13 @@ private func imageContent(_ m: MemoryItem) -> some View {
                 }
                 Section("Título") { TextField("Lugar o momento...", text: $newTitle) }
                 Section("Descripción") { TextField("Detalles...", text: $newDesc) }
+                Section("Fecha") {
+                    DatePicker("Fecha del recuerdo", selection: $newDate, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                }
                 Section("Estilo") { stylePicker }
-                Section("Stickers") {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 36))], spacing: 8) {
-                        ForEach(stickers, id: \.id) { st in
-                            Text(st.emoji).font(.system(size: 24))
-                                .padding(4)
-                                .background(newStickers.contains(st.id) ? theme.primary.opacity(0.2) : Color.clear)
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
-                                .onTapGesture {
-                                    if newStickers.contains(st.id) { newStickers.removeAll { $0 == st.id } }
-                                    else { newStickers.append(st.id) }
-                                }
-                        }
-                    }
-                }
-                Section("Color de Fondo") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(Array(pastelColors.enumerated()), id: \.offset) { _, color in
-                                Circle().fill(color).frame(width: 36, height: 36)
-                                    .overlay(Circle().stroke(colorString(selectedFrameColor) == colorString(color) ? theme.primary : Color.gray.opacity(0.3), lineWidth: 2))
-                                    .onTapGesture { selectedFrameColor = color }
-                            }
-                        }
-                    }
-                }
+                Section("Stickers") { stickerGrid }
+                Section("Color de Fondo") { colorPicker }
             }
             .navigationTitle("Nuevo Recuerdo")
             .navigationBarTitleDisplayMode(.inline)
@@ -351,43 +445,103 @@ private func imageContent(_ m: MemoryItem) -> some View {
         }
     }
 
-    // MARK: - Detail Sheet
+    // MARK: - Detail Sheet with 3 Tabs
+
+    private enum DetailTab: String, CaseIterable {
+        case frames = "Marcos"
+        case stickers = "Stickers"
+        case text = "Texto"
+    }
 
     private func detailSheet(_ m: MemoryItem) -> some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    memoryCard(m).padding(.horizontal, 16)
-                    Text(m.desc).appFont(size: 14).foregroundColor(.secondary).padding(.horizontal, 16)
-                    Text(formattedDate(m.date)).appFont(size: 12).foregroundColor(.secondary)
+            VStack(spacing: 0) {
+                memoryCard(m).padding(16)
 
-                    HStack(spacing: 20) {
-                        if let img = m.loadedImage {
-                            Button {
-                                viewerImage = img
-                            } label: {
-                                Label("Ver completo", systemImage: "arrow.up.left.and.arrow.down.right")
-                                    .appFont(size: 13).foregroundColor(theme.primary)
-                            }
-                        }
-                        Button(role: .destructive) {
-                            deleteMemory(m)
-                        } label: {
-                            Label("Eliminar", systemImage: "trash")
-                                .appFont(size: 13)
-                        }
+                Picker("", selection: $detailTab) {
+                    ForEach(DetailTab.allCases, id: \.self) { tab in
+                        Text(tab.rawValue).tag(tab)
                     }
-                    .padding(.top, 8)
                 }
-                .padding(.vertical, 20)
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 16)
+
+                ScrollView {
+                    switch detailTab {
+                    case .frames:
+                        frameTabContent
+                    case .stickers:
+                        stickerTabContent
+                    case .text:
+                        textTabContent
+                    }
+                }
             }
             .background(LiquidBackgroundView())
-            .navigationTitle("Detalle")
+            .navigationTitle("Editar Recuerdo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Cerrar") { showDetail = false } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Guardar") {
+                        Task { await saveEdits(m) }
+                    }
+                }
+                ToolbarItem(placement: .destructiveAction) {
+                    Button(role: .destructive) {
+                        deleteMemory(m)
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                }
             }
         }
+        .onAppear {
+            editTitle = m.title
+            editDesc = m.desc
+            editStyle = m.style
+            editStickers = m.stickers
+            if let fc = m.frameColor {
+                editFrameColor = pastelColors.first { colorString($0) == fc } ?? .white
+            }
+        }
+    }
+
+    private var frameTabContent: some View {
+        VStack(spacing: 16) {
+            editStylePicker
+            Divider()
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Color de Fondo").appFont(size: 14, weight: .semibold).foregroundColor(.primary)
+                editColorPicker
+            }
+        }
+        .padding(16)
+    }
+
+    private var stickerTabContent: some View {
+        VStack(spacing: 8) {
+            Text("Toca para agregar/quitar stickers")
+                .appFont(size: 13).foregroundColor(.secondary)
+            editStickerGrid
+        }
+        .padding(16)
+    }
+
+    private var textTabContent: some View {
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Título").appFont(size: 14, weight: .semibold).foregroundColor(.primary)
+                TextField("Título", text: $editTitle)
+                    .textFieldStyle(.roundedBorder)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Descripción").appFont(size: 14, weight: .semibold).foregroundColor(.primary)
+                TextEditor(text: $editDesc)
+                    .frame(minHeight: 100)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.3)))
+            }
+        }
+        .padding(16)
     }
 
     // MARK: - Firestore
@@ -468,7 +622,7 @@ private func imageContent(_ m: MemoryItem) -> some View {
         var fields: [String: Any] = [
             "title": title,
             "description": newDesc.trimmingCharacters(in: .whitespaces),
-            "date": FieldValue.serverTimestamp(),
+            "date": Timestamp(date: newDate),
             "decorStyle": newStyle,
             "decorStickers": newStickers,
             "decorFrameColor": colorString(selectedFrameColor),
@@ -476,6 +630,19 @@ private func imageContent(_ m: MemoryItem) -> some View {
         if let url = mediaUrl { fields["mediaPaths"] = [url] }
         try? await memoriesRef.document(docId).setData(fields)
         await MainActor.run { showAdd = false; resetForm() }
+    }
+
+    private func saveEdits(_ m: MemoryItem) async {
+        let title = editTitle.trimmingCharacters(in: .whitespaces)
+        guard !title.isEmpty else { return }
+        try? await memoriesRef.document(m.id).updateData([
+            "title": title,
+            "description": editDesc.trimmingCharacters(in: .whitespaces),
+            "decorStyle": editStyle,
+            "decorStickers": editStickers,
+            "decorFrameColor": colorString(editFrameColor),
+        ])
+        await MainActor.run { showDetail = false }
     }
 
     private func deleteMemory(_ m: MemoryItem) {
@@ -490,7 +657,16 @@ private func imageContent(_ m: MemoryItem) -> some View {
     }
 
     private func openDetail(_ m: MemoryItem) {
-        detailMemory = m; showDetail = true
+        detailMemory = m
+        detailTab = .frames
+        editTitle = m.title
+        editDesc = m.desc
+        editStyle = m.style
+        editStickers = m.stickers
+        if let fc = m.frameColor {
+            editFrameColor = pastelColors.first { colorString($0) == fc } ?? .white
+        }
+        showDetail = true
     }
 
     private func resetForm() {

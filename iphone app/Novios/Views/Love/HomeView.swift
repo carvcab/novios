@@ -43,6 +43,7 @@ public struct HomeView: View {
                 case .games: GamesView()
                 case .music: MusicView()
                 case .notifications: NotificationsView()
+                case .live: LiveStatusScreen()
                 }
             }
             .sheet(isPresented: $vm.showPhotoPicker) {
@@ -114,7 +115,7 @@ public struct HomeView: View {
                 subtitle: location.partnerOnline ? (status.partnerStatus["currentScreen"] as? String ?? "En línea") : "Offline",
                 color: location.partnerOnline ? .green : theme.textSecondary
             )
-            .onTapGesture { vm.showComingSoon("En Vivo") }
+            .onTapGesture { vm.navPath.append(HomeNavDest.live) }
         }
         .padding(.bottom, 16)
     }
@@ -321,7 +322,7 @@ public struct HomeView: View {
 }
 
 enum HomeNavDest: Hashable {
-    case letters, memories, games, music, notifications
+    case letters, memories, games, music, notifications, live
 }
 
 struct HomeFeature: Identifiable {
