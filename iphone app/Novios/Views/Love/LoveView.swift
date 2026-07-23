@@ -238,32 +238,41 @@ struct AddEventView: View {
 
 struct AnniversaryScreen: View {
     @StateObject private var vm = LoveViewModel()
+    @State private var showConfig = false
+    @State private var now = Date()
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         ZStack {
             ThemeManager.shared.backgroundGradient.ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 20) {
-                    milestoneCard(icon: "heart.fill", label: "Aniversario", date: vm.anniversaryDate, color: ThemeManager.shared.primary)
                     milestoneCard(icon: "person.line.dotted.person", label: "Nos conocimos", date: vm.metDate, color: Color(red: 0.49, green: 0.51, blue: 1.0))
                     milestoneCard(icon: "fork.knife", label: "Primera cita", date: vm.datingDate, color: Color(red: 1.0, green: 0.72, blue: 0.30))
-                    milestoneCard(icon: "ring", label: "Boda", date: vm.weddingDate, color: Color(red: 0.7, green: 0.3, blue: 0.7))
+                    milestoneCard(icon: "heart.fill", label: "Aniversario (Novios)", date: vm.anniversaryDate, color: ThemeManager.shared.primary)
+                    milestoneCard(icon: "ring", label: "Boda (Esposos)", date: vm.weddingDate, color: Color(red: 0.7, green: 0.3, blue: 0.7))
 
-                    Button("Configurar Fechas") {
-                        vm.showDateConfig()
+                    Button { showConfig = true } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "calendar.badge.plus")
+                            Text("Configurar Fechas")
+                                .appFont(size: 14, weight: .medium)
+                        }
+                        .padding(.horizontal, 24).padding(.vertical, 12)
+                        .background(ThemeManager.shared.primary.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .foregroundColor(ThemeManager.shared.primary)
                     }
-                    .padding(.horizontal, 24).padding(.vertical, 12)
-                    .background(ThemeManager.shared.primary.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .foregroundColor(ThemeManager.shared.primary)
                 }
                 .padding(20)
             }
             .navigationTitle("Aniversario 💕")
             .navigationBarTitleDisplayMode(.inline)
         }
+        .onReceive(timer) { t in now = t }
         .onAppear { vm.startListening() }
         .onDisappear { vm.stopListening() }
+        .sheet(isPresented: $showConfig) { dateConfigSheet }
     }
 
     private func milestoneCard(icon: String, label: String, date: Date?, color: Color) -> some View {
@@ -277,7 +286,8 @@ struct AnniversaryScreen: View {
                     Text(label).appFont(size: 13, weight: .semibold).foregroundColor(ThemeManager.shared.textPrimary)
                     if let d = date {
                         Text(vm.formatDate(d)).appFont(size: 11).foregroundColor(ThemeManager.shared.textSecondary)
-                        Text(vm.timeSince(d)).appFont(size: 12, weight: .bold).foregroundColor(color)
+                        Text(elapsedString(from: d)).appFont(size: 13, weight: .bold).foregroundColor(color)
+                        Text(countdownString(from: d)).appFont(size: 10).foregroundColor(ThemeManager.shared.textSecondary)
                     } else {
                         Text("No configurado").appFont(size: 11).foregroundColor(.secondary)
                     }
@@ -286,6 +296,114 @@ struct AnniversaryScreen: View {
             }
             .padding(14)
         }
+    }
+
+    private func elapsedString(from date: Date) -> String {
+        let e = elapsed(date, now)
+        return "\(e.y)a \(e.m)m \(e.d)d \(e.h)h \(e.min)m \(e.s)s"
+    }
+
+    private func countdownString(from date: Date) -> String {
+        let next = nextAnniversary(date)
+        let days = Calendar.current.dateComponents([.day], from: now, to: next).day ?? 0
+        if days == 0 { return "🎉 ¡Hoy!" }
+        if days == 1 { return "Mañana 💕" }
+        return "Próximo: \(days) días"
+    }
+
+    private func nextAnniversary(_ date: Date) -> Date {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: now)
+        var next = cal.date(from: DateComponents(year: cal.component(.year, from: now), month: cal.component(.month, from: date), day: cal.component(.day, from: date)))!
+        if next < today { next = cal.date(from: DateComponents(year: cal.component(.year, from: now) + 1, month: cal.component(.month, from: date), day: cal.component(.day, from: date)))! }
+        return next
+    }
+
+    private func elapsed(_ from: Date, _ to: Date) -> (y: Int, m: Int, d: Int, h: Int, min: Int, s: Int) {
+        let diff = to.timeIntervalSince(from)
+        let totalSec = Int(diff)
+        let y = totalSec / (365 * 86400)
+        let rem = totalSec % (365 * 86400)
+        let m = rem / (30 * 86400)
+        let rem2 = rem % (30 * 86400)
+        let d = rem2 / 86400
+        let h = (rem2 % 86400) / 3600
+        let min = (rem2 % 3600) / 60
+        let s = rem2 % 60
+        return (y, m, d, h, min, s)
+    }
+
+    private var dateConfigSheet: some View {
+        DateConfigView(
+            metDate: vm.metDate, datingDate: vm.datingDate,
+            anniversaryDate: vm.anniversaryDate, weddingDate: vm.weddingDate,
+            coupleDocRef: vm.coupleDocRef
+        )
+    }
+}
+
+// MARK: - Date Configuration Sheet
+
+struct DateConfigView: View {
+    let metDate: Date?; let datingDate: Date?; let anniversaryDate: Date?; let weddingDate: Date?
+    let coupleDocRef: DocumentReference
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var met: Date; @State private var metEnabled: Bool
+    @State private var dating: Date; @State private var datingEnabled: Bool
+    @State private var ann: Date; @State private var annEnabled: Bool
+    @State private var wedding: Date; @State private var weddingEnabled: Bool
+
+    init(metDate: Date?, datingDate: Date?, anniversaryDate: Date?, weddingDate: Date?, coupleDocRef: DocumentReference) {
+        self.metDate = metDate; self.datingDate = datingDate; self.anniversaryDate = anniversaryDate; self.weddingDate = weddingDate
+        self.coupleDocRef = coupleDocRef
+        _met = State(initialValue: metDate ?? Date())
+        _metEnabled = State(initialValue: metDate != nil)
+        _dating = State(initialValue: datingDate ?? Date())
+        _datingEnabled = State(initialValue: datingDate != nil)
+        _ann = State(initialValue: anniversaryDate ?? Date())
+        _annEnabled = State(initialValue: anniversaryDate != nil)
+        _wedding = State(initialValue: weddingDate ?? Date())
+        _weddingEnabled = State(initialValue: weddingDate != nil)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                dateSection(icon: "person.line.dotted.person", label: "Nos conocimos", color: Color(red: 0.49, green: 0.51, blue: 1.0), date: $met, enabled: $metEnabled)
+                dateSection(icon: "fork.knife", label: "Primera cita", color: Color(red: 1.0, green: 0.72, blue: 0.30), date: $dating, enabled: $datingEnabled)
+                dateSection(icon: "heart.fill", label: "Aniversario (Novios)", color: ThemeManager.shared.primary, date: $ann, enabled: $annEnabled)
+                dateSection(icon: "ring", label: "Boda (Esposos)", color: Color(red: 0.7, green: 0.3, blue: 0.7), date: $wedding, enabled: $weddingEnabled)
+            }
+            .navigationTitle("Fechas importantes")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancelar") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Guardar") { save() }.disabled(!metEnabled && !datingEnabled && !annEnabled && !weddingEnabled) }
+            }
+        }
+        .presentationDetents([.large])
+    }
+
+    private func dateSection(icon: String, label: String, color: Color, date: Binding<Date>, enabled: Binding<Bool>) -> some View {
+        Section {
+            Toggle(isOn: enabled) { Text(label).appFont(size: 14, weight: .medium).foregroundColor(color) }
+            if enabled.wrappedValue {
+                DatePicker("Fecha", selection: date, displayedComponents: .date)
+                    .datePickerStyle(.graphical)
+                    .tint(color)
+            }
+        }
+    }
+
+    private func save() {
+        var fields: [String: Any] = [:]
+        if metEnabled { fields["metDate"] = Timestamp(date: met) } else { fields["metDate"] = FieldValue.delete() }
+        if datingEnabled { fields["datingDate"] = Timestamp(date: dating) } else { fields["datingDate"] = FieldValue.delete() }
+        if annEnabled { fields["anniversaryDate"] = Timestamp(date: ann) } else { fields["anniversaryDate"] = FieldValue.delete() }
+        if weddingEnabled { fields["weddingDate"] = Timestamp(date: wedding) } else { fields["weddingDate"] = FieldValue.delete() }
+        Task { try? await coupleDocRef.setData(fields, merge: true) }
+        dismiss()
     }
 }
 
