@@ -31,37 +31,35 @@ public struct WishlistView: View {
     public init() {}
 
     public var body: some View {
-        NavigationStack {
-            ZStack {
-                LiquidBackgroundView()
-                if items.isEmpty {
-                    emptyState
-                } else {
-                    mainContent
+        ZStack {
+            LiquidBackgroundView()
+            if items.isEmpty {
+                emptyState
+            } else {
+                mainContent
+            }
+        }
+        .navigationTitle("Lista de Deseos")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { showAddSheet = true } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(theme.primaryPink)
                 }
             }
-            .navigationTitle("Lista de Deseos")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showAddSheet = true } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(theme.primaryPink)
-                    }
+        }
+        .onAppear { startListening() }
+        .onDisappear { snapshotListener?.remove() }
+        .sheet(isPresented: $showAddSheet) {
+            WishlistFormView(onSave: addItem)
+        }
+        .sheet(isPresented: $showEditSheet) {
+            WishlistFormView(existing: editingItemData, onSave: { updated in
+                if let idx = editingIndex {
+                    updateItem(at: idx, with: updated)
                 }
-            }
-            .onAppear { startListening() }
-            .onDisappear { snapshotListener?.remove() }
-            .sheet(isPresented: $showAddSheet) {
-                WishlistFormView(onSave: addItem)
-            }
-            .sheet(isPresented: $showEditSheet) {
-                WishlistFormView(existing: editingItemData, onSave: { updated in
-                    if let idx = editingIndex {
-                        updateItem(at: idx, with: updated)
-                    }
-                })
-            }
+            })
         }
     }
 

@@ -27,62 +27,60 @@ public struct DreamsView: View {
     public init() {}
 
     public var body: some View {
-        NavigationStack {
-            ZStack {
-                LiquidBackgroundView()
+        ZStack {
+            LiquidBackgroundView()
 
-                VStack(spacing: 0) {
-                    if !dreams.isEmpty {
-                        progressHeader
-                    }
+            VStack(spacing: 0) {
+                if !dreams.isEmpty {
+                    progressHeader
+                }
 
-                    if dreams.isEmpty {
-                        emptyState
-                    } else {
-                        ScrollView {
-                            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                                ForEach(Array(dreams.enumerated()), id: \.offset) { index, dream in
-                                    dreamCard(index: index, dream: dream)
-                                }
+                if dreams.isEmpty {
+                    emptyState
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                            ForEach(Array(dreams.enumerated()), id: \.offset) { index, dream in
+                                dreamCard(index: index, dream: dream)
                             }
-                            .padding(16)
-                            .padding(.bottom, 80)
                         }
+                        .padding(16)
+                        .padding(.bottom, 80)
                     }
                 }
             }
-            .navigationTitle("Nuestros Sueños")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showAddSheet = true } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(theme.primary)
-                            .appFont(size: 22)
-                    }
+        }
+        .navigationTitle("Nuestros Sueños")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { showAddSheet = true } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(theme.primary)
+                        .appFont(size: 22)
                 }
             }
-            .overlay(alignment: .bottomTrailing) {
-                Button(action: { showAddSheet = true }) {
-                    Image(systemName: "plus")
-                        .appFont(size: 20, weight: .semibold)
-                        .foregroundColor(.white)
-                        .frame(width: 56, height: 56)
-                        .background(theme.primaryGradient)
-                        .clipShape(Circle())
-                        .shadow(color: theme.primary.opacity(0.3), radius: 12, x: 0, y: 6)
-                }
-                .padding(20)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            Button(action: { showAddSheet = true }) {
+                Image(systemName: "plus")
+                    .appFont(size: 20, weight: .semibold)
+                    .foregroundColor(.white)
+                    .frame(width: 56, height: 56)
+                    .background(theme.primaryGradient)
+                    .clipShape(Circle())
+                    .shadow(color: theme.primary.opacity(0.3), radius: 12, x: 0, y: 6)
             }
-            .onAppear { startListening() }
-            .onDisappear { stopListening() }
-            .sheet(isPresented: $showAddSheet) {
-                addDreamSheet(mode: .add, dream: nil)
-            }
-            .sheet(isPresented: $showEditSheet) {
-                if let idx = editingIndex, idx < dreams.count {
-                    addDreamSheet(mode: .edit, dream: dreams[idx])
-                }
+            .padding(20)
+        }
+        .onAppear { startListening() }
+        .onDisappear { stopListening() }
+        .sheet(isPresented: $showAddSheet) {
+            addDreamSheet(mode: .add, dream: nil)
+        }
+        .sheet(isPresented: $showEditSheet) {
+            if let idx = editingIndex, idx < dreams.count {
+                addDreamSheet(mode: .edit, dream: dreams[idx])
             }
         }
     }

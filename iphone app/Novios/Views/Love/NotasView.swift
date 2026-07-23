@@ -21,39 +21,37 @@ public struct NotasView: View {
     public init() {}
 
     public var body: some View {
-        NavigationStack {
-            ZStack {
-                LiquidBackgroundView()
-                if notes.isEmpty {
-                    emptyState
-                } else {
-                    ScrollView {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                            ForEach(Array(notes.enumerated()), id: \.offset) { i, note in
-                                noteCard(note, index: i)
-                            }
+        ZStack {
+            LiquidBackgroundView()
+            if notes.isEmpty {
+                emptyState
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                        ForEach(Array(notes.enumerated()), id: \.offset) { i, note in
+                            noteCard(note, index: i)
                         }
-                        .padding(16)
-                        .padding(.bottom, 80)
                     }
+                    .padding(16)
+                    .padding(.bottom, 80)
                 }
             }
-            .navigationTitle("Muro de Notas 📌")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showAddSheet = true } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(theme.primaryPink)
-                    }
-                }
-            }
-            .sheet(isPresented: $showAddSheet) {
-                addNoteSheet
-            }
-            .onAppear { startListening() }
-            .onDisappear { snapshotListener?.remove() }
         }
+        .navigationTitle("Muro de Notas 📌")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { showAddSheet = true } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(theme.primaryPink)
+                }
+            }
+        }
+        .sheet(isPresented: $showAddSheet) {
+            addNoteSheet
+        }
+        .onAppear { startListening() }
+        .onDisappear { snapshotListener?.remove() }
     }
 
     private func startListening() {

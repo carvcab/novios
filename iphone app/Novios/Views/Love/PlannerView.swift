@@ -48,39 +48,31 @@ public struct PlannerView: View {
     public init() {}
 
     public var body: some View {
-        NavigationStack {
-            ZStack {
-                LiquidBackgroundView()
-                VStack(spacing: 0) {
-                    customSegmentedPicker
-                    filteredList
-                }
+        ZStack {
+            LiquidBackgroundView()
+            VStack(spacing: 0) {
+                customSegmentedPicker
+                filteredList
             }
-            .navigationTitle("Organizador de Planes")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("Organizador de Planes")
-                        .appFont(size: 14, weight: .medium)
-                        .foregroundColor(theme.textPrimary)
-                        .tracking(3)
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showSurprise = true } label: {
-                        Image(systemName: "lightbulb")
-                            .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.2))
-                            .font(.system(size: 18))
-                    }
-                }
-            }
-            .overlay(alignment: .bottomTrailing) {
-                fabButton
-            }
-            .sheet(isPresented: $showAddSheet) { addItemSheet }
-            .sheet(isPresented: $showSurprise) { surpriseSheet }
-            .onAppear { startListener() }
-            .onDisappear { snapshotListener?.remove() }
         }
+        .navigationTitle("Organizador de Planes")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { showSurprise = true } label: {
+                    Image(systemName: "lightbulb")
+                        .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.2))
+                        .font(.system(size: 18))
+                }
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            fabButton
+        }
+        .sheet(isPresented: $showAddSheet) { addItemSheet }
+        .sheet(isPresented: $showSurprise) { surpriseSheet }
+        .onAppear { startListener() }
+        .onDisappear { snapshotListener?.remove() }
     }
 
     // MARK: - Custom Segmented Picker

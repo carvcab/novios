@@ -45,25 +45,22 @@ public struct LoveAIView: View {
     public init() {}
 
     public var body: some View {
-        NavigationStack {
-            ZStack {
-                LiquidBackgroundView()
-
-                ScrollView {
-                    VStack(spacing: 16) {
-                        warningBanner
-                        tabGrid
-                        formSection
-                        generateButton
-                        resultSection
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 24)
+        ZStack {
+            LiquidBackgroundView()
+            ScrollView {
+                VStack(spacing: 16) {
+                    warningBanner
+                    tabGrid
+                    formSection
+                    generateButton
+                    resultSection
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
             }
-            .navigationTitle("Asistente de Amor IA")
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .navigationTitle("Asistente de Amor IA")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     // MARK: - Warning Banner

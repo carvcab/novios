@@ -20,20 +20,18 @@ public struct DatesView: View {
     public init() {}
 
     public var body: some View {
-        NavigationStack {
-            ZStack {
-                LiquidBackgroundView()
-                if events.isEmpty {
-                    emptyState
-                } else {
-                    mainContent
-                }
+        ZStack {
+            LiquidBackgroundView()
+            if events.isEmpty {
+                emptyState
+            } else {
+                mainContent
             }
-            .navigationTitle("Fechas Importantes")
-            .navigationBarTitleDisplayMode(.inline)
-            .onAppear { startListening() }
-            .onDisappear { snapshotListener?.remove() }
         }
+        .navigationTitle("Fechas Importantes")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { startListening() }
+        .onDisappear { snapshotListener?.remove() }
     }
 
     private var emptyState: some View {
