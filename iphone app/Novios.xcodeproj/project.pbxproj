@@ -55,6 +55,13 @@
 		9A0050W2C000000000000077 /* GameHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000077 /* GameHistoryView.swift */; };
 		9A0050W2C000000000000078 /* SpicyGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000078 /* SpicyGamesView.swift */; };
 		9A7000022C00000000000002 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9A004382C0000000000000438 /* GoogleService-Info.plist */; };
+		9A0050W2C000000000000079 /* NotasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000079 /* NotasView.swift */; };
+		9A0050W2C000000000000080 /* LoveAIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000080 /* LoveAIView.swift */; };
+		9A0050W2C000000000000081 /* WishlistView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000081 /* WishlistView.swift */; };
+		9A0050W2C000000000000082 /* DreamsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000082 /* DreamsView.swift */; };
+		9A0050W2C000000000000083 /* PlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000083 /* PlannerView.swift */; };
+		9A0050W2C000000000000084 /* DatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000084 /* DatesView.swift */; };
+		9A0050W2C000000000000085 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000085 /* MoreView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -108,6 +115,13 @@
 		9A0050V2C000000000000076 /* LiveStatusScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/LiveStatusScreen.swift; sourceTree = "<group>"; };
 		9A0050V2C000000000000077 /* GameHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/GameHistoryView.swift; sourceTree = "<group>"; };
 		9A0050V2C000000000000078 /* SpicyGamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/SpicyGamesView.swift; sourceTree = "<group>"; };
+		9A0050V2C000000000000079 /* NotasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/NotasView.swift; sourceTree = "<group>"; };
+		9A0050V2C000000000000080 /* LoveAIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/LoveAIView.swift; sourceTree = "<group>"; };
+		9A0050V2C000000000000081 /* WishlistView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/WishlistView.swift; sourceTree = "<group>"; };
+		9A0050V2C000000000000082 /* DreamsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/DreamsView.swift; sourceTree = "<group>"; };
+		9A0050V2C000000000000083 /* PlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/PlannerView.swift; sourceTree = "<group>"; };
+		9A0050V2C000000000000084 /* DatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/DatesView.swift; sourceTree = "<group>"; };
+		9A0050V2C000000000000085 /* MoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/MoreView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -200,6 +214,13 @@
 				9A0050V2C000000000000076 /* LiveStatusScreen.swift */,
 				9A0050V2C000000000000077 /* GameHistoryView.swift */,
 				9A0050V2C000000000000078 /* SpicyGamesView.swift */,
+				9A0050V2C000000000000079 /* NotasView.swift */,
+				9A0050V2C000000000000080 /* LoveAIView.swift */,
+				9A0050V2C000000000000081 /* WishlistView.swift */,
+				9A0050V2C000000000000082 /* DreamsView.swift */,
+				9A0050V2C000000000000083 /* PlannerView.swift */,
+				9A0050V2C000000000000084 /* DatesView.swift */,
+				9A0050V2C000000000000085 /* MoreView.swift */,
 			);
 			path = Novios;
 			sourceTree = "<group>";
@@ -307,6 +328,13 @@
 				9A0050W2C000000000000076 /* LiveStatusScreen.swift in Sources */,
 				9A0050W2C000000000000077 /* GameHistoryView.swift in Sources */,
 				9A0050W2C000000000000078 /* SpicyGamesView.swift in Sources */,
+				9A0050W2C000000000000079 /* NotasView.swift in Sources */,
+				9A0050W2C000000000000080 /* LoveAIView.swift in Sources */,
+				9A0050W2C000000000000081 /* WishlistView.swift in Sources */,
+				9A0050W2C000000000000082 /* DreamsView.swift in Sources */,
+				9A0050W2C000000000000083 /* PlannerView.swift in Sources */,
+				9A0050W2C000000000000084 /* DatesView.swift in Sources */,
+				9A0050W2C000000000000085 /* MoreView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
