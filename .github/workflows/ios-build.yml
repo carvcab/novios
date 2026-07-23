@@ -54,20 +54,19 @@ jobs:
           fi
           pod install
 
-      - name: Build llama.cpp XCFramework
+      - name: Build llama.cpp static library
         env:
-          LLAMA_PATH: ${{ inputs.ios_path }}/llama/llama.cpp
+          LLAMA_PATH: ${{ inputs.ios_path }}/Novios/llama/llama.cpp
         run: |
           cd "$LLAMA_PATH"
-          chmod +x build-xcframework.sh
           mkdir -p build-ios
           cd build-ios
-          cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=OS64 -DBUILD_SHARED_LIBS=OFF -DLLAMA_METAL=OFF
-          cmake --build . --config Release
+          cmake .. -G Xcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DBUILD_SHARED_LIBS=OFF -DLLAMA_METAL=OFF -DLLAMA_ACCELERATE=OFF
+          xcodebuild -configuration Release -sdk iphoneos -arch arm64 -target llama
           cd ..
           mkdir -p ../llama-framework
-          cp build-ios/*.a ../llama-framework/ 2>/dev/null || true
-          cp -r include ../llama-framework/ 2>/dev/null || true
+          cp build-ios/Release-iphoneos/*.a ../llama-framework/ 2>/dev/null || true
+          cp -r include ../llama-framework/include 2>/dev/null || true
 
       - name: Build IPA
         env:
@@ -89,7 +88,7 @@ jobs:
           echo "Signing: $USE_SIGNING"
 
           DERIVED_DATA_PATH="${GITHUB_WORKSPACE}/DerivedData"
-          LLAMA_DIR="${GITHUB_WORKSPACE}/$IOS_PATH/llama"
+          LLAMA_DIR="${GITHUB_WORKSPACE}/$IOS_PATH/Novios/llama"
           LLAMA_INCLUDE="${LLAMA_DIR}/llama.cpp/include"
           LLAMA_LIB="${LLAMA_DIR}/llama-framework"
 
