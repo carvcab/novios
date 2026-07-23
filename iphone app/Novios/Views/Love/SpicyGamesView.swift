@@ -818,7 +818,7 @@ private struct RespondView: View {
             if let img = responseImage, let data = img.jpegData(compressionQuality: 0.6) {
                 let b64 = data.base64EncodedString()
                 let mid = UUID().uuidString
-                try? await gamesRef.firestore.document("chat_media/\(mid)").setData(["data": b64, "mimeType": "image/jpeg"])
+            try? await Firestore.firestore().document("chat_media/\(mid)").setData(["data": b64, "mimeType": "image/jpeg"])
                 fields["responsePhotoUrl"] = "firestore://chat_media/\(mid)"
             }
             try? await gamesRef.document(challengeId).updateData(fields)
@@ -827,6 +827,4 @@ private struct RespondView: View {
     }
 }
 
-private extension CollectionReference {
-    var firestore: Firestore { Firestore.firestore() }
-}
+
