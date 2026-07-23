@@ -1,0 +1,3 @@
+[submodule "iphone app/Novios/llama/llama.cpp"]
+	path = iphone app/Novios/llama/llama.cpp
+	url = https://github.com/ggml-org/llama.cpp.git

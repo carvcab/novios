@@ -63,6 +63,7 @@
 		9A0050W2C000000000000083 /* PlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000083 /* PlannerView.swift */; };
 		9A0050W2C000000000000084 /* DatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000084 /* DatesView.swift */; };
 		9A0050W2C000000000000085 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000085 /* MoreView.swift */; };
+		9A0050L6C000000000000090 /* LLaMARunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050L7C000000000000091 /* LLaMARunner.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -108,6 +109,7 @@
 		9A005052C000000000000055 /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Security/LockScreenView.swift; sourceTree = "<group>"; };
 		9A005072C000000000000057 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AIService.swift; sourceTree = "<group>"; };
 		9A0050L3C000000000000087 /* LocalAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LocalAIService.swift; sourceTree = "<group>"; };
+		9A0050L7C000000000000091 /* LLaMARunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LLaMARunner.swift; sourceTree = "<group>"; };
 		9A005092C000000000000059 /* LocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Location/LocationView.swift; sourceTree = "<group>"; };
 		9A0050B2C00000000000005B /* CoupleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/CoupleService.swift; sourceTree = "<group>"; };
 		9A0050V2C00000000000006F /* CoupleModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/CoupleModel.swift; sourceTree = "<group>"; };
@@ -205,6 +207,8 @@
 				9A005072C000000000000057 /* AIService.swift */,
 
 				9A0050L3C000000000000087 /* LocalAIService.swift */,
+
+				9A0050L7C000000000000091 /* LLaMARunner.swift */,
 
 				9A005092C000000000000059 /* LocationView.swift */,
 
@@ -324,6 +328,7 @@
 				9A005042C000000000000054 /* LockScreenView.swift in Sources */,
 				9A005062C000000000000056 /* AIService.swift in Sources */,
 				9A0050L2C000000000000086 /* LocalAIService.swift in Sources */,
+				9A0050L6C000000000000090 /* LLaMARunner.swift in Sources */,
 				9A005082C000000000000058 /* LocationView.swift in Sources */,
 				9A0050A2C00000000000005A /* CoupleService.swift in Sources */,
 				9A0050U2C00000000000006E /* CoupleModel.swift in Sources */,

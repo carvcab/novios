@@ -81,6 +81,19 @@ public class AIService: ObservableObject {
 
     // MARK: - AI Functions
 
+    private func localGenerate(prompt: String, systemPrompt: String = "") -> String {
+        let local = LocalAIService.shared
+        if local.isDownloaded, let modelPath = local.modelFilePath?.path {
+            let runner = LLaMARunner.shared
+            if runner.loadModel(path: modelPath) {
+                let fullPrompt = systemPrompt.isEmpty ? prompt : "\(systemPrompt)\n\n\(prompt)"
+                let result = runner.generate(prompt: fullPrompt)
+                if !result.isEmpty { return result }
+            }
+        }
+        return ""
+    }
+
     public func generateLetter(tone: String, keywords: String) async throws -> String {
         switch currentMode {
         case .deepseek:
@@ -89,6 +102,8 @@ public class AIService: ObservableObject {
                 ["role": "user", "content": "Escribe una carta de amor con tono \(tone) que incluya estas palabras clave: \(keywords)"]
             ], temperature: 0.9)
         case .local:
+            let aiResult = localGenerate(prompt: "Escribe una carta de amor con tono \(tone) que incluya: \(keywords)")
+            if !aiResult.isEmpty { return aiResult }
             return LocalAIService.shared.fallbackLetter(tone: tone)
         }
     }
@@ -101,6 +116,8 @@ public class AIService: ObservableObject {
                 ["role": "user", "content": prompt]
             ])
         case .local:
+            let aiResult = localGenerate(prompt: prompt)
+            if !aiResult.isEmpty { return aiResult }
             return LocalAIService.shared.fallbackQuestion(question: prompt)
         }
     }
@@ -113,6 +130,8 @@ public class AIService: ObservableObject {
                 ["role": "user", "content": "Sugiere una cita \(type) con presupuesto \(budget). Incluye detalles como lugar, actividades y consejos."]
             ])
         case .local:
+            let aiResult = localGenerate(prompt: "Sugiere una cita \(type) con presupuesto \(budget)")
+            if !aiResult.isEmpty { return aiResult }
             return LocalAIService.shared.fallbackDate(type: type, budget: budget)
         }
     }
@@ -125,6 +144,8 @@ public class AIService: ObservableObject {
                 ["role": "user", "content": "Sugiere un regalo romántico para \(occasion). Explica por qué es especial."]
             ])
         case .local:
+            let aiResult = localGenerate(prompt: "Sugiere un regalo romántico para \(occasion)")
+            if !aiResult.isEmpty { return aiResult }
             return LocalAIService.shared.fallbackGift(occasion: occasion)
         }
     }
@@ -137,6 +158,8 @@ public class AIService: ObservableObject {
                 ["role": "user", "content": "Escribe un poema de amor en estilo \(style) sobre \(topic)"]
             ], temperature: 0.95)
         case .local:
+            let aiResult = localGenerate(prompt: "Escribe un poema de amor en estilo \(style) sobre \(topic)")
+            if !aiResult.isEmpty { return aiResult }
             return LocalAIService.shared.fallbackPoem(style: style, topic: topic)
         }
     }

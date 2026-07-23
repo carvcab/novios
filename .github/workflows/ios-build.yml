@@ -36,6 +36,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -51,6 +53,21 @@ jobs:
             gem install cocoapods --no-document
           fi
           pod install
+
+      - name: Build llama.cpp XCFramework
+        env:
+          LLAMA_PATH: ${{ inputs.ios_path }}/llama/llama.cpp
+        run: |
+          cd "$LLAMA_PATH"
+          chmod +x build-xcframework.sh
+          mkdir -p build-ios
+          cd build-ios
+          cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.toolchain.cmake -DPLATFORM=OS64 -DBUILD_SHARED_LIBS=OFF -DLLAMA_METAL=OFF
+          cmake --build . --config Release
+          cd ..
+          mkdir -p ../llama-framework
+          cp build-ios/*.a ../llama-framework/ 2>/dev/null || true
+          cp -r include ../llama-framework/ 2>/dev/null || true
 
       - name: Build IPA
         env:
@@ -72,6 +89,9 @@ jobs:
           echo "Signing: $USE_SIGNING"
 
           DERIVED_DATA_PATH="${GITHUB_WORKSPACE}/DerivedData"
+          LLAMA_DIR="${GITHUB_WORKSPACE}/$IOS_PATH/llama"
+          LLAMA_INCLUDE="${LLAMA_DIR}/llama.cpp/include"
+          LLAMA_LIB="${LLAMA_DIR}/llama-framework"
 
           if [ -n "$WORKSPACE" ]; then
             BUILD_CMD="xcodebuild -workspace $WORKSPACE"
@@ -86,6 +106,9 @@ jobs:
           BUILD_CMD="$BUILD_CMD DEBUG_INFORMATION_FORMAT=dwarf"
           BUILD_CMD="$BUILD_CMD ONLY_ACTIVE_ARCH=YES"
           BUILD_CMD="$BUILD_CMD -quiet"
+          BUILD_CMD="$BUILD_CMD HEADER_SEARCH_PATHS=\"\${HEADER_SEARCH_PATHS} $LLAMA_INCLUDE\""
+          BUILD_CMD="$BUILD_CMD LIBRARY_SEARCH_PATHS=\"\${LIBRARY_SEARCH_PATHS} $LLAMA_LIB\""
+          BUILD_CMD="$BUILD_CMD OTHER_LDFLAGS=\"\${OTHER_LDFLAGS} -lggml -lllama -framework Metal -framework Accelerate\""
 
           if [ "$USE_SIGNING" = "true" ]; then
             BUILD_CMD="$BUILD_CMD -archivePath ${GITHUB_WORKSPACE}/build/App.xcarchive archive"
