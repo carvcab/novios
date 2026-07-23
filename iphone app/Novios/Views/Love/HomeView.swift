@@ -44,6 +44,13 @@ public struct HomeView: View {
                 case .music: MusicView()
                 case .notifications: NotificationsView()
                 case .live: LiveStatusScreen()
+                case .notas: NotasView()
+                case .loveAI: LoveAIView()
+                case .wishlist: WishlistView()
+                case .dreams: DreamsView()
+                case .planner: PlannerView()
+                case .dates: DatesView()
+                case .more: MoreView()
                 }
             }
             .sheet(isPresented: $vm.showPhotoPicker) {
@@ -322,7 +329,7 @@ public struct HomeView: View {
 }
 
 enum HomeNavDest: Hashable {
-    case letters, memories, games, music, notifications, live
+    case letters, memories, games, music, notifications, live, notas, loveAI, wishlist, dreams, planner, dates, more
 }
 
 struct HomeFeature: Identifiable {
@@ -483,16 +490,16 @@ class HomeViewModel: ObservableObject {
     lazy var features: [HomeFeature] = [
         HomeFeature(icon: "square.and.arrow.up", label: "Pantalla", color: Color(red: 0, green: 0.75, blue: 0.65)) { [weak self] in self?.showComingSoon("Pantalla") },
         HomeFeature(icon: "envelope.fill", label: "Cartas", color: Color(red: 1, green: 0.5, blue: 0.5)) { [weak self] in self?.navPath.append(HomeNavDest.letters) },
-        HomeFeature(icon: "sticky.filler", label: "Notas", color: Color(red: 0.91, green: 0.28, blue: 0.49)) { [weak self] in self?.showComingSoon("Notas") },
-        HomeFeature(icon: "face.smiling", label: "Amor IA", color: Color(red: 0.31, green: 0.76, blue: 0.97)) { [weak self] in self?.showComingSoon("Amor IA") },
+        HomeFeature(icon: "sticky.filler", label: "Notas", color: Color(red: 0.91, green: 0.28, blue: 0.49)) { [weak self] in self?.navPath.append(HomeNavDest.notas) },
+        HomeFeature(icon: "face.smiling", label: "Amor IA", color: Color(red: 0.31, green: 0.76, blue: 0.97)) { [weak self] in self?.navPath.append(HomeNavDest.loveAI) },
         HomeFeature(icon: "photo.on.rectangle", label: "Recuerdos", color: Color(red: 0.49, green: 0.51, blue: 1.0)) { [weak self] in self?.navPath.append(HomeNavDest.memories) },
         HomeFeature(icon: "gamecontroller.fill", label: "Juegos", color: Color(red: 1, green: 0.72, blue: 0.30)) { [weak self] in self?.navPath.append(HomeNavDest.games) },
-        HomeFeature(icon: "sparkles", label: "Deseos", color: Color(red: 0.67, green: 0.28, blue: 0.74)) { [weak self] in self?.showComingSoon("Deseos") },
-        HomeFeature(icon: "moon.stars.fill", label: "Sueños", color: Color(red: 0.36, green: 0.42, blue: 0.75)) { [weak self] in self?.showComingSoon("Sueños") },
-        HomeFeature(icon: "list.bullet.clipboard", label: "Planner", color: Color(red: 0.4, green: 0.73, blue: 0.42)) { [weak self] in self?.showComingSoon("Planner") },
+        HomeFeature(icon: "sparkles", label: "Deseos", color: Color(red: 0.67, green: 0.28, blue: 0.74)) { [weak self] in self?.navPath.append(HomeNavDest.wishlist) },
+        HomeFeature(icon: "moon.stars.fill", label: "Sueños", color: Color(red: 0.36, green: 0.42, blue: 0.75)) { [weak self] in self?.navPath.append(HomeNavDest.dreams) },
+        HomeFeature(icon: "list.bullet.clipboard", label: "Planner", color: Color(red: 0.4, green: 0.73, blue: 0.42)) { [weak self] in self?.navPath.append(HomeNavDest.planner) },
         HomeFeature(icon: "music.note.list", label: "Música", color: Color(red: 0.15, green: 0.65, blue: 0.60)) { [weak self] in self?.navPath.append(HomeNavDest.music) },
-        HomeFeature(icon: "calendar", label: "Fechas", color: Color(red: 0.94, green: 0.33, blue: 0.31)) { [weak self] in self?.showComingSoon("Fechas") },
-        HomeFeature(icon: "square.grid.2x2", label: "Más", color: Color(red: 0.47, green: 0.56, blue: 0.61)) { [weak self] in self?.showComingSoon("Más") },
+        HomeFeature(icon: "calendar", label: "Fechas", color: Color(red: 0.94, green: 0.33, blue: 0.31)) { [weak self] in self?.navPath.append(HomeNavDest.dates) },
+        HomeFeature(icon: "square.grid.2x2", label: "Más", color: Color(red: 0.47, green: 0.56, blue: 0.61)) { [weak self] in self?.navPath.append(HomeNavDest.more) },
     ]
 
     // MARK: - Heart Pulse

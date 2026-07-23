@@ -427,11 +427,11 @@ private struct OnlineQuizView: View {
 
     private let questions: [[String: Any]] = [
         ["q": "¿Dónde fue nuestra primera cita oficial?", "o": ["Restaurante italiano", "El cine", "Un café acogedor", "Un parque"], "a": 2],
-        ["q": "¿Quién dijo \"te amo\" primero?", "o": ["Yo", "Mi pareja", "Ambos", "Nadie"], "a": 1],
+        ["q": "¿Quién dijo \"te amo\" primero?", "o": ["Yo", "Mi pareja", "Ambos", "Nadie"], "a": 0],
         ["q": "¿Cuál es nuestra comida favorita?", "o": ["Pizza", "Sushi", "Hamburguesas", "Tacos"], "a": 0],
         ["q": "¿Qué hacemos en un día lluvioso?", "o": ["Ver películas", "Dormir", "Cocinar", "Juegos"], "a": 0],
     ]
-
+    
     var body: some View {
         let myName = AuthService.shared.currentUser?.displayName ?? "Yo"
         let sender = docData["sender"] as? String ?? ""
@@ -702,6 +702,22 @@ private struct OnlineRPSView: View {
     }
 }
 
+// MARK: - Seeded RNG for cross-device consistency
+
+private struct SeededRandomNumberGenerator: RandomNumberGenerator {
+    private var state: UInt64
+
+    init(seed: Int) {
+        state = UInt64(bitPattern: Int64(seed))
+        state = state &* 6364136223846793005 &+ 1442695040888963407
+    }
+
+    mutating func next() -> UInt64 {
+        state = state &* 6364136223846793005 &+ 1442695040888963407
+        return state
+    }
+}
+
 // MARK: - Online Memorama
 
 private struct OnlineMemoramaView: View {
@@ -714,12 +730,13 @@ private struct OnlineMemoramaView: View {
     @State private var moves = 0
     @State private var finished = false
 
-    private let items: [String] = {
+    private var items: [String] {
         let base = ["❤️", "💍", "🌸", "🍫", "🧸", "🍷"]
         var all = base + base
-        all.shuffle()
+        var rng = SeededRandomNumberGenerator(seed: gameId.hash)
+        all.shuffle(using: &rng)
         return all
-    }()
+    }
 
     var body: some View {
         let myName = AuthService.shared.currentUser?.displayName ?? "Yo"
@@ -922,11 +939,11 @@ private struct LocalQuizView: View {
 
     private let questions: [[String: Any]] = [
         ["q": "¿Dónde fue nuestra primera cita oficial?", "o": ["Restaurante italiano", "El cine", "Un café acogedor", "Un parque"], "a": 2],
-        ["q": "¿Quién dijo \"te amo\" primero?", "o": ["Yo", "Mi pareja", "Ambos", "Nadie"], "a": 1],
+        ["q": "¿Quién dijo \"te amo\" primero?", "o": ["Yo", "Mi pareja", "Ambos", "Nadie"], "a": 0],
         ["q": "¿Cuál es nuestra comida favorita?", "o": ["Pizza", "Sushi", "Hamburguesas", "Tacos"], "a": 0],
         ["q": "¿Qué hacemos en un día lluvioso?", "o": ["Ver películas", "Dormir", "Cocinar", "Juegos"], "a": 0],
     ]
-
+    
     var body: some View {
         if showResult { resultView }
         else { quizContent }
