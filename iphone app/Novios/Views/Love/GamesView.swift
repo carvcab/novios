@@ -345,27 +345,6 @@ private struct GameSession: Identifiable {
     let data: [String: Any]
 }
 
-// MARK: - Game History View
-
-private struct GameHistoryView: View {
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                LiquidBackgroundView()
-                VStack(spacing: 32) {
-                    Image(systemName: "chart.bar.xaxis").font(.system(size: 48)).foregroundColor(ThemeManager.shared.primary.opacity(0.5))
-                    Text("Estadísticas e Historial").appFont(size: 20, weight: .bold).foregroundColor(ThemeManager.shared.textPrimary)
-                    Text("Próximamente disponible").appFont(size: 14).foregroundColor(.secondary)
-                }
-            }
-            .navigationTitle("Historial")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Cerrar") { dismiss() } } }
-        }
-    }
-    @Environment(\.dismiss) private var dismiss
-}
-
 // MARK: - Online Game View (Firestore synced)
 
 private struct OnlineGameView: View {
@@ -448,7 +427,7 @@ private struct OnlineQuizView: View {
 
     private let questions: [[String: Any]] = [
         ["q": "¿Dónde fue nuestra primera cita oficial?", "o": ["Restaurante italiano", "El cine", "Un café acogedor", "Un parque"], "a": 2],
-        ["q": "¿Quién dijo \"te amo\" primero?", "o": ["Yo", "Mi pareja", "Ambos", "Nadie"], "a": 0],
+        ["q": "¿Quién dijo \"te amo\" primero?", "o": ["Yo", "Mi pareja", "Ambos", "Nadie"], "a": 1],
         ["q": "¿Cuál es nuestra comida favorita?", "o": ["Pizza", "Sushi", "Hamburguesas", "Tacos"], "a": 0],
         ["q": "¿Qué hacemos en un día lluvioso?", "o": ["Ver películas", "Dormir", "Cocinar", "Juegos"], "a": 0],
     ]
@@ -943,7 +922,7 @@ private struct LocalQuizView: View {
 
     private let questions: [[String: Any]] = [
         ["q": "¿Dónde fue nuestra primera cita oficial?", "o": ["Restaurante italiano", "El cine", "Un café acogedor", "Un parque"], "a": 2],
-        ["q": "¿Quién dijo \"te amo\" primero?", "o": ["Yo", "Mi pareja", "Ambos", "Nadie"], "a": 0],
+        ["q": "¿Quién dijo \"te amo\" primero?", "o": ["Yo", "Mi pareja", "Ambos", "Nadie"], "a": 1],
         ["q": "¿Cuál es nuestra comida favorita?", "o": ["Pizza", "Sushi", "Hamburguesas", "Tacos"], "a": 0],
         ["q": "¿Qué hacemos en un día lluvioso?", "o": ["Ver películas", "Dormir", "Cocinar", "Juegos"], "a": 0],
     ]
@@ -973,10 +952,16 @@ private struct LocalQuizView: View {
         VStack(spacing: 16) {
             Image(systemName: score == questions.count ? "trophy.fill" : "heart.fill").font(.system(size: 56)).foregroundColor(score == questions.count ? .yellow : ThemeManager.shared.primary)
             Text("\(score) / \(questions.count)").appFont(size: 28, weight: .bold)
-            Text(score == questions.count ? "¡Perfecto! Conoces a tu pareja!" : "Sigue intentando!").appFont(size: 14).foregroundColor(.secondary)
-            Button("Cerrar") { if let t = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController }).first { var v = t; while let p = v.presentedViewController { v = p }; v.dismiss(animated: true) } }
+            Text(score == questions.count ? "¡Perfecto! Se conocen muy bien!" : "Sigan conociéndose!").appFont(size: 14).foregroundColor(.secondary)
+            Button("Cerrar") { dismissAll() }
                 .buttonStyle(.borderedProminent)
         }.padding(20)
+    }
+
+    private func dismissAll() {
+        if let t = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController }).first {
+            var v = t; while let p = v.presentedViewController { v = p }; v.dismiss(animated: true)
+        }
     }
 }
 
@@ -1146,146 +1131,278 @@ private struct LocalHangmanView: View {
 // MARK: - Love Dice
 
 private struct LoveDiceView: View {
-    @State private var action = "Toca para lanzar"
-    @State private var bodyPart = ""
+    @State private var actionIdx = 0
+    @State private var bodyPartIdx = 0
+    @State private var rolling = false
+    @State private var result = ""
 
-    private let actions = ["Besar", "Abrazar", "Acariciar", "Morder", "Masajear", "Hacer cosquillas"]
-    private let parts = ["Labios", "Cuello", "Manos", "Hombros", "Espalda", "Cabello"]
+    private let actions = ["Besar", "Acariciar", "Morder suave", "Masaje", "Soplar", "Hacer cosquillas", "Susurrar", "Lamer"]
+    private let bodyParts = ["en el Cuello", "en los Labios", "en la Espalda", "en las Manos", "en la Oreja", "en la Mejilla", "en la Frente", "en el Abdomen"]
 
     var body: some View {
         VStack(spacing: 24) {
-            GlassCard(cornerRadius: 20) {
-                VStack(spacing: 16) {
-                    Text("🎲").font(.system(size: 64))
-                    if !action.contains("lanzar") {
-                        Text(action).appFont(size: 22, weight: .bold).foregroundColor(Color(red: 1, green: 0.36, blue: 0.54))
-                        Text(bodyPart).appFont(size: 18).foregroundColor(.secondary)
-                    } else {
-                        Text(action).appFont(size: 16).foregroundColor(.secondary)
-                    }
-                }.padding(30)
+            Text("Lanza los dados y cumple el reto con tu pareja 🎲🔥")
+                .appFont(size: 14).foregroundColor(.secondary).multilineTextAlignment(.center)
+
+            HStack(spacing: 20) {
+                diceView(text: actions[actionIdx], colors: [Color(red: 1, green: 0.36, blue: 0.54), Color(red: 1, green: 0.54, blue: 0.67)])
+                diceView(text: bodyParts[bodyPartIdx], colors: [Color(red: 0.65, green: 0.55, blue: 0.98), Color(red: 0.77, green: 0.71, blue: 0.99)])
             }
-            Button("Lanzar Dados 🎲") {
-                action = actions.randomElement()!; bodyPart = parts.randomElement()!
-            }.buttonStyle(.borderedProminent).tint(Color(red: 0.93, green: 0.28, blue: 0.6))
+
+            if !result.isEmpty && !rolling {
+                GlassCard(cornerRadius: 16) {
+                    Text(result).appFont(size: 16, weight: .bold).foregroundColor(Color(red: 1, green: 0.36, blue: 0.54)).multilineTextAlignment(.center)
+                }.padding(.horizontal)
+            }
+
+            Button(rolling ? "Lanzando..." : "Lanzar Dados 🎲") {
+                rollDice()
+            }
+            .buttonStyle(.borderedProminent).tint(Color(red: 0.93, green: 0.28, blue: 0.6))
+            .disabled(rolling)
         }.padding(20)
+    }
+
+    private func diceView(text: String, colors: [Color]) -> some View {
+        RoundedRectangle(cornerRadius: 20)
+            .fill(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing))
+            .frame(width: 130, height: 130)
+            .shadow(color: colors[0].opacity(0.3), radius: 15)
+            .overlay(Text(text).appFont(size: 16, weight: .bold).foregroundColor(.white).multilineTextAlignment(.center).padding(8))
+    }
+
+    private func rollDice() {
+        rolling = true; result = ""
+        var count = 0
+        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
+            actionIdx = Int.random(in: 0..<actions.count)
+            bodyPartIdx = Int.random(in: 0..<bodyParts.count)
+            count += 1
+            if count >= 12 {
+                timer.invalidate()
+                rolling = false
+                result = "Debes hacer: \(actions[actionIdx]) \(bodyParts[bodyPartIdx]) 💖"
+            }
+        }
     }
 }
 
 // MARK: - Higher Card
 
 private struct HigherCardView: View {
-    @State private var myCard = ""; @State private var partnerCard = ""; @State private var result = "Toca para robar"
-    @State private var showResult = false
+    @State private var myValue: Int?; @State private var partnerValue: Int?
+    @State private var mySuit = "♥️"; @State private var partnerSuit = "♠️"
+    @State private var revealed = false; @State private var animating = false
+    @State private var result = "Toca para robar"
 
-    private let suits = ["♠️", "♥️", "♣️", "♦️"]
-    private let ranks = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"]
-    private let values: [String: Int] = ["2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,"J":11,"Q":12,"K":13,"A":14]
+    private let suits = ["♥️", "♦️", "♣️", "♠️"]
+    private let rankLabels = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
 
     var body: some View {
         VStack(spacing: 20) {
-            Text(result).appFont(size: 20, weight: .bold).foregroundColor(ThemeManager.shared.primary)
-            if showResult {
-                HStack(spacing: 40) {
-                    VStack { Text(myCard).font(.system(size: 48)); Text("Tú").appFont(size: 12) }
-                    Text("vs").appFont(size: 18).foregroundColor(.secondary)
-                    VStack { Text(partnerCard).font(.system(size: 48)); Text("Pareja").appFont(size: 12) }
+            Text("Quien saque la carta más alta manda y pone un reto picante al otro 🃏🌶️")
+                .appFont(size: 13).foregroundColor(.secondary).multilineTextAlignment(.center)
+
+            HStack(spacing: 30) {
+                cardView(value: myValue, suit: mySuit, label: "Tú", revealed: revealed, animating: animating)
+                Text("VS").appFont(size: 20, weight: .black).foregroundColor(ThemeManager.shared.primary)
+                cardView(value: partnerValue, suit: partnerSuit, label: "Tu Pareja", revealed: revealed, animating: animating)
+            }
+
+            if revealed, let mv = myValue, let pv = partnerValue {
+                GlassCard(cornerRadius: 16) {
+                    Text(mv > pv ? "¡Ganaste! Ponle un reto picante a tu pareja 😈" : (mv < pv ? "¡Tu pareja gana! Te toca cumplir su reto 😳" : "¡Empate! Roben de nuevo 🤝"))
+                        .appFont(size: 14, weight: .bold).foregroundColor(ThemeManager.shared.primary).multilineTextAlignment(.center)
+                }.padding(.horizontal)
+            }
+
+            Button(animating ? "Barajando..." : "Robar Carta 🃏") { drawCards() }
+                .buttonStyle(.borderedProminent).tint(Color(red: 0.55, green: 0.35, blue: 0.96))
+                .disabled(animating)
+        }.padding(20)
+    }
+
+    private func cardView(value: Int?, suit: String, label: String, revealed: Bool, animating: Bool) -> some View {
+        VStack(spacing: 8) {
+            Text(label).appFont(size: 12, weight: .bold).foregroundColor(ThemeManager.shared.primary)
+            ZStack {
+                if animating {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 100, height: 140)
+                        .overlay(ProgressView().scaleEffect(0.8))
+                } else if !revealed || value == nil {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(LinearGradient(colors: [Color(red: 0.94, green: 0.33, blue: 0.31), Color(red: 0.82, green: 0.18, blue: 0.18)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 100, height: 140)
+                        .overlay(Image(systemName: "heart.fill").foregroundColor(.white).font(.system(size: 30)))
+                } else {
+                    let isRed = suit == "♥️" || suit == "♦️"
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.white)
+                        .frame(width: 100, height: 140)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.gray.opacity(0.3)))
+                        .overlay(VStack(spacing: 4) {
+                            Text(rankLabels[(value ?? 2) - 1]).font(.system(size: 20, weight: .bold)).foregroundColor(isRed ? .red : .black)
+                            Text(suit).font(.system(size: 30))
+                            Text(rankLabels[(value ?? 2) - 1]).font(.system(size: 20, weight: .bold)).foregroundColor(isRed ? .red : .black)
+                        })
                 }
             }
-            Button("Robar Carta 🃏") {
-                myCard = "\(ranks.randomElement()!)\(suits.randomElement()!)"
-                partnerCard = "\(ranks.randomElement()!)\(suits.randomElement()!)"
-                showResult = true
-                let mv = values[String(myCard.dropLast())] ?? 0
-                let pv = values[String(partnerCard.dropLast())] ?? 0
-                if mv > pv { result = "¡Ganaste! 🎉" }
-                else if mv < pv { result = "Perdiste 😢" }
-                else { result = "¡Empate!" }
-            }.buttonStyle(.borderedProminent).tint(Color(red: 0.55, green: 0.35, blue: 0.96))
-        }.padding(20)
+        }
+    }
+
+    private func drawCards() {
+        animating = true; revealed = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            var mv = Int.random(in: 1...13)
+            var pv = Int.random(in: 1...13)
+            if mv == pv { pv = (pv % 13) + 1 }
+            myValue = mv; partnerValue = pv
+            mySuit = suits.randomElement()!; partnerSuit = suits.randomElement()!
+            revealed = true; animating = false
+        }
     }
 }
 
 // MARK: - Would You Rather
 
 private struct WouldYouRatherView: View {
-    @State private var q = 0; @State private var answers: [String] = []; @State private var showResult = false
+    @State private var q = 0; @State private var selected: String?
+    @State private var finished = false
 
-    private let questions = [
-        ("¿Prefieres una cena romántica o una aventura? ❤️", "Cena romántica 🍝", "Aventura emocionante 🎢"),
-        ("¿Película en casa o salir al cine? 🎬", "Película en casa 🏠", "Salir al cine 🎥"),
-        ("¿Viaje a la playa o a la montaña? 🌴", "Playa 🌊", "Montaña ⛰️"),
-        ("¿Desayuno en la cama o sorpresa? ☕", "Desayuno 🥐", "Sorpresa 🎁"),
-        ("¿Mensaje dulce o llamada inesperada? 💌", "Mensaje 💬", "Llamada 📞"),
-        ("¿Bailar juntos o cantar juntos? 🎵", "Bailar 💃", "Cantar 🎤"),
+    private let questions: [(a: String, b: String)] = [
+        ("Viajar juntos a una isla desierta 🏝️", "Fin de semana entero abrazados con lluvia en casa 🌧️"),
+        ("Un masaje sensual de 1 hora de tu pareja 💆", "Una cena gourmet cocinada por tu pareja a la luz de velas 🕯️"),
+        ("Que tu pareja te bese apasionadamente en público 💋", "Un susurro atrevido al oído en privado 🤫"),
+        ("Dormir completamente abrazados toda la noche 🤗", "Dormir separados pero tomados de la mano 🤝"),
+        ("Hacer un divertido juego de rol atrevido 🎭", "Una larga sesión de besos con los ojos vendados 🙈"),
+        ("Besos infinitos en el cuello 👄", "Caricias y cosquillas por todo el cuerpo ✨"),
     ]
 
     var body: some View {
-        if showResult { resultView }
-        else { questionView }
-    }
-
-    private var questionView: some View {
         VStack(spacing: 20) {
-            Text("Pregunta \(q + 1) de \(questions.count)").appFont(size: 12).foregroundColor(.secondary)
-            Text(questions[q].0).appFont(size: 17, weight: .semibold).multilineTextAlignment(.center).padding(.horizontal)
-            Button(questions[q].1) { answer(questions[q].1) }.buttonStyle(.borderedProminent).tint(Color(red: 0.23, green: 0.51, blue: 0.96))
-            Button(questions[q].2) { answer(questions[q].2) }.buttonStyle(.borderedProminent).tint(Color(red: 0.02, green: 0.71, blue: 0.83))
+            if finished {
+                VStack(spacing: 16) {
+                    Image(systemName: "heart.fill").font(.system(size: 56)).foregroundColor(ThemeManager.shared.primary)
+                    Text("¡Completaron el quiz! 🎉").appFont(size: 20, weight: .bold)
+                    Text("Ahora comparen sus respuestas").appFont(size: 14).foregroundColor(.secondary)
+                    Button("Cerrar") { dismissAll() }.buttonStyle(.borderedProminent)
+                }.padding(20)
+            } else {
+                Text("Elijan individualmente y comparen sus respuestas 🤔💬")
+                    .appFont(size: 13).foregroundColor(.secondary).multilineTextAlignment(.center)
+
+                Text("Pregunta \(q + 1) de \(questions.count)").appFont(size: 12).foregroundColor(.secondary)
+
+                Button(questions[q].a) {
+                    selected = "A"
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { next() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(selected == "A" ? Color(red: 1, green: 0.36, blue: 0.54) : Color(red: 1, green: 0.36, blue: 0.54).opacity(0.4))
+                .frame(maxWidth: .infinity, minHeight: 100)
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(selected == "A" ? Color.white : Color.clear, lineWidth: 3))
+
+                Text("Ó").appFont(size: 18, weight: .bold).foregroundColor(ThemeManager.shared.primary)
+
+                Button(questions[q].b) {
+                    selected = "B"
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { next() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(selected == "B" ? Color(red: 0.26, green: 0.65, blue: 0.96) : Color(red: 0.26, green: 0.65, blue: 0.96).opacity(0.4))
+                .frame(maxWidth: .infinity, minHeight: 100)
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(selected == "B" ? Color.white : Color.clear, lineWidth: 3))
+            }
         }.padding(20)
     }
 
-    private func answer(_ a: String) {
-        answers.append(a)
-        if q < questions.count - 1 { q += 1 }
-        else { showResult = true }
+    private func next() {
+        if q < questions.count - 1 { q += 1; selected = nil }
+        else { finished = true }
     }
 
-    private var resultView: some View {
-        VStack(spacing: 16) {
-            Text("¡Completaron el quiz! 🎉").appFont(size: 20, weight: .bold)
-            Text("Ahora comparen sus respuestas").appFont(size: 14).foregroundColor(.secondary)
-            Button("Cerrar") {
-                if let t = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController }).first { var v = t; while let p = v.presentedViewController { v = p }; v.dismiss(animated: true) }
-            }.buttonStyle(.borderedProminent)
-        }.padding(20)
+    private func dismissAll() {
+        if let t = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController }).first {
+            var v = t; while let p = v.presentedViewController { v = p }; v.dismiss(animated: true)
+        }
     }
 }
 
 // MARK: - Love Roulette
 
 private struct LoveRouletteView: View {
-    @State private var spinning = false; @State private var result = "Gira la ruleta 🎡"
-    @State private var angle: Double = 0
+    @State private var spinning = false; @State private var result: String?
+    @State private var rotation: Double = 0
 
-    private let options = ["💋 Beso", "❤️ Te Amo", "💃 Baila", "🎤 Canta", "😂 Cuenta un chiste", "🤗 Abrazo"]
+    private let sectors: [(label: String, color: Color)] = [
+        ("Abrazo 30s 🤗", Color(red: 1, green: 0.36, blue: 0.54)),
+        ("Secreto Íntimo 🤫", Color(red: 0.65, green: 0.55, blue: 0.98)),
+        ("Beso en el cuello 💋", Color(red: 1, green: 0.72, blue: 0.3)),
+        ("Cumplido Picante 🔥", Color(red: 0.26, green: 0.65, blue: 0.96)),
+        ("Beso apasionado 👄", Color(red: 0.94, green: 0.33, blue: 0.31)),
+        ("Masaje express 💆", Color(red: 0.4, green: 0.73, blue: 0.42)),
+    ]
 
     var body: some View {
         VStack(spacing: 24) {
-            Text("Ruleta del Amor").appFont(size: 20, weight: .bold)
+            Text("Giren la ruleta y cumplan lo que el destino elija 🎡💕")
+                .appFont(size: 14).foregroundColor(.secondary).multilineTextAlignment(.center)
+
             ZStack {
                 ForEach(0..<6, id: \.self) { i in
-                    let startAngle = Angle.degrees(Double(i) * 60)
-                    let endAngle = Angle.degrees(Double(i + 1) * 60)
-                    PieShape(startAngle: startAngle, endAngle: endAngle)
-                        .fill(Color(hue: Double(i) / 6, saturation: 0.5, brightness: 0.9))
+                    PieShape(startAngle: .degrees(Double(i) * 60), endAngle: .degrees(Double(i + 1) * 60))
+                        .fill(sectors[i].color)
                 }
-                Circle().fill(Color.white).frame(width: 40, height: 40)
-                Image(systemName: "heart.fill").foregroundColor(ThemeManager.shared.primary)
+                Circle().fill(Color.white).frame(width: 20, height: 20)
+                ForEach(0..<6, id: \.self) { i in
+                    let angle = Double(i) * 60 + 30
+                    Text(sectors[i].label)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white)
+                        .rotationEffect(.degrees(angle))
+                        .offset(x: 70 * cos(CGFloat(angle) * .pi / 180))
+                }
             }
             .frame(width: 200, height: 200)
-            .rotationEffect(.degrees(angle))
-            .animation(.easeOut(duration: 2), value: angle)
+            .rotationEffect(.degrees(rotation))
+            .animation(.easeOut(duration: 3), value: rotation)
+            .overlay(alignment: .top) {
+                Image(systemName: "arrowtriangle.down.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(ThemeManager.shared.primary)
+                    .offset(y: -12)
+            }
 
-            Text(result == "Gira la ruleta 🎡" ? result : "\(result)").appFont(size: 18).foregroundColor(ThemeManager.shared.primary)
+            if let r = result {
+                GlassCard(cornerRadius: 16) {
+                    Text("¡Te tocó: \(r)! 🔥")
+                        .appFont(size: 16, weight: .bold)
+                        .foregroundColor(ThemeManager.shared.primary)
+                        .multilineTextAlignment(.center)
+                }.padding(.horizontal)
+            }
 
-            Button(result.contains("Gira") ? "¡Girar! 🎡" : "Girar de nuevo") {
-                spinning = true; angle += 720 + Double.random(in: 0...360)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                    let idx = Int.random(in: 0..<6); result = options[idx]
-                }
-            }.buttonStyle(.borderedProminent).tint(Color(red: 0.06, green: 0.73, blue: 0.51))
+            Button(spinning ? "Girando..." : (result == nil ? "Girar Ruleta 🎡" : "Girar de nuevo")) { spin() }
+                .buttonStyle(.borderedProminent).tint(Color(red: 0.06, green: 0.73, blue: 0.51))
                 .disabled(spinning)
         }.padding(20)
+    }
+
+    private func spin() {
+        spinning = true; result = nil
+        let extraSpins = Double(Int.random(in: 5...10))
+        let targetSector = Int.random(in: 0..<sectors.count)
+        let sectorAngle = 360.0 / Double(sectors.count)
+        let finalRotation = rotation + (extraSpins * 360) + (Double(targetSector) * sectorAngle)
+        rotation = finalRotation
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            let finalIndex = (sectors.count - targetSector) % sectors.count
+            result = sectors[finalIndex].label
+            spinning = false
+        }
     }
 }
 
@@ -1305,60 +1422,63 @@ private struct PieShape: Shape {
 // MARK: - Never Have I Ever
 
 private struct NeverHaveIEverView: View {
-    @State private var q = 0; @State private var showResult = false
+    @State private var q = 0; @State private var answered = false
+    @State private var choice: String?
 
     private let statements = [
-        "Nunca he mentido para quedar bien contigo",
-        "Nunca he revisado tu teléfono",
-        "Nunca he fingido estar de acuerdo solo para evitarte un disgusto",
-        "Nunca he comparado nuestra relación con la de otros",
-        "Nunca he guardado silencio cuando debería haber hablado",
-        "Nunca he preferido estar solo a estar contigo",
-        "Nunca he olvidado una fecha importante para nosotros",
-        "Nunca he dicho 'estoy bien' cuando no lo estaba",
-        "Nunca he pensado en alguien más estando contigo",
-        "Nunca he dejado de decir 'te amo' por costumbre",
+        "Nunca nunca me he puesto celoso/a sin decirlo.",
+        "Nunca nunca he tenido una fantasía atrevida con mi pareja en el trabajo.",
+        "Nunca nunca he fingido estar dormido/a para no hablar.",
+        "Nunca nunca he tomado una foto atrevida para enviársela a mi pareja.",
+        "Nunca nunca he mirado el celular de mi pareja mientras dormía.",
+        "Nunca nunca he querido repetir nuestra primera cita exactamente igual.",
+        "Nunca nunca he soñado algo picante con mi pareja y no se lo he contado.",
+        "Nunca nunca he mentido sobre que me gusta un regalo de mi pareja.",
+        "Nunca nunca me he reído durante un momento romántico o íntimo.",
+        "Nunca nunca he buscado el nombre de mi pareja en Google."
     ]
 
     var body: some View {
-        if showResult { resultView }
-        else { statementView }
-    }
-
-    private var statementView: some View {
         VStack(spacing: 20) {
+            Text("Sean honestos y respondan juntos 🍷😈")
+                .appFont(size: 13).foregroundColor(.secondary).multilineTextAlignment(.center)
+
             Text("\(q + 1) de \(statements.count)").appFont(size: 12).foregroundColor(.secondary)
-            Text(statements[q]).appFont(size: 18, weight: .semibold).multilineTextAlignment(.center).padding()
-            HStack(spacing: 20) {
-                Button("Nunca 🤥") {
-                    if q < statements.count - 1 { q += 1 } else { showResult = true }
-                }.buttonStyle(.borderedProminent).tint(Color(red: 0.96, green: 0.62, blue: 0.04))
-                Button("Sí, una vez 🫣") {
-                    if q < statements.count - 1 { q += 1 } else { showResult = true }
-                }.buttonStyle(.borderedProminent).tint(Color(red: 0.98, green: 0.73, blue: 0.14))
+
+            GlassCard(cornerRadius: 20, padding: 24) {
+                Text(statements[q])
+                    .appFont(size: 20, weight: .bold)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(ThemeManager.shared.textPrimary)
+                    .lineSpacing(6)
+            }
+
+            if !answered {
+                HStack(spacing: 16) {
+                    Button("Yo Nunca 😇") {
+                        choice = "Yo Nunca 😇"; answered = true
+                    }
+                    .buttonStyle(.bordered).tint(.green)
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.green, lineWidth: 2))
+                    Button("¡Yo Sí! 😈") {
+                        choice = "¡Yo Sí! 😈"; answered = true
+                    }
+                    .buttonStyle(.bordered).tint(.red)
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.red, lineWidth: 2))
+                }
+            } else {
+                GlassCard(cornerRadius: 12) {
+                    Text("Elegiste: \(choice ?? "")")
+                        .appFont(size: 15, weight: .semibold)
+                        .foregroundColor(choice?.contains("Sí") == true ? .red : .green)
+                }
+                Button("Siguiente Frase ➡️") {
+                    q = (q + 1) % statements.count; answered = false; choice = nil
+                }
+                .buttonStyle(.borderedProminent).tint(Color(red: 0.96, green: 0.62, blue: 0.04))
             }
         }.padding(20)
     }
-
-    private var resultView: some View {
-        VStack(spacing: 16) {
-            Text("🍷").font(.system(size: 64))
-            Text("¡Completaron el juego!").appFont(size: 20, weight: .bold)
-            Text("Ahora compartan sus historias").appFont(size: 14).foregroundColor(.secondary)
-            Button("Cerrar") { if let t = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController }).first { var v = t; while let p = v.presentedViewController { v = p }; v.dismiss(animated: true) } }
-                .buttonStyle(.borderedProminent)
-        }.padding(20)
-    }
 }
 
-// MARK: - Spicy Games
 
-private struct SpicyGamesView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "flame.fill").font(.system(size: 48)).foregroundColor(Color(red: 1, green: 0.36, blue: 0.54))
-            Text("Zona Picante 🔥").appFont(size: 20, weight: .bold)
-            Text("Próximamente disponible").appFont(size: 14).foregroundColor(.secondary)
-        }.padding(20)
-    }
-}
