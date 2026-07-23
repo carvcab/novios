@@ -23,7 +23,7 @@ public struct UserModel: Identifiable, Codable, Equatable {
         ultimoAcceso: Date? = Date(),
         tokenFCM: String = "",
         configuracionPersonal: String = "{}",
-        parejaId: String = "pareja_001"
+        parejaId: String = CoupleService.coupleId
     ) {
         self.id = id
         self.nombre = nombre
@@ -77,7 +77,7 @@ public struct UserModel: Identifiable, Codable, Equatable {
             ultimoAcceso: dateVal("ultimoAcceso"),
             tokenFCM: s("tokenFCM"),
             configuracionPersonal: s("configuracionPersonal"),
-            parejaId: s("parejaId").isEmpty ? "pareja_001" : s("parejaId")
+            parejaId: s("parejaId").isEmpty ? CoupleService.coupleId : s("parejaId")
         )
     }
 }

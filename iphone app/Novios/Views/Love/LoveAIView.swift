@@ -49,7 +49,7 @@ public struct LoveAIView: View {
             ZStack {
                 LiquidBackgroundView()
 
-                ScrollView(showsIndicators: false) {
+                ScrollView {
                     VStack(spacing: 16) {
                         warningBanner
                         tabGrid
@@ -70,13 +70,27 @@ public struct LoveAIView: View {
 
     @ViewBuilder
     private var warningBanner: some View {
-        if !aiService.hasApiKey {
+        if aiService.currentMode == .deepseek && !aiService.hasApiKey {
             GlassCard(cornerRadius: 14) {
                 HStack(spacing: 10) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 18))
                         .foregroundColor(.orange)
-                    Text("No hay API key configurada. Ve a Ajustes > IA para configurarla.")
+                    Text("No hay API key configurada. Ve a Ajustes > IA para configurarla o cambia a modo Local.")
+                        .appFont(size: 12)
+                        .foregroundColor(theme.textSecondary)
+                        .lineLimit(2)
+                    Spacer()
+                }
+            }
+            .padding(.top, 4)
+        } else if aiService.currentMode == .local {
+            GlassCard(cornerRadius: 14) {
+                HStack(spacing: 10) {
+                    Image(systemName: "brain.head.profile")
+                        .font(.system(size: 16))
+                        .foregroundColor(theme.pastelMint)
+                    Text("Modo Local activo — sin necesidad de internet ni API key.")
                         .appFont(size: 12)
                         .foregroundColor(theme.textSecondary)
                         .lineLimit(2)
@@ -269,7 +283,7 @@ public struct LoveAIView: View {
     }
 
     private var canGenerate: Bool {
-        if !aiService.hasApiKey { return false }
+        guard aiService.canGenerate else { return false }
         switch activeTab {
         case "letter": return !keywords.trimmingCharacters(in: .whitespaces).isEmpty
         case "poem": return !topic.trimmingCharacters(in: .whitespaces).isEmpty
@@ -355,7 +369,6 @@ public struct LoveAIView: View {
     // MARK: - Generate Logic
 
     private func generate() {
-        guard aiService.hasApiKey else { return }
         generating = true
         resultText = ""
 

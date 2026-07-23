@@ -248,7 +248,6 @@ public struct WishlistView: View {
                     }
                 }
             }
-            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 16))
             .swipeActions(edge: .trailing) {
                 Button(role: .destructive) {
                     deleteItem(at: index)

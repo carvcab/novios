@@ -67,41 +67,88 @@ public class AIService: ObservableObject {
         return content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    public var canGenerate: Bool {
+        switch currentMode {
+        case .deepseek: return hasApiKey
+        case .local: return true
+        }
+    }
+
     // MARK: - AI Functions
 
     public func generateLetter(tone: String, keywords: String) async throws -> String {
-        return try await deepseekRequest(messages: [
-            ["role": "system", "content": "Eres un asistente romántico que escribe cartas de amor personalizadas. Responde SOLO con la carta, sin explicaciones."],
-            ["role": "user", "content": "Escribe una carta de amor con tono \(tone) que incluya estas palabras clave: \(keywords)"]
-        ], temperature: 0.9)
+        switch currentMode {
+        case .deepseek:
+            return try await deepseekRequest(messages: [
+                ["role": "system", "content": "Eres un asistente romántico que escribe cartas de amor personalizadas. Responde SOLO con la carta, sin explicaciones."],
+                ["role": "user", "content": "Escribe una carta de amor con tono \(tone) que incluya estas palabras clave: \(keywords)"]
+            ], temperature: 0.9)
+        case .local:
+            if LocalAIService.shared.isDownloaded {
+                throw AIError.localModelNotImplemented
+            }
+            return LocalAIService.shared.fallbackLetter(tone: tone)
+        }
     }
 
     public func chat(prompt: String) async throws -> String {
-        return try await deepseekRequest(messages: [
-            ["role": "system", "content": "Eres un asistente de pareja amigable y romántico. Ayudas a parejas a comunicarse mejor y a tener ideas creativas para su relación."],
-            ["role": "user", "content": prompt]
-        ])
+        switch currentMode {
+        case .deepseek:
+            return try await deepseekRequest(messages: [
+                ["role": "system", "content": "Eres un asistente de pareja amigable y romántico. Ayudas a parejas a comunicarse mejor y a tener ideas creativas para su relación."],
+                ["role": "user", "content": prompt]
+            ])
+        case .local:
+            if LocalAIService.shared.isDownloaded {
+                throw AIError.localModelNotImplemented
+            }
+            return LocalAIService.shared.fallbackQuestion(question: prompt)
+        }
     }
 
     public func suggestDate(type: String, budget: String) async throws -> String {
-        return try await deepseekRequest(messages: [
-            ["role": "system", "content": "Eres un experto en planes románticos para parejas. Sugiere ideas creativas y detalladas."],
-            ["role": "user", "content": "Sugiere una cita \(type) con presupuesto \(budget). Incluye detalles como lugar, actividades y consejos."]
-        ])
+        switch currentMode {
+        case .deepseek:
+            return try await deepseekRequest(messages: [
+                ["role": "system", "content": "Eres un experto en planes románticos para parejas. Sugiere ideas creativas y detalladas."],
+                ["role": "user", "content": "Sugiere una cita \(type) con presupuesto \(budget). Incluye detalles como lugar, actividades y consejos."]
+            ])
+        case .local:
+            if LocalAIService.shared.isDownloaded {
+                throw AIError.localModelNotImplemented
+            }
+            return LocalAIService.shared.fallbackDate(type: type, budget: budget)
+        }
     }
 
     public func suggestGift(occasion: String) async throws -> String {
-        return try await deepseekRequest(messages: [
-            ["role": "system", "content": "Eres un experto en regalos románticos. Sugiere ideas originales y significativas."],
-            ["role": "user", "content": "Sugiere un regalo romántico para \(occasion). Explica por qué es especial."]
-        ])
+        switch currentMode {
+        case .deepseek:
+            return try await deepseekRequest(messages: [
+                ["role": "system", "content": "Eres un experto en regalos románticos. Sugiere ideas originales y significativas."],
+                ["role": "user", "content": "Sugiere un regalo romántico para \(occasion). Explica por qué es especial."]
+            ])
+        case .local:
+            if LocalAIService.shared.isDownloaded {
+                throw AIError.localModelNotImplemented
+            }
+            return LocalAIService.shared.fallbackGift(occasion: occasion)
+        }
     }
 
     public func generatePoem(style: String, topic: String) async throws -> String {
-        return try await deepseekRequest(messages: [
-            ["role": "system", "content": "Eres un poeta romántico. Escribe poemas originales y emotivos."],
-            ["role": "user", "content": "Escribe un poema de amor en estilo \(style) sobre \(topic)"]
-        ], temperature: 0.95)
+        switch currentMode {
+        case .deepseek:
+            return try await deepseekRequest(messages: [
+                ["role": "system", "content": "Eres un poeta romántico. Escribe poemas originales y emotivos."],
+                ["role": "user", "content": "Escribe un poema de amor en estilo \(style) sobre \(topic)"]
+            ], temperature: 0.95)
+        case .local:
+            if LocalAIService.shared.isDownloaded {
+                throw AIError.localModelNotImplemented
+            }
+            return LocalAIService.shared.fallbackPoem(style: style, topic: topic)
+        }
     }
 }
 
@@ -110,6 +157,7 @@ public enum AIError: Error, LocalizedError {
     case serverError
     case invalidResponse
     case noInternet
+    case localModelNotImplemented
 
     public var errorDescription: String? {
         switch self {
@@ -117,6 +165,7 @@ public enum AIError: Error, LocalizedError {
         case .serverError: return "Error del servidor de DeepSeek. Intenta más tarde."
         case .invalidResponse: return "Respuesta inválida del servidor."
         case .noInternet: return "Sin conexión a internet."
+        case .localModelNotImplemented: return "El modelo local está descargado pero la inferencia local aún no está implementada. Usa el modo DeepSeek API mientras tanto."
         }
     }
 }

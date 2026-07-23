@@ -340,7 +340,7 @@ public struct MessagesView: View {
 
         // Try parejas doc for partner-synced dates
         var dates: [String: Date] = [:]
-        if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "parejas/pareja_001"),
+        if let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(CoupleService.coupleId)"),
            let fields = doc["fields"] as? [String: Any] {
             for (_, fsKey, _) in dateKeys {
                 if let val = (fields[fsKey] as? [String: Any])?["stringValue"] as? String,

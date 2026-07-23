@@ -465,7 +465,7 @@ public struct ProfileView: View {
         let todayStr = df.string(from: Date())
         Task {
             try? await FirebaseRESTService.shared.firestoreSet(
-                path: "parejas/\(CoupleService.parejaId)/datos/streak",
+                path: "couples/\(CoupleService.coupleId)/data/streak",
                 fields: [
                     "count": streak,
                     "lastDate": todayStr
@@ -501,14 +501,14 @@ public struct ProfileView: View {
             ]
         }
         try? await FirebaseRESTService.shared.firestoreSet(
-            path: "parejas/\(CoupleService.parejaId)/datos/fechas",
+            path: "couples/\(CoupleService.coupleId)/data/dates",
             fields: ["lista": dicts]
         )
     }
 
     private func loadImportantDatesFromFirestore() async {
         guard let doc = try? await FirebaseRESTService.shared.firestoreGet(
-            path: "parejas/\(CoupleService.parejaId)/datos/fechas"
+            path: "couples/\(CoupleService.coupleId)/data/dates"
         ),
         let fields = doc["fields"] as? [String: Any],
         let arrayVal = fields["lista"] as? [String: Any],
@@ -577,7 +577,7 @@ public struct ProfileView: View {
         let base64 = data.base64EncodedString()
         guard let uid = auth.currentUser?.id else { return }
         try? await FirebaseRESTService.shared.firestoreSet(
-            path: "usuarios/\(uid)",
+            path: "users/\(uid)",
             fields: ["foto": base64]
         )
         await MainActor.run {

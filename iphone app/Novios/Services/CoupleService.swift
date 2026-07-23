@@ -5,11 +5,14 @@ import FirebaseFirestore
 public class CoupleService: ObservableObject {
     public static let shared = CoupleService()
 
-    public static let parejaId = "pareja_001"
     public static let diegoUid = "joeBcVn2o1hfXfU68rWNOyAZIqt2"
     public static let yosmariUid = "Dd1X94n3gxg7leWtMtnLlxDVHcm2"
     public static let diegoName = "Diego"
     public static let yosmariName = "Yosmari"
+
+    public static var coupleId: String {
+        [diegoUid, yosmariUid].sorted().joined(separator: "_")
+    }
 
     @Published public var coupleName = "Diego 💞 Yosmari"
     @Published public var members: [String] = [diegoUid, yosmariUid]
@@ -32,27 +35,27 @@ public class CoupleService: ObservableObject {
     public var partnerName: String { currentUid == Self.diegoUid ? Self.yosmariName : Self.diegoName }
     public var coupleDisplayName: String { "Diego 💞 Yosmari" }
 
-    public var parejaPath: String { "parejas/\(Self.parejaId)" }
+    public var parejaPath: String { "couples/\(Self.coupleId)" }
 
     public var chatPath: String { "\(parejaPath)/chat" }
-    public var cartasPath: String { "\(parejaPath)/cartas" }
+    public var cartasPath: String { "\(parejaPath)/letters" }
     public var albumPath: String { "\(parejaPath)/album" }
-    public var recuerdosPath: String { "\(parejaPath)/recuerdos" }
-    public var ubicacionPath: String { "\(parejaPath)/ubicacion" }
-    public var lugaresPath: String { "\(parejaPath)/lugares" }
-    public var calendarioPath: String { "\(parejaPath)/calendario" }
-    public var eventosPath: String { "\(parejaPath)/eventos" }
-    public var metasPath: String { "\(parejaPath)/metas" }
-    public var logrosPath: String { "\(parejaPath)/logros" }
-    public var estadisticasPath: String { "\(parejaPath)/estadisticas" }
-    public var capsulaPath: String { "\(parejaPath)/capsula" }
-    public var notificacionesPath: String { "\(parejaPath)/notificaciones" }
-    public var configuracionPath: String { "\(parejaPath)/configuracion" }
-    public var diarioPath: String { "\(parejaPath)/diario" }
-    public var musicaPath: String { "\(parejaPath)/musica" }
-    public var juegosPath: String { "\(parejaPath)/juegos" }
-    public var citasPath: String { "\(parejaPath)/citas" }
-    public var rutasPath: String { "\(parejaPath)/rutas" }
+    public var recuerdosPath: String { "\(parejaPath)/memories" }
+    public var ubicacionPath: String { "\(parejaPath)/location" }
+    public var lugaresPath: String { "\(parejaPath)/places" }
+    public var calendarioPath: String { "\(parejaPath)/calendar" }
+    public var eventosPath: String { "\(parejaPath)/events" }
+    public var metasPath: String { "\(parejaPath)/goals" }
+    public var logrosPath: String { "\(parejaPath)/achievements" }
+    public var estadisticasPath: String { "\(parejaPath)/stats" }
+    public var capsulaPath: String { "\(parejaPath)/capsules" }
+    public var notificacionesPath: String { "\(parejaPath)/notifications" }
+    public var configuracionPath: String { "\(parejaPath)/config" }
+    public var diarioPath: String { "\(parejaPath)/journal" }
+    public var musicaPath: String { "\(parejaPath)/music" }
+    public var juegosPath: String { "\(parejaPath)/games" }
+    public var citasPath: String { "\(parejaPath)/date_ideas" }
+    public var rutasPath: String { "\(parejaPath)/routes" }
     public var todoPath: String { "\(parejaPath)/todo" }
 
     private var coupleListener: ListenerRegistration?
@@ -212,10 +215,9 @@ public class CoupleService: ObservableObject {
     public func ensureParejaDocExists() async {
         let now = ISO8601DateFormatter().string(from: Date())
         try? await FirebaseRESTService.shared.firestoreSet(path: parejaPath, fields: [
-            "nombre": coupleDisplayName,
-            "fechaRelacion": now,
-            "miembros": [Self.diegoUid, Self.yosmariUid],
-            "creado": now,
+            "names": ["Diego", "Yosmari"],
+            "members": [Self.diegoUid, Self.yosmariUid],
+            "createdAt": now,
         ])
     }
 

@@ -30,8 +30,7 @@ public struct SettingsView: View {
 
     @State private var aiMode = 0
     @State private var deepseekKey = ""
-    @State private var isDownloadingModel = false
-    @State private var modelDownloaded = false
+    @ObservedObject private var localAI = LocalAIService.shared
     @State private var showLocationPermissionAlert = false
     @State private var showUnlinkConfirm = false
 
@@ -277,10 +276,10 @@ public struct SettingsView: View {
         guard let uid = AuthService.shared.currentUser?.id,
               let lat = locationService.lastLatitude,
               let lng = locationService.lastLongitude else { return }
-        let parejaId = CoupleService.parejaId
+        let coupleId = CoupleService.coupleId
         let msgId = UUID().uuidString
         Task {
-            try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(parejaId)/checkins/\(msgId)", fields: [
+            try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(coupleId)/checkins/\(msgId)", fields: [
                 "userId": uid,
                 "message": message,
                 "latitude": lat,
@@ -411,17 +410,29 @@ public struct SettingsView: View {
                         VStack(spacing: 10) {
                             HStack(spacing: 8) {
                                 Image(systemName: "iphone.gen3").foregroundColor(theme.pastelMint)
-                                Text("El modelo DeepSeek R1 1.5B se descarga una vez y corre 100% offline")
+                                Text("DeepSeek R1 1.5B — corre 100% offline tras descargarlo")
                                     .appFont(size: 11).foregroundColor(theme.pastelMint)
                             }
-                            if modelDownloaded {
+                            if localAI.isLoading {
+                                VStack(spacing: 8) {
+                                    ProgressView(value: localAI.downloadProgress)
+                                        .progressViewStyle(LinearProgressViewStyle(tint: theme.pastelMint))
+                                    Text(localAI.statusText)
+                                        .appFont(size: 11).foregroundColor(theme.textSecondary)
+                                    Button {
+                                        localAI.cancelDownload()
+                                    } label: {
+                                        Text("Cancelar descarga")
+                                            .appFont(size: 12).foregroundColor(.red)
+                                    }
+                                }
+                            } else if localAI.isDownloaded {
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill").foregroundColor(theme.pastelMint)
                                     Text("Modelo instalado y listo").appFont(size: 12, weight: .bold).foregroundColor(theme.pastelMint)
                                 }
                                 Button {
-                                    modelDownloaded = false
-                                    defaults.set(false, forKey: "model_downloaded")
+                                    localAI.deleteModel()
                                 } label: {
                                     Label("Eliminar modelo", systemImage: "trash")
                                         .appFont(size: 13).foregroundColor(.red)
@@ -430,20 +441,14 @@ public struct SettingsView: View {
                                 }
                             } else {
                                 VStack(spacing: 6) {
-                                    Text("El modelo local requiere ~1.1 GB de espacio. La descarga se realiza en segundo plano.")
+                                    Text("Requiere ~1.1 GB de espacio. La descarga se realiza en segundo plano y puedes cerrar la app.")
                                         .appFont(size: 10).foregroundColor(theme.textSecondary).multilineTextAlignment(.center)
                                     Button {
-                                        isDownloadingModel = true
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                            isDownloadingModel = false
-                                            modelDownloaded = true
-                                            defaults.set(true, forKey: "model_downloaded")
-                                        }
+                                        localAI.startDownload()
                                     } label: {
                                         HStack {
-                                            if isDownloadingModel { ProgressView().tint(.white).scaleEffect(0.8) }
-                                            else { Image(systemName: "arrow.down.circle.fill") }
-                                            Text(isDownloadingModel ? "Descargando..." : "Descargar Modelo Local")
+                                            Image(systemName: "arrow.down.circle.fill")
+                                            Text("Descargar Modelo Local")
                                         }
                                         .appFont(size: 13, weight: .semibold).foregroundColor(.white)
                                         .frame(maxWidth: .infinity).padding(.vertical, 12)
@@ -452,7 +457,6 @@ public struct SettingsView: View {
                                                 startPoint: .leading, endPoint: .trailing)
                                         ).cornerRadius(10)
                                     }
-                                    .disabled(isDownloadingModel)
                                 }
                             }
                         }
@@ -561,7 +565,6 @@ public struct SettingsView: View {
         weddingDate = dateFromDefaults("wedding_date")
         invitationDate = dateFromDefaults("invitation_date")
         aiMode = defaults.integer(forKey: "ai_mode")
-        modelDownloaded = defaults.bool(forKey: "model_downloaded")
 
         Task { await loadCoupleSettings() }
     }
@@ -581,7 +584,6 @@ public struct SettingsView: View {
         defaults.set(shareBattery, forKey: "privacy_share_battery")
         defaults.set(shareSpeed, forKey: "privacy_share_speed")
         defaults.set(aiMode, forKey: "ai_mode")
-        defaults.set(modelDownloaded, forKey: "model_downloaded")
         dateToDefaults("anniversary_date", date: anniversaryDate)
         dateToDefaults("met_date", date: metDate)
         dateToDefaults("dating_date", date: datingDate)
@@ -591,7 +593,7 @@ public struct SettingsView: View {
         if let uid = AuthService.shared.currentUser?.id {
             Task {
                 // Save ALL settings to user document (syncs across devices)
-                try? await FirebaseRESTService.shared.firestoreSet(path: "usuarios/\(uid)", fields: [
+                try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [
                     "isDarkMode": theme.isDarkMode,
                     "isRedMode": theme.isRedMode,
                     "fontFamily": theme.fontFamily,
@@ -605,7 +607,6 @@ public struct SettingsView: View {
                     "shareSpeed": shareSpeed,
                     "aiMode": aiMode,
                     "deepseekApiKey": deepseekKey,
-                    "modelDownloaded": modelDownloaded,
                     "anniversaryDate": anniversaryDate.flatMap { df.string(from: $0) } ?? "",
                     "metDate": metDate.flatMap { df.string(from: $0) } ?? "",
                     "datingDate": datingDate.flatMap { df.string(from: $0) } ?? "",
@@ -620,8 +621,7 @@ public struct SettingsView: View {
                 ])
 
                 // Save shared settings to couples document (syncs with partner)
-                let coupleId = CoupleService.parejaId
-                try? await FirebaseRESTService.shared.firestoreSet(path: "parejas/\(coupleId)", fields: [
+                try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(CoupleService.coupleId)", fields: [
                         "anniversaryDate": anniversaryDate.flatMap { df.string(from: $0) } ?? "",
                         "metDate": metDate.flatMap { df.string(from: $0) } ?? "",
                         "datingDate": datingDate.flatMap { df.string(from: $0) } ?? "",
@@ -649,7 +649,7 @@ public struct SettingsView: View {
 
     private func loadSettingsFromFirestore() async {
         guard let uid = AuthService.shared.currentUser?.id else { return }
-        guard let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "usuarios/\(uid)"),
+        guard let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "users/\(uid)"),
               let fields = doc["fields"] as? [String: Any] else { return }
 
         let s = { (key: String) -> String? in (fields[key] as? [String: Any])?["stringValue"] as? String }
@@ -669,7 +669,6 @@ public struct SettingsView: View {
             if let val = b("shareSpeed") { shareSpeed = val; defaults.set(val, forKey: "privacy_share_speed") }
             if let val = s("deepseekApiKey") { deepseekKey = val; defaults.set(val, forKey: "deepseek_api_key") }
             if let val = s("aiMode") ?? s("ai_mode") { aiMode = Int(val) ?? 0; defaults.set(aiMode, forKey: "ai_mode") }
-            if let val = b("modelDownloaded") { modelDownloaded = val; defaults.set(val, forKey: "model_downloaded") }
 
             let dateFields: [(String, String)] = [
                 ("anniversaryDate", "anniversary_date"),
@@ -695,8 +694,8 @@ public struct SettingsView: View {
     }
 
     private func loadCoupleSettings() async {
-        let coupleId = CoupleService.parejaId
-        guard let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "parejas/\(coupleId)"),
+        let coupleId = CoupleService.coupleId
+        guard let doc = try? await FirebaseRESTService.shared.firestoreGet(path: "couples/\(coupleId)"),
               let fields = doc["fields"] as? [String: Any] else { return }
 
         let s = { (key: String) -> String? in (fields[key] as? [String: Any])?["stringValue"] as? String }

@@ -45,7 +45,7 @@ public class AuthService: ObservableObject {
                 ultimoAcceso: Date(),
                 tokenFCM: "",
                 configuracionPersonal: "{}",
-                parejaId: "pareja_001"
+                parejaId: CoupleService.coupleId
             )
 
             await MainActor.run {
@@ -91,7 +91,7 @@ public class AuthService: ObservableObject {
             }
             let email = user.email ?? ""
             let name = uid == Self.diegoUid ? "Diego" : "Yosmari"
-            currentUser = UserModel(id: uid, nombre: name, correo: email, parejaId: "pareja_001")
+            currentUser = UserModel(id: uid, nombre: name, correo: email, parejaId: CoupleService.coupleId)
             isLoggedIn = true
             saveSession(user: currentUser!)
             Task {
@@ -110,26 +110,22 @@ public class AuthService: ObservableObject {
     public func ensureUserAndCoupleCreated(uid: String, name: String, email: String) async throws {
         let df = ISO8601DateFormatter()
         let now = df.string(from: Date())
+        let coupleId = [Self.diegoUid, Self.yosmariUid].sorted().joined(separator: "_")
 
-        // 1. Create/Update user document in usuarios/{uid}
-        try await FirebaseRESTService.shared.firestoreSet(path: "usuarios/\(uid)", fields: [
-            "nombre": name,
-            "correo": email,
-            "foto": "",
-            "PIN": "",
-            "ultimaConexion": now,
-            "ultimoAcceso": now,
-            "tokenFCM": "",
-            "configuracionPersonal": "{}",
-            "parejaId": "pareja_001"
+        // 1. Create/Update user document in users/{uid} (matches Flutter)
+        try await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: [
+            "id": uid,
+            "name": name,
+            "email": email,
+            "coupleId": coupleId,
+            "updatedAt": now
         ])
 
-        // 2. Create/Update couple document in parejas/pareja_001
-        try await FirebaseRESTService.shared.firestoreSet(path: "parejas/pareja_001", fields: [
-            "nombre": "Diego 💞 Yosmari",
-            "fechaRelacion": now,
-            "miembros": [Self.diegoUid, Self.yosmariUid],
-            "creado": now
+        // 2. Create/Update couple document in couples/{coupleId} (matches Flutter)
+        try await FirebaseRESTService.shared.firestoreSet(path: "couples/\(coupleId)", fields: [
+            "names": [name, name == "Diego" ? "Yosmari" : "Diego"],
+            "members": [Self.diegoUid, Self.yosmariUid],
+            "createdAt": now
         ])
     }
 

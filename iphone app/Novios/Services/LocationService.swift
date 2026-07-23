@@ -81,7 +81,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
     private func setOffline() {
         guard let uid = AuthService.shared.currentUser?.id ?? rest.localId else { return }
-        let path = "parejas/\(CoupleService.parejaId)/ubicacion/\(uid)"
+        let path = "couples/\(CoupleService.coupleId)/location/\(uid)"
         Task {
             await firestoreSetWithFallback(path: path, fields: [
                 "isOnline": false,
@@ -173,7 +173,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         let battery = (UIDevice.current.batteryLevel >= 0 ? Int(UIDevice.current.batteryLevel * 100) : -1)
 
         Task {
-            let path = "parejas/\(CoupleService.parejaId)/ubicacion/\(uid)"
+            let path = "couples/\(CoupleService.coupleId)/location/\(uid)"
             await firestoreSetWithFallback(path: path, fields: [
                 "latitude": loc.coordinate.latitude,
                 "longitude": loc.coordinate.longitude,
@@ -190,7 +190,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
     private func setOnline() {
         guard let uid = AuthService.shared.currentUser?.id ?? rest.localId else { return }
-        let path = "parejas/\(CoupleService.parejaId)/ubicacion/\(uid)"
+        let path = "couples/\(CoupleService.coupleId)/location/\(uid)"
         Task {
             await firestoreSetWithFallback(path: path, fields: [
                 "isOnline": true,
@@ -218,7 +218,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         let puid = CoupleService.shared.partnerUid
         guard !puid.isEmpty else { return }
         Task { @MainActor in
-            let partnerPath = "parejas/\(CoupleService.parejaId)/ubicacion/\(puid)"
+            let partnerPath = "couples/\(CoupleService.coupleId)/location/\(puid)"
             if let doc = await firestoreGetWithFallback(path: partnerPath),
                let fields = doc["fields"] as? [String: Any] {
                 let ed = { (k: String) -> Double? in
