@@ -480,6 +480,11 @@ class LoveViewModel: ObservableObject {
         metDate = parseDate(data["metDate"])
         datingDate = parseDate(data["datingDate"])
         weddingDate = parseDate(data["weddingDate"])
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"; df.locale = Locale(identifier: "en_US_POSIX")
+        UserDefaults.standard.set(anniversaryDate.map { df.string(from: $0) }, forKey: "couple_anniversary_date")
+        UserDefaults.standard.set(metDate.map { df.string(from: $0) }, forKey: "couple_met_date")
+        UserDefaults.standard.set(datingDate.map { df.string(from: $0) }, forKey: "couple_dating_date")
+        UserDefaults.standard.set(weddingDate.map { df.string(from: $0) }, forKey: "couple_wedding_date")
         DispatchQueue.main.async { self.updateAnniversaryStats() }
     }
 

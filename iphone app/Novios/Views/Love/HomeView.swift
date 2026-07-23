@@ -446,16 +446,11 @@ class HomeViewModel: ObservableObject {
     }
 
     private var anniversaryDate: Date? {
-        let str = coupleRelacionDate ?? UserDefaults.standard.string(forKey: "anniversary_date")
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"; df.locale = Locale(identifier: "en_US_POSIX")
+        let str = UserDefaults.standard.string(forKey: "couple_anniversary_date")
+            ?? UserDefaults.standard.string(forKey: "anniversary_date")
         guard let s = str else { return nil }
-        return ISO8601DateFormatter().date(from: s) ?? DateFormatter.yyyyMMdd.date(from: s)
-    }
-
-    private var coupleRelacionDate: String? {
-        guard let fields = CoupleService.shared.data?["fields"] as? [String: Any],
-              let fecha = fields["fechaRelacion"] as? [String: Any],
-              let str = fecha["stringValue"] as? String ?? fecha["timestampValue"] as? String else { return nil }
-        return str
+        return ISO8601DateFormatter().date(from: s) ?? df.date(from: s)
     }
 
     private func nextAnniversary(after today: Date, from start: Date) -> Date? {

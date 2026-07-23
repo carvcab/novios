@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseFirestore
 
 public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -630,6 +631,15 @@ public struct SettingsView: View {
                         "isRedMode": theme.isRedMode,
                         "fontFamily": theme.fontFamily,
                     ])
+
+                // Also save to new Android-compatible path
+                let newCoupleId = [CoupleService.diegoUid, CoupleService.yosmariUid].sorted().joined(separator: "_")
+                var coupleFields: [String: Any] = [:]
+                if let d = anniversaryDate { coupleFields["anniversaryDate"] = Timestamp(date: d) }
+                if let d = metDate { coupleFields["metDate"] = Timestamp(date: d) }
+                if let d = datingDate { coupleFields["datingDate"] = Timestamp(date: d) }
+                if let d = weddingDate { coupleFields["weddingDate"] = Timestamp(date: d) }
+                try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(newCoupleId)", fields: coupleFields)
             }
         }
 
