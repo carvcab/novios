@@ -111,7 +111,7 @@ public struct LoveAIView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
-            .background(isActive ? theme.primaryGradient : Color.clear)
+            .background(isActive ? AnyView(theme.primaryGradient) : AnyView(Color.clear))
             .cornerRadius(14)
         }
         .onTapGesture {

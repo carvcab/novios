@@ -92,6 +92,13 @@ public struct DatesView: View {
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         let anniversaryDate = anniversaryStr.flatMap { dateFormatter.date(from: $0) }
 
+        let displayFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.dateFormat = "d 'de' MMMM 'de' yyyy"
+            f.locale = Locale(identifier: "es")
+            return f
+        }()
+
         return GlassCard(cornerRadius: 20) {
             HStack(spacing: 14) {
                 ZStack {
@@ -107,10 +114,7 @@ public struct DatesView: View {
                         .appFont(size: 15, weight: .bold)
                         .foregroundColor(theme.textPrimary)
                     if let date = anniversaryDate {
-                        let df = DateFormatter()
-                        df.dateFormat = "d 'de' MMMM 'de' yyyy"
-                        df.locale = Locale(identifier: "es")
-                        Text(df.string(from: date))
+                        Text(displayFormatter.string(from: date))
                             .appFont(size: 12)
                             .foregroundColor(theme.textSecondary)
                         Text(anniversaryCountdown(from: date))

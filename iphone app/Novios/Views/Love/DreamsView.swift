@@ -50,7 +50,6 @@ public struct DreamsView: View {
             }
             .navigationTitle("Nuestros Sueños")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackgroundVisibility(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showAddSheet() } label: {
@@ -232,8 +231,8 @@ public struct DreamsView: View {
 
     private func startListening() {
         snapshotListener?.remove()
-        snapshotListener = listsDoc.addSnapshotListener { [weak self] snapshot, _ in
-            guard let self = self, let data = snapshot?.data() else { return }
+        snapshotListener = listsDoc.addSnapshotListener { snapshot, _ in
+            guard let data = snapshot?.data() else { return }
             let items = data["items"] as? [[String: Any]] ?? []
             DispatchQueue.main.async {
                 self.dreams = items

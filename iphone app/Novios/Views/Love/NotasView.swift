@@ -58,8 +58,8 @@ public struct NotasView: View {
 
     private func startListening() {
         snapshotListener?.remove()
-        snapshotListener = notesRef.addSnapshotListener { [weak self] snapshot, _ in
-            guard let self = self, let docs = snapshot?.documents else { return }
+        snapshotListener = notesRef.addSnapshotListener { snapshot, _ in
+            guard let docs = snapshot?.documents else { return }
             let list = docs.map { $0.data() }.sorted { a, b in
                 let idA = a["id"] as? String ?? ""
                 let idB = b["id"] as? String ?? ""

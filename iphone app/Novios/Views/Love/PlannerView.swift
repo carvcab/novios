@@ -425,8 +425,8 @@ public struct PlannerView: View {
 
     private func startListener() {
         snapshotListener?.remove()
-        snapshotListener = plannerRef.addSnapshotListener { [weak self] snapshot, error in
-            guard let self = self, let docs = snapshot?.documents else { return }
+        snapshotListener = plannerRef.addSnapshotListener { snapshot, error in
+            guard let docs = snapshot?.documents else { return }
             let parsed = docs.compactMap { doc -> PlannerItem? in
                 let data = doc.data()
                 guard let title = data["title"] as? String,
