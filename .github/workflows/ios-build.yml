@@ -61,49 +61,40 @@ jobs:
           set -e
           SRC_DIR="${LLAMA_PATH}"
           OUT_DIR="${LLAMA_PATH}/../llama-framework"
-          mkdir -p "${OUT_DIR}/include" "${OUT_DIR}/lib"
+          mkdir -p "${OUT_DIR}/include" "${OUT_DIR}/lib" "${OUT_DIR}/obj"
           
-          # Copy headers
           cp "${SRC_DIR}/include/llama.h" "${OUT_DIR}/include/" 2>/dev/null || true
-          cp "${SRC_DIR}/ggml/include/ggml/ggml.h" "${OUT_DIR}/include/" 2>/dev/null || true
           
-          # Find all .cpp files in src/ and .c files in ggml/src/
-          SOURCES=$(find "${SRC_DIR}/src" -name "*.cpp" | grep -v "/models/" | tr '\n' ' ')
-          GGML_SOURCES=$(find "${SRC_DIR}/ggml/src" -name "*.c" -o -name "*.cpp" | grep -v "metal" | tr '\n' ' ')
-          
-          # Compile as iOS static library (arm64)
           SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
           ARCH="-arch arm64"
           SYSROOT="-isysroot ${SDK_PATH}"
-          FLAGS="-O3 -DNDEBUG -DLLAMA_SHARED=0 -DGGML_SHARED=0 -fPIC -std=c++11 ${ARCH} ${SYSROOT} -miphoneos-version-min=15.0"
-          C_FLAGS="-O3 -DNDEBUG -DGGML_SHARED=0 -fPIC ${ARCH} ${SYSROOT} -miphoneos-version-min=15.0"
+          BASE_FLAGS="-O3 -DNDEBUG -DLLAMA_SHARED=0 -DGGML_SHARED=0 -fPIC ${ARCH} ${SYSROOT} -miphoneos-version-min=15.0"
+          CXX_FLAGS="${BASE_FLAGS} -std=c++11"
+          INC="-I${SRC_DIR}/include -I${SRC_DIR}/ggml/include -I${SRC_DIR}/ggml/src -I${SRC_DIR}/src"
           
-          OBJ_DIR="${OUT_DIR}/obj"
-          mkdir -p "${OBJ_DIR}"
+          # Compile C++ sources
+          while IFS= read -r -d '' f; do
+            echo "CXX $f"
+            clang++ ${CXX_FLAGS} ${INC} -c "$f" -o "${OUT_DIR}/obj/$(basename "$f" .cpp).o" 2>&1 || true
+          done < <(find "${SRC_DIR}/src" -name "*.cpp" -not -path "*/models/*" -print0)
           
-          # Compile llama.cpp sources
-          for src in ${SOURCES}; do
-            basename=$(basename "${src}" .cpp)
-            clang++ ${FLAGS} -I"${SRC_DIR}/include" -I"${SRC_DIR}/ggml/include" -I"${SRC_DIR}/src" -c "${src}" -o "${OBJ_DIR}/${basename}.o" 2>&1 || true
-          done
+          while IFS= read -r -d '' f; do
+            echo "CXX $f"
+            clang++ ${CXX_FLAGS} ${INC} -c "$f" -o "${OUT_DIR}/obj/$(basename "$f" .cpp).o" 2>&1 || true
+          done < <(find "${SRC_DIR}/ggml/src" -name "*.cpp" -print0)
           
-          # Compile ggml sources
-          for src in ${GGML_SOURCES}; do
-            ext="${src##*.}"
-            basename=$(basename "${src}" ".${ext}")
-            if [ "${ext}" = "cpp" ]; then
-              clang++ ${FLAGS} -I"${SRC_DIR}/include" -I"${SRC_DIR}/ggml/include" -c "${src}" -o "${OBJ_DIR}/${basename}.o" 2>&1 || true
-            else
-              clang ${C_FLAGS} -I"${SRC_DIR}/include" -I"${SRC_DIR}/ggml/include" -c "${src}" -o "${OBJ_DIR}/${basename}.o" 2>&1 || true
-            fi
-          done
+          # Compile C sources
+          while IFS= read -r -d '' f; do
+            echo "CC $f"
+            clang ${BASE_FLAGS} ${INC} -c "$f" -o "${OUT_DIR}/obj/$(basename "$f" .c).o" 2>&1 || true
+          done < <(find "${SRC_DIR}/ggml/src" -name "*.c" -print0)
           
           # Create static library
-          cd "${OBJ_DIR}"
+          cd "${OUT_DIR}/obj"
           ar rcs "${OUT_DIR}/lib/libllama.a" *.o 2>/dev/null || true
           cd "${SRC_DIR}"
           
-          echo "llama.cpp build completed. Library at: ${OUT_DIR}/lib/libllama.a"
+          echo "llama.cpp build completed."
           ls -la "${OUT_DIR}/lib/" 2>/dev/null || echo "Library not built"
 
       - name: Build IPA
@@ -126,7 +117,7 @@ jobs:
           echo "Signing: $USE_SIGNING"
 
           DERIVED_DATA_PATH="${GITHUB_WORKSPACE}/DerivedData"
-          LLAMA_LIB="${GITHUB_WORKSPACE}/$IOS_PATH/Novios/llama/llama-framework"
+          LLAMA_LIB="${GITHUB_WORKSPACE}/${IOS_PATH}/Novios/llama/llama-framework"
 
           if [ -n "$WORKSPACE" ]; then
             BUILD_CMD="xcodebuild -workspace $WORKSPACE"
@@ -141,8 +132,9 @@ jobs:
           BUILD_CMD="$BUILD_CMD DEBUG_INFORMATION_FORMAT=dwarf"
           BUILD_CMD="$BUILD_CMD ONLY_ACTIVE_ARCH=YES"
           BUILD_CMD="$BUILD_CMD -quiet"
-          BUILD_CMD="$BUILD_CMD LIBRARY_SEARCH_PATHS=\"\${LIBRARY_SEARCH_PATHS} ${LLAMA_LIB}/lib\""
-          BUILD_CMD="$BUILD_CMD OTHER_LDFLAGS=\"\${OTHER_LDFLAGS} -lllama -framework Metal -framework Accelerate\""
+          export LLAMA_LIB_DIR="${LLAMA_LIB}/lib"
+          BUILD_CMD="$BUILD_CMD LIBRARY_SEARCH_PATHS='${LLAMA_LIB_DIR}'"
+          BUILD_CMD="$BUILD_CMD OTHER_LDFLAGS='-lllama -framework Metal -framework Accelerate'"
 
           if [ "$USE_SIGNING" = "true" ]; then
             BUILD_CMD="$BUILD_CMD -archivePath ${GITHUB_WORKSPACE}/build/App.xcarchive archive"
