@@ -65,6 +65,14 @@
 		9A0050W2C000000000000085 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000085 /* MoreView.swift */; };
 		9A0050L6C000000000000090 /* LLaMARunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050L7C000000000000091 /* LLaMARunner.swift */; };
 /* End PBXBuildFile section */
+				9A9A0050L9C0000000000000 /* CompatibilityScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9A0050L8C0000000000000 /* CompatibilityScreen.swift */; };
+				9A9A0050L9C0000000000001 /* EncryptionScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9A0050L8C0000000000001 /* EncryptionScreen.swift */; };
+				9A9A0050L9C0000000000002 /* FavoriteGIFsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9A0050L8C0000000000002 /* FavoriteGIFsScreen.swift */; };
+				9A9A0050L9C0000000000003 /* ConstellationScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9A0050L8C0000000000003 /* ConstellationScreen.swift */; };
+				9A9A0050L9C0000000000004 /* OnThisDayScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9A0050L8C0000000000004 /* OnThisDayScreen.swift */; };
+				9A9A0050L9C0000000000005 /* VoiceMailboxScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9A0050L8C0000000000005 /* VoiceMailboxScreen.swift */; };
+				9A9A0050L9C0000000000006 /* GiftsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9A0050L8C0000000000006 /* GiftsScreen.swift */; };
+				9A9A0050L9C0000000000007 /* RelationshipBookScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A9A0050L8C0000000000007 /* RelationshipBookScreen.swift */; };
 
 /* Begin PBXFileReference section */
 		9A2000012C00000100000001 /* NoviosApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/NoviosApp.swift; sourceTree = "<group>"; };
@@ -110,6 +118,14 @@
 		9A005072C000000000000057 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AIService.swift; sourceTree = "<group>"; };
 		9A0050L3C000000000000087 /* LocalAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LocalAIService.swift; sourceTree = "<group>"; };
 		9A0050L7C000000000000091 /* LLaMARunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LLaMARunner.swift; sourceTree = "<group>"; };
+				9A9A0050L8C0000000000000 /* CompatibilityScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/More/CompatibilityScreen.swift; sourceTree = "<group>"; };
+				9A9A0050L8C0000000000001 /* EncryptionScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/More/EncryptionScreen.swift; sourceTree = "<group>"; };
+				9A9A0050L8C0000000000002 /* FavoriteGIFsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/More/FavoriteGIFsScreen.swift; sourceTree = "<group>"; };
+				9A9A0050L8C0000000000003 /* ConstellationScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/More/ConstellationScreen.swift; sourceTree = "<group>"; };
+				9A9A0050L8C0000000000004 /* OnThisDayScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/More/OnThisDayScreen.swift; sourceTree = "<group>"; };
+				9A9A0050L8C0000000000005 /* VoiceMailboxScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/More/VoiceMailboxScreen.swift; sourceTree = "<group>"; };
+				9A9A0050L8C0000000000006 /* GiftsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/More/GiftsScreen.swift; sourceTree = "<group>"; };
+				9A9A0050L8C0000000000007 /* RelationshipBookScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/More/RelationshipBookScreen.swift; sourceTree = "<group>"; };
 		9A005092C000000000000059 /* LocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Location/LocationView.swift; sourceTree = "<group>"; };
 		9A0050B2C00000000000005B /* CoupleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/CoupleService.swift; sourceTree = "<group>"; };
 		9A0050V2C00000000000006F /* CoupleModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/CoupleModel.swift; sourceTree = "<group>"; };
@@ -209,6 +225,14 @@
 				9A0050L3C000000000000087 /* LocalAIService.swift */,
 
 				9A0050L7C000000000000091 /* LLaMARunner.swift */,
+				9A9A0050L8C0000000000000 /* CompatibilityScreen.swift */,
+				9A9A0050L8C0000000000001 /* EncryptionScreen.swift */,
+				9A9A0050L8C0000000000002 /* FavoriteGIFsScreen.swift */,
+				9A9A0050L8C0000000000003 /* ConstellationScreen.swift */,
+				9A9A0050L8C0000000000004 /* OnThisDayScreen.swift */,
+				9A9A0050L8C0000000000005 /* VoiceMailboxScreen.swift */,
+				9A9A0050L8C0000000000006 /* GiftsScreen.swift */,
+				9A9A0050L8C0000000000007 /* RelationshipBookScreen.swift */,
 
 				9A005092C000000000000059 /* LocationView.swift */,
 
@@ -329,6 +353,14 @@
 				9A005062C000000000000056 /* AIService.swift in Sources */,
 				9A0050L2C000000000000086 /* LocalAIService.swift in Sources */,
 				9A0050L6C000000000000090 /* LLaMARunner.swift in Sources */,
+				9A9A0050L9C0000000000000 /* CompatibilityScreen.swift in Sources */,
+				9A9A0050L9C0000000000001 /* EncryptionScreen.swift in Sources */,
+				9A9A0050L9C0000000000002 /* FavoriteGIFsScreen.swift in Sources */,
+				9A9A0050L9C0000000000003 /* ConstellationScreen.swift in Sources */,
+				9A9A0050L9C0000000000004 /* OnThisDayScreen.swift in Sources */,
+				9A9A0050L9C0000000000005 /* VoiceMailboxScreen.swift in Sources */,
+				9A9A0050L9C0000000000006 /* GiftsScreen.swift in Sources */,
+				9A9A0050L9C0000000000007 /* RelationshipBookScreen.swift in Sources */,
 				9A005082C000000000000058 /* LocationView.swift in Sources */,
 				9A0050A2C00000000000005A /* CoupleService.swift in Sources */,
 				9A0050U2C00000000000006E /* CoupleModel.swift in Sources */,
@@ -447,3 +479,4 @@ ALWAYS_SEARCH_USER_PATHS = NO;
 	};
 	rootObject = 9A0000002C00000000000000 /* Project object */;
 }
+

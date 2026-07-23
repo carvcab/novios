@@ -16,7 +16,7 @@ enum MoreAction {
 }
 
 enum MoreNavDest {
-    case music, loveAI, dates, planner
+    case music, loveAI, dates, planner, gifts, compatibility, constellation, onThisDay, voiceMailbox, relationshipBook, gifs, encryption
 }
 
 public struct MoreView: View {
@@ -29,20 +29,28 @@ public struct MoreView: View {
     @State private var showLoveAI = false
     @State private var showDates = false
     @State private var showPlanner = false
+    @State private var showGifts = false
+    @State private var showCompatibility = false
+    @State private var showConstellation = false
+    @State private var showOnThisDay = false
+    @State private var showVoiceMailbox = false
+    @State private var showRelationshipBook = false
+    @State private var showGIFs = false
+    @State private var showEncryption = false
 
     private let features: [MoreFeature] = [
         MoreFeature(icon: "music.note.list", title: "Música Favorita", subtitle: "Canción, playlist, fondo", action: .navigate(.music)),
         MoreFeature(icon: "brain.head.profile", title: "Asistente Amor IA", subtitle: "Cartas, poemas, citas offline", action: .navigate(.loveAI)),
         MoreFeature(icon: "calendar", title: "Próxima Cita", subtitle: "Cuenta regresiva, cumpleaños", action: .navigate(.dates)),
         MoreFeature(icon: "list.bullet.clipboard", title: "Planificador", subtitle: "Películas, series, restaurantes", action: .navigate(.planner)),
-        MoreFeature(icon: "gift", title: "Regalos Virtuales", subtitle: "Flores, chocolates, corazones", action: .comingSoon),
-        MoreFeature(icon: "person.2", title: "Compatibilidad", subtitle: "Cuestionario de pareja", action: .comingSoon),
-        MoreFeature(icon: "moon.stars", title: "Constelación", subtitle: "El cielo del día que se conocieron", action: .comingSoon),
-        MoreFeature(icon: "clock.arrow.circlepath", title: "Hace un Año", subtitle: "Qué pasaba en esta fecha", action: .comingSoon),
-        MoreFeature(icon: "mic", title: "Buzón de Voz", subtitle: "Audios para el futuro", action: .comingSoon),
-        MoreFeature(icon: "book", title: "Libro Relación", subtitle: "Nuestra historia en TXT", action: .comingSoon),
-        MoreFeature(icon: "giftcard", title: "GIFs Favoritos", subtitle: "Tus GIFs de pareja", action: .comingSoon),
-        MoreFeature(icon: "lock.shield", title: "Mensajes Cifrados", subtitle: "Cifrado seguro SHA-256+XOR", action: .comingSoon),
+        MoreFeature(icon: "gift", title: "Regalos Virtuales", subtitle: "Flores, chocolates, corazones", action: .navigate(.gifts)),
+        MoreFeature(icon: "person.2", title: "Compatibilidad", subtitle: "Cuestionario de pareja", action: .navigate(.compatibility)),
+        MoreFeature(icon: "moon.stars", title: "Constelación", subtitle: "El cielo del día que se conocieron", action: .navigate(.constellation)),
+        MoreFeature(icon: "clock.arrow.circlepath", title: "Hace un Año", subtitle: "Qué pasaba en esta fecha", action: .navigate(.onThisDay)),
+        MoreFeature(icon: "mic", title: "Buzón de Voz", subtitle: "Audios para el futuro", action: .navigate(.voiceMailbox)),
+        MoreFeature(icon: "book", title: "Libro Relación", subtitle: "Nuestra historia en TXT", action: .navigate(.relationshipBook)),
+        MoreFeature(icon: "giftcard", title: "GIFs Favoritos", subtitle: "Tus GIFs de pareja", action: .navigate(.gifs)),
+        MoreFeature(icon: "lock.shield", title: "Mensajes Cifrados", subtitle: "Cifrado seguro SHA-256+XOR", action: .navigate(.encryption)),
         MoreFeature(icon: "square.and.arrow.down", title: "Descargar", subtitle: "Guardar fotos y contenido", action: .download),
     ]
 
@@ -66,6 +74,14 @@ public struct MoreView: View {
         .sheet(isPresented: $showLoveAI) { LoveAIView() }
         .sheet(isPresented: $showDates) { DatesView() }
         .sheet(isPresented: $showPlanner) { PlannerView() }
+        .sheet(isPresented: $showGifts) { GiftsScreen() }
+        .sheet(isPresented: $showCompatibility) { CompatibilityScreen() }
+        .sheet(isPresented: $showConstellation) { ConstellationScreen() }
+        .sheet(isPresented: $showOnThisDay) { OnThisDayScreen() }
+        .sheet(isPresented: $showVoiceMailbox) { VoiceMailboxScreen() }
+        .sheet(isPresented: $showRelationshipBook) { RelationshipBookScreen() }
+        .sheet(isPresented: $showGIFs) { FavoriteGIFsScreen() }
+        .sheet(isPresented: $showEncryption) { EncryptionScreen() }
         .alert(comingSoonTitle, isPresented: $showComingSoon) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -118,6 +134,14 @@ public struct MoreView: View {
                 case .loveAI: showLoveAI = true
                 case .dates: showDates = true
                 case .planner: showPlanner = true
+                case .gifts: showGifts = true
+                case .compatibility: showCompatibility = true
+                case .constellation: showConstellation = true
+                case .onThisDay: showOnThisDay = true
+                case .voiceMailbox: showVoiceMailbox = true
+                case .relationshipBook: showRelationshipBook = true
+                case .gifs: showGIFs = true
+                case .encryption: showEncryption = true
                 }
             case .comingSoon:
                 comingSoonTitle = feature.title
