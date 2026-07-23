@@ -8,6 +8,7 @@ public class LocalAIService: ObservableObject {
     @Published public var isLoading = false
     @Published public var downloadProgress: Double = 0
     @Published public var statusText = ""
+    @Published public var errorMessage: String?
 
     private let defaults = UserDefaults.standard
     private let modelFileName = "DeepSeek-R1-Distill-Qwen-1.5B-Q4_K_M.gguf"
@@ -15,7 +16,8 @@ public class LocalAIService: ObservableObject {
     private let expectedSize: Int64 = 1120 * 1024 * 1024
 
     private var downloadTask: URLSessionDownloadTask?
-    private var observation: NSKeyValueObservation?
+    private var downloadSession: URLSession?
+    private var pendingDestURL: URL?
 
     private init() {
         isInitialized = defaults.bool(forKey: "model_downloaded")
@@ -37,6 +39,7 @@ public class LocalAIService: ObservableObject {
 
     public func startDownload() {
         guard !isLoading else { return }
+        errorMessage = nil
         isLoading = true
         downloadProgress = 0
         statusText = "Iniciando descarga..."
@@ -44,43 +47,49 @@ public class LocalAIService: ObservableObject {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let modelsDir = docs.appendingPathComponent("models")
         try? FileManager.default.createDirectory(at: modelsDir, withIntermediateDirectories: true)
+        pendingDestURL = modelsDir.appendingPathComponent(modelFileName)
 
-        let session = URLSession(configuration: .default, delegate: DownloadDelegate.shared, delegateQueue: nil)
-        downloadTask = session.downloadTask(with: modelURL)
-        DownloadDelegate.shared.onProgress = { [weak self] progress in
+        let delegate = DownloadDelegate.shared
+        delegate.reset()
+        delegate.destinationURL = pendingDestURL
+
+        downloadSession?.invalidateAndCancel()
+        downloadSession = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
+        downloadTask = downloadSession?.downloadTask(with: modelURL)
+
+        delegate.onProgress = { [weak self] progress in
             DispatchQueue.main.async {
                 self?.downloadProgress = progress
                 self?.statusText = "Descargando... \(Int(progress * 100))%"
             }
         }
-        DownloadDelegate.shared.onCompletion = { [weak self] result in
+
+        delegate.onCompletion = { [weak self] result in
             DispatchQueue.main.async {
-                self?.isLoading = false
+                guard let self else { return }
+                self.isLoading = false
                 switch result {
-                case .success(let tempURL):
-                    let dest = modelsDir.appendingPathComponent(self?.modelFileName ?? "model.gguf")
-                    try? FileManager.default.removeItem(at: dest)
-                    do {
-                        try FileManager.default.moveItem(at: tempURL, to: dest)
-                        self?.isInitialized = true
-                        self?.downloadProgress = 1.0
-                        self?.statusText = "Modelo listo"
-                        self?.defaults.set(true, forKey: "model_downloaded")
-                    } catch {
-                        self?.statusText = "Error al guardar el modelo"
-                        self?.downloadProgress = 0
-                    }
+                case .success:
+                    self.isInitialized = true
+                    self.downloadProgress = 1.0
+                    self.statusText = "Modelo listo"
+                    self.defaults.set(true, forKey: "model_downloaded")
                 case .failure(let error):
-                    self?.statusText = "Error: \(error.localizedDescription)"
-                    self?.downloadProgress = 0
+                    self.statusText = "Error al descargar"
+                    self.errorMessage = error.localizedDescription
+                    self.downloadProgress = 0
                 }
             }
         }
+
         downloadTask?.resume()
     }
 
     public func cancelDownload() {
         downloadTask?.cancel()
+        downloadSession?.invalidateAndCancel()
+        downloadSession = nil
+        downloadTask = nil
         isLoading = false
         downloadProgress = 0
         statusText = "Descarga cancelada"
@@ -93,6 +102,7 @@ public class LocalAIService: ObservableObject {
         isInitialized = false
         downloadProgress = 0
         statusText = ""
+        errorMessage = nil
         defaults.set(false, forKey: "model_downloaded")
     }
 
@@ -239,19 +249,38 @@ Esta es su historia, una que apenas comienza y que promete ser tan infinita como
 }
 
 // MARK: - Download Delegate
+// IMPORTANT: The temp file at `location` in `didFinishDownloadingTo`
+// is ONLY valid within that method. We must move it BEFORE returning.
 
 private class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
     static let shared = DownloadDelegate()
     var onProgress: ((Double) -> Void)?
-    var onCompletion: ((Result<URL, Error>) -> Void)?
+    var onCompletion: ((Result<Void, Error>) -> Void)?
+    var destinationURL: URL?
+
+    func reset() {
+        onProgress = nil
+        onCompletion = nil
+        destinationURL = nil
+    }
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
-        let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
+        let progress = totalBytesExpectedToWrite > 0 ? Double(totalBytesWritten) / Double(totalBytesExpectedToWrite) : 0
         onProgress?(progress)
     }
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
-        onCompletion?(.success(location))
+        guard let dest = destinationURL else {
+            onCompletion?(.failure(NSError(domain: "LocalAI", code: -1, userInfo: [NSLocalizedDescriptionKey: "No se pudo determinar la ruta de destino"])))
+            return
+        }
+        try? FileManager.default.removeItem(at: dest)
+        do {
+            try FileManager.default.moveItem(at: location, to: dest)
+            onCompletion?(.success(()))
+        } catch {
+            onCompletion?(.failure(error))
+        }
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {

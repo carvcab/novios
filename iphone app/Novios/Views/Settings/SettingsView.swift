@@ -439,6 +439,26 @@ public struct SettingsView: View {
                                         .frame(maxWidth: .infinity).padding(.vertical, 10)
                                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.3)))
                                 }
+                            } else if let err = localAI.errorMessage {
+                                VStack(spacing: 8) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .appFont(size: 12).foregroundColor(.orange)
+                                        Text("Error: \(err)")
+                                            .appFont(size: 11).foregroundColor(.red).lineLimit(2)
+                                    }
+                                    Button {
+                                        localAI.startDownload()
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "arrow.clockwise")
+                                            Text("Reintentar descarga")
+                                        }
+                                        .appFont(size: 13, weight: .semibold).foregroundColor(.white)
+                                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                        .background(LinearGradient(colors: [theme.pastelMint, Color(red: 0.5, green: 0.8, blue: 0.5)], startPoint: .leading, endPoint: .trailing)).cornerRadius(10)
+                                    }
+                                }
                             } else {
                                 VStack(spacing: 6) {
                                     Text("Requiere ~1.1 GB de espacio. La descarga se realiza en segundo plano y puedes cerrar la app.")
