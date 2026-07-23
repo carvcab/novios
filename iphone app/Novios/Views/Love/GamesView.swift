@@ -1445,7 +1445,7 @@ private struct NeverHaveIEverView: View {
 
             Text("\(q + 1) de \(statements.count)").appFont(size: 12).foregroundColor(.secondary)
 
-            GlassCard(cornerRadius: 20, padding: 24) {
+            GlassCard(cornerRadius: 20) {
                 Text(statements[q])
                     .appFont(size: 20, weight: .bold)
                     .multilineTextAlignment(.center)
