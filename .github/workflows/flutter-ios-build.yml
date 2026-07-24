@@ -34,28 +34,30 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd "iphone_flutter"
           flutter pub get
           cd ios
           pod install --repo-update
 
       - name: Build iOS App (No Signing)
         run: |
-          cd "iphone_flutter"
-          flutter build ios --no-codesign --debug
+          flutter build ios --no-codesign --debug --target-platform ios-arm64
 
       - name: Package IPA
         run: |
-          cd "iphone_flutter/build/ios/iphoneos" || cd "iphone_flutter/build/ios/Debug-iphoneos" || cd "iphone_flutter/build/ios/Release-iphoneos"
+          BUILD_DIR="build/ios/Debug-iphoneos"
+          if [ ! -d "$BUILD_DIR" ]; then
+            BUILD_DIR="build/ios/iphoneos"
+          fi
+          cd "$BUILD_DIR"
           mkdir -p Payload
           cp -r Runner.app Payload/
           zip -r "${{ inputs.build_id }}.ipa" Payload
-          mkdir -p "${GITHUB_WORKSPACE}/iphone_flutter/ipa"
-          cp "${{ inputs.build_id }}.ipa" "${GITHUB_WORKSPACE}/iphone_flutter/ipa/"
+          mkdir -p "${GITHUB_WORKSPACE}/ipa-flutter"
+          cp "${{ inputs.build_id }}.ipa" "${GITHUB_WORKSPACE}/ipa-flutter/"
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ipa-flutter
-          path: iphone_flutter/ipa/*.ipa
+          path: ipa-flutter/*.ipa
           retention-days: 30
