@@ -153,7 +153,7 @@ public struct DatesView: View {
                             .padding(.horizontal, 4)
                         }
                     }
-                    .tabViewStyle(.page(interactive: true))
+                    .tabViewStyle(.page(indexDisplayMode: .never))
                     .frame(height: 50)
                 }
 
@@ -245,13 +245,15 @@ public struct DatesView: View {
         let addYearly = { (label: String, date: Date?, icon: String, color: Color) in
             guard let d = date else { return }
             let target = nextYearly(d)
-            let title = "\(label) #\(target.year - d.year)"
-            items.append((title, target, icon, color))
+            let cy = Calendar.current.component(.year, from: target); let dy = Calendar.current.component(.year, from: d)
+            let title = "\(label) #\(cy - dy)"
         }
         let addMonthly = { (label: String, date: Date?, icon: String, color: Color) in
             guard let d = date else { return }
             let target = nextMonthly(d, now: now)
-            let monthsNo = (target.year - d.year) * 12 + (target.month - d.month)
+            let ty = Calendar.current.component(.year, from: target); let dy = Calendar.current.component(.year, from: d)
+            let tm = Calendar.current.component(.month, from: target); let dm = Calendar.current.component(.month, from: d)
+            let monthsNo = (ty - dy) * 12 + (tm - dm)
             items.append(("\(label) #\(monthsNo)", target, icon, color))
         }
 
