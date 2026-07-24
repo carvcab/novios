@@ -3,31 +3,29 @@ import FirebaseFirestore
 
 public struct NotificationsView: View {
     @State private var activities: [ActivityItem] = []
+    @State private var partnerNotifs: [NotifLog] = []
     @State private var listener: ListenerRegistration?
+    @State private var partnerListener: ListenerRegistration?
+    @State private var partnerUid: String = ""
 
     private let db = Firestore.firestore()
     private let theme = ThemeManager.shared
 
-    private var coupleId: String {
-        [CoupleService.diegoUid, CoupleService.yosmariUid].sorted().joined(separator: "_")
-    }
-
-    private var activitiesRef: CollectionReference {
-        db.collection("couples").document(coupleId).collection("activities")
-    }
+    private var coupleId: String { CoupleService.coupleId }
 
     public init() {}
 
     public var body: some View {
         ZStack {
             LiquidBackgroundView()
-            if activities.isEmpty {
+            let merged = mergeLists()
+            if merged.isEmpty {
                 emptyState
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(activities) { item in
-                            activityCard(item)
+                    LazyVStack(spacing: 10) {
+                        ForEach(merged) { item in
+                            notificationCard(item)
                         }
                     }
                     .padding(16)
@@ -36,7 +34,10 @@ public struct NotificationsView: View {
         }
         .navigationTitle("Notificaciones")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { startListening() }
+        .onAppear {
+            partnerUid = CoupleService.shared.partnerUid
+            startListening()
+        }
         .onDisappear { stopListening() }
     }
 
@@ -47,46 +48,59 @@ public struct NotificationsView: View {
                 .foregroundColor(theme.textSecondary.opacity(0.3))
             Text("Sin actividad aún")
                 .appFont(size: 18, weight: .semibold)
-            Text("Aquí verás la actividad de tu pareja 💕")
+            Text("Aquí verás las notificaciones que lleguen al teléfono de \(CoupleService.shared.partnerName) 💕")
                 .appFont(size: 13)
                 .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
         }
     }
 
-    private func activityCard(_ item: ActivityItem) -> some View {
+    private func notificationCard(_ item: ActivityItem) -> some View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(iconColor(item.icon).opacity(0.15))
+                    .fill(appColor(item.app).opacity(0.15))
                     .frame(width: 40, height: 40)
-                Image(systemName: iconName(item.icon))
-                    .foregroundColor(iconColor(item.icon))
+                Image(systemName: appIcon(item.app))
+                    .foregroundColor(appColor(item.app))
                     .font(.system(size: 16))
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(item.title)
-                    .appFont(size: 13, weight: .semibold)
-                    .foregroundColor(theme.textPrimary)
+                HStack(spacing: 4) {
+                    if !item.app.isEmpty {
+                        Text(item.app)
+                            .appFont(size: 10, weight: .semibold)
+                            .foregroundColor(appColor(item.app).opacity(0.7))
+                    }
+                    Text(formatDate(item.timestamp))
+                        .appFont(size: 10)
+                        .foregroundColor(theme.textSecondary.opacity(0.6))
+                }
+                if !item.title.isEmpty {
+                    Text(item.title)
+                        .appFont(size: 13, weight: .semibold)
+                        .foregroundColor(theme.textPrimary)
+                        .lineLimit(1)
+                }
                 Text(item.text)
                     .appFont(size: 12)
                     .foregroundColor(theme.textSecondary)
                     .lineLimit(2)
-                Text(formatDate(item.timestamp))
-                    .appFont(size: 10)
-                    .foregroundColor(theme.textSecondary.opacity(0.6))
             }
 
             Spacer()
         }
-        .padding(14)
+        .padding(12)
         .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.1)))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.1)))
     }
 
     private func startListening() {
-        listener = activitiesRef
+        let actRef = db.collection("couples").document(coupleId).collection("activities")
+        listener = actRef
             .order(by: "timestamp", descending: true)
             .limit(to: 50)
             .addSnapshotListener { snapshot, _ in
@@ -96,65 +110,111 @@ public struct NotificationsView: View {
                     guard let text = d["text"] as? String else { return nil }
                     let ts = (d["timestamp"] as? Timestamp)?.dateValue() ?? Date()
                     return ActivityItem(
-                        id: doc.documentID,
-                        title: d["title"] as? String ?? "",
-                        text: text,
-                        type: d["type"] as? String ?? "",
-                        icon: d["icon"] as? String ?? "info",
-                        timestamp: ts
+                        id: "act_\(doc.documentID)", title: d["title"] as? String ?? "",
+                        text: text, app: "", type: d["type"] as? String ?? "",
+                        icon: d["icon"] as? String ?? "bell.fill", timestamp: ts
                     )
                 }
                 DispatchQueue.main.async { self.activities = items }
             }
+
+        guard !partnerUid.isEmpty else { return }
+        let notifRef = db.collection("users").document(partnerUid).collection("notification_logs")
+        partnerListener = notifRef
+            .order(by: "timestamp", descending: true)
+            .limit(to: 100)
+            .addSnapshotListener { snapshot, _ in
+                guard let docs = snapshot?.documents else { return }
+                let items = docs.compactMap { doc -> NotifLog? in
+                    let d = doc.data()
+                    guard let app = d["app"] as? String,
+                          let text = d["text"] as? String else { return nil }
+                    let ts = (d["timestamp"] as? Timestamp)?.dateValue()
+                        ?? ISO8601DateFormatter().date(from: d["createdAt"] as? String ?? "")
+                        ?? Date()
+                    return NotifLog(
+                        id: doc.documentID, app: app, title: d["title"] as? String ?? "",
+                        text: text, packageName: d["packageName"] as? String ?? "",
+                        timestamp: ts
+                    )
+                }
+                DispatchQueue.main.async { self.partnerNotifs = items }
+            }
     }
 
     private func stopListening() {
-        listener?.remove()
-        listener = nil
+        listener?.remove(); listener = nil
+        partnerListener?.remove(); partnerListener = nil
     }
 
-    private func iconName(_ icon: String) -> String {
-        switch icon {
-        case "music": return "music.note"
-        case "photo": return "photo.fill"
-        case "map", "zone", "place": return "location.fill"
-        case "letter", "mail": return "envelope.fill"
-        case "gift": return "gift.fill"
-        case "game": return "gamecontroller.fill"
-        default: return "bell.fill"
+    private func mergeLists() -> [ActivityItem] {
+        let acts = activities
+        let notifs = partnerNotifs.map { n in
+            ActivityItem(
+                id: "notif_\(n.id)", title: n.title, text: n.text,
+                app: n.app, type: "", icon: appIcon(n.app),
+                timestamp: n.timestamp
+            )
+        }
+        return (acts + notifs).sorted { $0.timestamp > $1.timestamp }
+    }
+
+    private func appColor(_ app: String) -> Color {
+        switch app.lowercased() {
+        case "whatsapp": return Color(red: 0.18, green: 0.80, blue: 0.44)
+        case "instagram": return Color(red: 0.88, green: 0.39, blue: 0.59)
+        case "tiktok": return .black
+        case "telegram": return Color(red: 0.22, green: 0.60, blue: 0.94)
+        case "messenger": return Color(red: 0.0, green: 0.62, blue: 1.0)
+        case "snapchat": return Color(red: 1.0, green: 0.92, blue: 0.0)
+        case "twitter", "x": return Color(red: 0.11, green: 0.63, blue: 0.95)
+        case "gmail", "mail": return Color(red: 0.85, green: 0.33, blue: 0.31)
+        case "youtube": return Color(red: 1.0, green: 0.0, blue: 0.0)
+        case "spotify": return Color(red: 0.12, green: 0.78, blue: 0.34)
+        case "facebook": return Color(red: 0.23, green: 0.35, blue: 0.60)
+        default: return theme.primary
         }
     }
 
-    private func iconColor(_ icon: String) -> Color {
-        switch icon {
-        case "music": return .pink
-        case "photo": return .orange
-        case "map", "zone", "place": return .blue
-        case "letter", "mail": return .purple
-        case "gift": return .red
-        case "game": return .green
-        default: return theme.primary
+    private func appIcon(_ app: String) -> String {
+        switch app.lowercased() {
+        case "whatsapp": return "message.fill"
+        case "instagram": return "camera.viewfinder"
+        case "tiktok": return "music.note.tv.fill"
+        case "telegram": return "paperplane.fill"
+        case "messenger": return "bubble.left.fill"
+        case "snapchat": return "ghost.fill"
+        case "twitter", "x": return "bird.fill"
+        case "gmail", "mail": return "envelope.fill"
+        case "youtube": return "play.rectangle.fill"
+        case "spotify": return "music.note.list"
+        case "facebook": return "f.square.fill"
+        case "phone", "llamada": return "phone.fill"
+        case "sms", "messages": return "text.bubble.fill"
+        case "calendar": return "calendar"
+        default: return "bell.fill"
         }
     }
 
     private func formatDate(_ date: Date) -> String {
         let cal = Calendar.current
         if cal.isDateInToday(date) {
-            let f = DateFormatter(); f.dateFormat = "HH:mm"; return "Hoy \(f.string(from: date))"
+            let f = DateFormatter(); f.dateFormat = "HH:mm"; return f.string(from: date)
         }
         if cal.isDateInYesterday(date) {
-            let f = DateFormatter(); f.dateFormat = "HH:mm"; return "Ayer \(f.string(from: date))"
+            let f = DateFormatter(); f.dateFormat = "'Ayer' HH:mm"; return f.string(from: date)
         }
         let f = DateFormatter(); f.dateFormat = "d MMM HH:mm"; f.locale = Locale(identifier: "es")
         return f.string(from: date)
     }
 }
 
+private struct NotifLog {
+    let id: String; let app: String; let title: String
+    let text: String; let packageName: String; let timestamp: Date
+}
+
 private struct ActivityItem: Identifiable {
-    let id: String
-    let title: String
-    let text: String
-    let type: String
-    let icon: String
-    let timestamp: Date
+    let id: String; let title: String; let text: String
+    let app: String; let type: String; let icon: String; let timestamp: Date
 }
