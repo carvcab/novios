@@ -42,13 +42,22 @@ struct LocationHistoryEntry: Identifiable {
 
 // MARK: - Route
 
-struct ActiveRoute {
+struct ActiveRoute: Equatable {
     var destination: String
     var destLat: Double
     var destLng: Double
     var eta: String
     var remainingDist: Double
     var polyline: [CLLocationCoordinate2D]
+
+    static func == (lhs: ActiveRoute, rhs: ActiveRoute) -> Bool {
+        lhs.destination == rhs.destination &&
+        lhs.destLat == rhs.destLat &&
+        lhs.destLng == rhs.destLng &&
+        lhs.eta == rhs.eta &&
+        lhs.remainingDist == rhs.remainingDist &&
+        lhs.polyline.count == rhs.polyline.count
+    }
 }
 
 // MARK: - Map Annotations

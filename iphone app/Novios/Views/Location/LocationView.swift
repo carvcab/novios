@@ -22,9 +22,6 @@ public struct LocationView: View {
     @State private var memoryTitle = ""
     @State private var memoryNote = ""
     @State private var memoryDate = Date()
-    @State private var memoryTitle = ""
-    @State private var memoryNote = ""
-    @State private var memoryDate = Date()
     @State private var mapStyle: MapStyleOption = .standard
     @State private var places: [PartnerPlace] = []
     @State private var locationHistory: [LocationHistoryEntry] = []
