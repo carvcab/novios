@@ -25,7 +25,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     private var audioRecorder: AVAudioRecorder?
     private var recordingTimer: Timer?
 
-    private var coupleId: String { CoupleService.coupleId }
+    private let chatPath = "parejas/pareja_001/chat"
     private var myUid: String { AuthService.shared.currentUser?.id ?? (CoupleService.shared.currentUid) }
     private let db = Firestore.firestore()
 
@@ -42,7 +42,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         }
         isLoading = true
         errorMessage = nil
-        let path = "couples/\(coupleId)/chat"
+        let path = chatPath
         listener = db.collection(path)
             .order(by: "timestamp", descending: false)
             .addSnapshotListener { [weak self] snapshot, error in
@@ -205,7 +205,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
     }
 
     private func saveMessage(msg: MessageModel) {
-        let path = "couples/\(coupleId)/chat/\(msg.id)"
+        let path = "\(chatPath)/\(msg.id)"
         let df = ISO8601DateFormatter()
         let isMe = msg.senderId == CoupleService.diegoUid
         let senderName = isMe ? CoupleService.diegoName : CoupleService.yosmariName
@@ -237,7 +237,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         updateUnreadCount()
         Task {
             try? await FirebaseRESTService.shared.firestoreSet(
-                path: "couples/\(coupleId)/chat/\(messageId)",
+                path: "\(chatPath)/\(messageId)",
                 fields: ["readTimestamp": ISO8601DateFormatter().string(from: Date())]
             )
         }
@@ -252,7 +252,7 @@ public class ChatService: NSObject, ObservableObject, AVAudioRecorderDelegate {
         let fields: [String: Any] = ["reactions": reactions]
         Task {
             try? await FirebaseRESTService.shared.firestoreSet(
-                path: "couples/\(coupleId)/chat/\(messageId)",
+                path: "\(chatPath)/\(messageId)",
                 fields: fields
             )
         }
