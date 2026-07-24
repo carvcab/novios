@@ -37,12 +37,28 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
   int _partnerBattery = -1;
   int _myBattery = -1;
   bool _partnerOnline = false;
+  bool _partnerIsCharging = false;
+  bool _partnerIsGPSOn = true;
+  double? _partnerPrecision;
+  String _partnerMotion = 'static';
+  String? _partnerAddress;
   String _partnerName = '';
   final String _partnerScreen = '';
   DateTime? _lastPartnerUpdate;
   bool _areTogether = false;
   bool _satelliteMode = false;
   String? _expandedSection;
+
+  // Route sharing
+  bool _partnerRouteActive = false;
+  String _partnerRouteDest = '';
+  String _partnerRouteEta = '';
+  List<LatLng> _partnerRoutePolyline = [];
+
+  // Weather
+  String _weatherIcon = '';
+  String _weatherCondition = '';
+  int _weatherTemp = 0;
 
   // Place CRUD controllers
   final _nameCtrl = TextEditingController();
@@ -163,9 +179,40 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
         _partnerLat = data['lat'] as double?;
         _partnerLng = data['lng'] as double?;
         _partnerOnline = data['isOnline'] == true;
-        _partnerBattery = data['battery'] as int? ?? -1;
+        _partnerBattery = data['battery'] as int? ?? data['batteryLevel'] as int? ?? -1;
         _partnerSpeed = (data['speed'] as num?)?.toDouble() ?? 0;
-        _lastPartnerUpdate = (data['timestamp'] as Timestamp?)?.toDate();
+        _partnerIsCharging = data['isCharging'] == true;
+        _partnerIsGPSOn = data['gpsOn'] as bool? ?? true;
+        _partnerPrecision = (data['precision'] as num?)?.toDouble();
+        _partnerMotion = data['motion'] as String? ?? 'static';
+        _partnerAddress = data['address'] as String?;
+
+        final ts = data['timestamp'] as Timestamp?;
+        final lastStr = data['lastLocationUpdate'] as String?;
+        if (ts != null) {
+          _lastPartnerUpdate = ts.toDate();
+        } else if (lastStr != null) {
+          _lastPartnerUpdate = DateTime.tryParse(lastStr);
+        }
+
+        // Route sharing
+        _partnerRouteActive = data['routeActive'] == true;
+        if (_partnerRouteActive) {
+          _partnerRouteDest = data['routeDestination'] as String? ?? '';
+          _partnerRouteEta = data['routeEta'] as String? ?? '';
+          final raw = data['routePolyline'] as List<dynamic>?;
+          if (raw != null) {
+            _partnerRoutePolyline = raw.map((e) {
+              final m = e as Map<String, dynamic>;
+              return LatLng((m['lat'] as num).toDouble(), (m['lng'] as num).toDouble());
+            }).toList();
+          }
+        } else {
+          _partnerRouteDest = '';
+          _partnerRouteEta = '';
+          _partnerRoutePolyline = [];
+        }
+
         if (_partnerLat != null && _partnerLng != null && _myLat != null && _myLng != null) {
           _distanceKm = GeofenceService().distanceTo(_partnerLat!, _partnerLng!);
         }

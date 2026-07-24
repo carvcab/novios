@@ -234,8 +234,14 @@ class CoupleService extends ChangeNotifier {
     required double lng,
     double? speed,
     int? battery,
+    bool? isCharging,
+    String? motion,
+    double? precision,
+    bool? gpsOn,
+    String? address,
   }) async {
     try {
+      final now = DateTime.now();
       await myUbicacionRef.set({
         'lat': lat,
         'lng': lng,
@@ -244,9 +250,14 @@ class CoupleService extends ChangeNotifier {
         'speed': speed ?? 0,
         'battery': battery ?? -1,
         'batteryLevel': battery ?? -1,
+        'isCharging': isCharging ?? false,
+        'motion': motion ?? 'static',
+        'precision': precision ?? 0,
+        'gpsOn': gpsOn ?? true,
+        'address': address ?? '',
         'isOnline': true,
         'timestamp': FieldValue.serverTimestamp(),
-        'lastLocationUpdate': DateTime.now().toIso8601String(),
+        'lastLocationUpdate': now.toIso8601String(),
         'uid': currentUid,
         'nombre': currentName,
       }, SetOptions(merge: true));
@@ -281,6 +292,50 @@ class CoupleService extends ChangeNotifier {
       await myUserRef.set(data, SetOptions(merge: true));
     } catch (e) {
       debugPrint('[CoupleService] Error updating user: $e');
+    }
+  }
+
+  // ─── Route Sharing ───
+  Future<void> startRoute(String destination, double destLat, double destLng) async {
+    try {
+      await myUbicacionRef.set({
+        'routeActive': true,
+        'routeDestination': destination,
+        'routeDestLat': destLat,
+        'routeDestLng': destLng,
+        'routeStartTime': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('[CoupleService] Error starting route: $e');
+    }
+  }
+
+  Future<void> stopRoute() async {
+    try {
+      await myUbicacionRef.set({
+        'routeActive': false,
+        'routeDestination': FieldValue.delete(),
+        'routeDestLat': FieldValue.delete(),
+        'routeDestLng': FieldValue.delete(),
+        'routeStartTime': FieldValue.delete(),
+        'routePolyline': FieldValue.delete(),
+        'routeRemainingDist': FieldValue.delete(),
+        'routeEta': FieldValue.delete(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('[CoupleService] Error stopping route: $e');
+    }
+  }
+
+  Future<void> updateRoutePolyline(List<Map<String, double>> coords, double remainingDist, String eta) async {
+    try {
+      await myUbicacionRef.set({
+        'routePolyline': coords,
+        'routeRemainingDist': remainingDist,
+        'routeEta': eta,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('[CoupleService] Error updating route: $e');
     }
   }
 
