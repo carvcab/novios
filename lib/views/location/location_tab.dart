@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 import '../../services/firebase_service.dart';
 import '../../services/geofence_service.dart';
 import '../../services/local_storage.dart';
@@ -29,6 +31,7 @@ class LocationTab extends StatefulWidget {
 class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin {
   final MapController _mapController = MapController();
   final DraggableScrollableController _sheetCtrl = DraggableScrollableController();
+  final ScrollController _bottomSheetScroll = ScrollController();
 
   double? _myLat, _myLng;
   double? _partnerLat, _partnerLng;
@@ -43,29 +46,24 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
   String _partnerMotion = 'static';
   String? _partnerAddress;
   String _partnerName = '';
-  final String _partnerScreen = '';
   DateTime? _lastPartnerUpdate;
   bool _areTogether = false;
   bool _satelliteMode = false;
   String? _expandedSection;
 
-  // Route sharing
   bool _partnerRouteActive = false;
   String _partnerRouteDest = '';
   String _partnerRouteEta = '';
   List<LatLng> _partnerRoutePolyline = [];
 
-  // Weather
   String _weatherIcon = '';
   String _weatherCondition = '';
   int _weatherTemp = 0;
 
-  // Place CRUD controllers
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   String _placeType = 'visited';
 
-  // Zone management controllers
   final _zoneNameCtrl = TextEditingController();
   double _zoneRadius = 200;
 
@@ -77,13 +75,18 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
   Timer? _batteryTimer;
   Timer? _updateTimer;
 
-  // Privacy settings
   bool _shareLocation = true;
   bool _shareHistory = false;
   bool _shareBattery = true;
   bool _shareSpeed = false;
   bool _shareGeofences = true;
   bool _shareArrival = true;
+
+  double? _partnerEtaCar;
+  double? _partnerEtaWalk;
+
+  DateTime _lastProximityNotif = DateTime(2000);
+  DateTime _lastTogetherNotif = DateTime(2000);
 
   @override
   void initState() {
@@ -149,6 +152,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
           _myLat = p.latitude;
           _myLng = p.longitude;
         });
+        _sendBatteryOnMove();
       }
     };
 
@@ -168,13 +172,25 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     if (!GeofenceService().isMonitoring) {
       await GeofenceService().startMonitoring(userInitiated: true);
     }
+
+    _fetchWeather();
   }
 
-  void _listenPartner() async {
+  void _sendBatteryOnMove() async {
+    try {
+      final battery = Battery();
+      final level = await battery.batteryLevel;
+      if (mounted) setState(() => _myBattery = level);
+    } catch (_) {}
+  }
+
+  void _listenPartner() {
     _partnerSub = CoupleService().streamPartnerUbicacion().listen((snap) {
       if (!mounted) return;
       final data = snap.data() as Map<String, dynamic>?;
       if (data == null) return;
+      final wasOnline = _partnerOnline;
+      final wasBattery = _partnerBattery;
       setState(() {
         _partnerLat = data['lat'] as double?;
         _partnerLng = data['lng'] as double?;
@@ -195,7 +211,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
           _lastPartnerUpdate = DateTime.tryParse(lastStr);
         }
 
-        // Route sharing
         _partnerRouteActive = data['routeActive'] == true;
         if (_partnerRouteActive) {
           _partnerRouteDest = data['routeDestination'] as String? ?? '';
@@ -215,10 +230,55 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
 
         if (_partnerLat != null && _partnerLng != null && _myLat != null && _myLng != null) {
           _distanceKm = GeofenceService().distanceTo(_partnerLat!, _partnerLng!);
+          if (_distanceKm > 0) {
+            _partnerEtaCar = _distanceKm / 40 * 60;
+            _partnerEtaWalk = _distanceKm / 5 * 60;
+          }
         }
       });
+
       _checkTogetherStatus();
+      _checkNotifications(wasOnline, wasBattery);
     });
+  }
+
+  void _checkNotifications(bool wasOnline, int wasBattery) {
+    if (!mounted) return;
+    final now = DateTime.now();
+
+    if (_partnerBattery > 0 && _partnerBattery < 15 && wasBattery >= 15) {
+      FirebaseService().sendActivityNotification(
+        'A $_partnerName le queda $_partnerBattery% de bateria',
+        'location',
+        icon: 'battery',
+      );
+    }
+
+    if (!_partnerOnline && wasOnline) {
+      FirebaseService().sendActivityNotification(
+        '$_partnerName se desconecto',
+        'location',
+        icon: 'offline',
+      );
+    }
+
+    if (_distanceKm > 0 && _distanceKm < 0.5 && now.difference(_lastProximityNotif).inMinutes >= 5) {
+      _lastProximityNotif = now;
+      FirebaseService().sendActivityNotification(
+        '$_partnerName esta a menos de 500m de ti',
+        'location',
+        icon: 'proximity',
+      );
+    }
+
+    if (_areTogether && now.difference(_lastTogetherNotif).inMinutes >= 10) {
+      _lastTogetherNotif = now;
+      FirebaseService().sendActivityNotification(
+        'Estan juntos!',
+        'location',
+        icon: 'together',
+      );
+    }
   }
 
   void _startBatteryMonitor() {
@@ -278,6 +338,27 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     }
   }
 
+  void _openPhoneDialer() async {
+    if (_partnerName.isEmpty) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Abrir marcador telefonico'),
+        backgroundColor: Colors.orange,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _openChatPlaceholder() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Abrir chat con tu pareja'),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   void _sendArrivedSafe() async {
     HapticFeedback.heavyImpact();
     await GeofenceService().sendArrivalAlert();
@@ -288,7 +369,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
             children: [
               Icon(Icons.favorite_rounded, color: Colors.white, size: 18),
               SizedBox(width: 8),
-              Text('💞 ¡Check-in enviado!'),
+              Text('Check-in enviado!'),
             ],
           ),
           backgroundColor: Colors.pinkAccent,
@@ -301,7 +382,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
 
   void _sendSOS() async {
     HapticFeedback.heavyImpact();
-    final msg = '🚨 SOS — Necesito ayuda! Batería: $_myBattery%';
+    final msg = 'SOS -- Necesito ayuda! Bateria: $_myBattery%';
     await GeofenceService().sendCheckIn(msg);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -310,7 +391,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
             children: [
               Icon(Icons.warning_rounded, color: Colors.white, size: 18),
               SizedBox(width: 8),
-              Text('🚨 Alerta SOS enviada'),
+              Text('Alerta SOS enviada'),
             ],
           ),
           backgroundColor: Colors.red,
@@ -324,19 +405,75 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
   void _sendHeartToPartner() {
     HapticFeedback.lightImpact();
     FirebaseService().sendActivityNotification(
-      '💗 Te envió un corazón desde el mapa',
+      'Te envio un corazon desde el mapa',
       'location',
       icon: 'heart',
     );
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('💗 Corazón enviado'),
+        content: const Text('Corazon enviado'),
         backgroundColor: Colors.pinkAccent,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         duration: const Duration(seconds: 1),
       ),
     );
+  }
+
+  void _showShareRouteDialog() {
+    final destCtrl = TextEditingController();
+    final destLatCtrl = TextEditingController();
+    final destLngCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Compartir ruta'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: destCtrl,
+                decoration: const InputDecoration(labelText: 'Destino'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: destLatCtrl,
+                decoration: const InputDecoration(labelText: 'Latitud destino'),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: destLngCtrl,
+                decoration: const InputDecoration(labelText: 'Longitud destino'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () async {
+              final dest = destCtrl.text.trim();
+              final lat = double.tryParse(destLatCtrl.text.trim());
+              final lng = double.tryParse(destLngCtrl.text.trim());
+              if (dest.isEmpty || lat == null || lng == null) return;
+              await CoupleService().startRoute(dest, lat, lng);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Iniciar ruta'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _scrollToSection(String section) {
+    setState(() => _expandedSection = section);
+    _sheetCtrl.animateTo(0.85, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
   }
 
   String _lastUpdateText() {
@@ -348,6 +485,31 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     return 'Hace ${diff.inHours}h';
   }
 
+  Future<void> _fetchWeather() async {
+    if (_partnerLat == null || _partnerLng == null) return;
+    try {
+      final url = Uri.parse('https://api.open-meteo.com/v1/forecast?latitude=$_partnerLat&longitude=$_partnerLng&current_weather=true');
+      final resp = await http.get(url);
+      if (resp.statusCode != 200) return;
+      final data = jsonDecode(resp.body) as Map<String, dynamic>?;
+      if (data == null || !data.containsKey('current_weather')) return;
+      final cw = data['current_weather'] as Map<String, dynamic>?;
+      if (cw == null) return;
+      final wcode = cw['weathercode'] as int? ?? 0;
+      final temp = (cw['temperature'] as num?)?.toInt() ?? 0;
+      String condition;
+      String icon;
+      if (wcode == 0) { condition = 'Despejado'; icon = 'sunny'; }
+      else if (wcode < 3) { condition = 'Parcialmente nublado'; icon = 'partly_cloudy'; }
+      else if (wcode < 50) { condition = 'Nublado'; icon = 'cloudy'; }
+      else if (wcode < 60) { condition = 'Lluvia ligera'; icon = 'rainy'; }
+      else if (wcode < 70) { condition = 'Lluvia'; icon = 'rainy'; }
+      else if (wcode < 80) { condition = 'Nieve'; icon = 'snowy'; }
+      else { condition = 'Tormenta'; icon = 'storm'; }
+      if (mounted) setState(() { _weatherCondition = condition; _weatherTemp = temp; _weatherIcon = icon; });
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
     _partnerSub?.cancel();
@@ -356,6 +518,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     _batteryTimer?.cancel();
     _updateTimer?.cancel();
     _sheetCtrl.dispose();
+    _bottomSheetScroll.dispose();
     _nameCtrl.dispose();
     _descCtrl.dispose();
     _zoneNameCtrl.dispose();
@@ -371,7 +534,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
       children: [
         _buildMap(cs, isDark),
 
-        // Top bar
         Positioned(
           top: 8,
           left: 16,
@@ -379,14 +541,12 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
           child: _buildTopBar(cs, isDark),
         ),
 
-        // Map controls (right)
         Positioned(
           right: 16,
           bottom: MediaQuery.of(context).size.height * 0.35 + 16,
           child: _buildMapControls(cs, isDark),
         ),
 
-        // Together badge
         if (_areTogether)
           Positioned(
             top: 70,
@@ -395,18 +555,8 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
             child: Center(child: _buildTogetherBadge(cs)),
           ),
 
-        // Zone list overlay
-        Positioned(
-          top: 70,
-          left: 60,
-          right: 60,
-          child: _buildZoneOverlay(cs),
-        ),
-
-        // Bottom sheet
         _buildBottomSheet(cs, isDark),
 
-        // SOS + Arrived Safe buttons
         Positioned(
           left: 16,
           bottom: MediaQuery.of(context).size.height * 0.35 + 16,
@@ -422,9 +572,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     );
   }
 
-  // ─────────────────────────────────────────────
-  //  MAP
-  // ─────────────────────────────────────────────
   Widget _buildMap(ColorScheme cs, bool isDark) {
     final myLatLng = (_myLat != null && _myLng != null) ? LatLng(_myLat!, _myLng!) : null;
     final partnerLatLng = (_partnerLat != null && _partnerLng != null) ? LatLng(_partnerLat!, _partnerLng!) : null;
@@ -445,7 +592,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
         onLongPress: (tapPos, latlng) => _showMapActionSheet(latlng.latitude, latlng.longitude),
       ),
       children: [
-        // Tile layer
         TileLayer(
           urlTemplate: _satelliteMode
               ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
@@ -454,7 +600,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
           maxZoom: 19,
         ),
 
-        // Geofence zones (filled circles)
         StreamBuilder<List<ZoneModel>>(
           stream: FirebaseService().streamZones(),
           builder: (context, snapshot) {
@@ -472,7 +617,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
           },
         ),
 
-        // Geofence zones (outline circles)
         StreamBuilder<List<ZoneModel>>(
           stream: FirebaseService().streamZones(),
           builder: (context, snapshot) {
@@ -487,7 +631,17 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
           },
         ),
 
-        // Distance line between partners
+        if (_partnerRoutePolyline.isNotEmpty)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: _partnerRoutePolyline,
+                color: Colors.orange,
+                strokeWidth: 4,
+              ),
+            ],
+          ),
+
         if (myLatLng != null && partnerLatLng != null)
           PolylineLayer(
             polylines: [
@@ -499,10 +653,8 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
             ],
           ),
 
-        // Main markers (me + partner)
         MarkerLayer(
           markers: [
-            // My marker with pulse
             if (myLatLng != null)
               Marker(
                 point: myLatLng,
@@ -547,14 +699,13 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
                 ),
               ),
 
-            // Partner marker
             if (partnerLatLng != null)
               Marker(
                 point: partnerLatLng,
                 width: 80,
                 height: 80,
                 child: GestureDetector(
-                  onTap: () => _showPartnerSheet(cs),
+                  onTap: () => _showPartnerSheet(context, cs),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -589,7 +740,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
           ],
         ),
 
-        // Memory markers
         StreamBuilder<List<MemoryModel>>(
           stream: FirebaseService().streamMemories(),
           builder: (context, snapshot) {
@@ -617,7 +767,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
           },
         ),
 
-        // Place markers (MapTab style)
         StreamBuilder<List<PlaceModel>>(
           stream: FirebaseService().streamPlaces(),
           builder: (context, snapshot) {
@@ -644,7 +793,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
           },
         ),
 
-        // Zone markers
         StreamBuilder<List<ZoneModel>>(
           stream: FirebaseService().streamZones(),
           builder: (context, snapshot) {
@@ -682,61 +830,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     );
   }
 
-  // ─────────────────────────────────────────────
-  //  ZONE OVERLAY
-  // ─────────────────────────────────────────────
-  Widget _buildZoneOverlay(ColorScheme cs) {
-    return StreamBuilder<List<ZoneModel>>(
-      stream: FirebaseService().streamZones(),
-      builder: (ctx, snap) {
-        final zones = snap.data ?? [];
-        if (zones.isEmpty) return const SizedBox.shrink();
-        return GlassCard(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('🔔 Zonas activas', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white70)),
-              const SizedBox(height: 4),
-              ...zones.take(3).map((z) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  children: [
-                    Icon(z.autoDetected ? Icons.hub_rounded : Icons.notifications_active_rounded, size: 14, color: cs.primary),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        '${z.name} (${z.radiusMeters.toInt()}m)',
-                        style: const TextStyle(fontSize: 10, color: Colors.white70),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () async {
-                        await FirebaseService().deleteZone(z.id);
-                        FirebaseService().sendActivityNotification('Eliminó la geocerca: "${z.name}" 🗑️', 'map', icon: 'zone');
-                      },
-                      child: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent, size: 14),
-                    ),
-                  ],
-                ),
-              )),
-              if (zones.length > 3)
-                Text(
-                  '+${zones.length - 3} más...',
-                  style: const TextStyle(fontSize: 9, color: Colors.white38),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // ─────────────────────────────────────────────
-  //  TOP BAR
-  // ─────────────────────────────────────────────
   Widget _buildTopBar(ColorScheme cs, bool isDark) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
@@ -759,11 +852,11 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _distanceKm > 0 ? '${_distanceKm.toStringAsFixed(1)} km' : 'Ubicación',
+                      _distanceKm > 0 ? '${_distanceKm.toStringAsFixed(1)} km' : 'Ubicacion',
                       style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: cs.onSurface),
                     ),
                     Text(
-                      _partnerOnline ? '🟢 $_partnerName en línea' : '⚫ $_partnerName sin conexión',
+                      _partnerOnline ? '$_partnerName en linea' : '$_partnerName sin conexion',
                       style: TextStyle(fontSize: 10, color: cs.onSurface.withValues(alpha: 0.6)),
                     ),
                   ],
@@ -782,9 +875,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     );
   }
 
-  // ─────────────────────────────────────────────
-  //  MAP CONTROLS
-  // ─────────────────────────────────────────────
   Widget _buildMapControls(ColorScheme cs, bool isDark) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -829,9 +919,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     );
   }
 
-  // ─────────────────────────────────────────────
-  //  TOGETHER BADGE
-  // ─────────────────────────────────────────────
   Widget _buildTogetherBadge(ColorScheme cs) {
     return AnimatedBuilder(
       animation: _togetherCtrl,
@@ -842,17 +929,17 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [cs.primary, cs.secondary]),
+          gradient: LinearGradient(colors: [cs.primary, Colors.pink.shade300]),
           borderRadius: BorderRadius.circular(30),
           boxShadow: [BoxShadow(color: cs.primary.withValues(alpha: 0.4), blurRadius: 20, spreadRadius: 2)],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.favorite_rounded, color: Colors.white, size: 20),
+            Icon(Icons.favorite_rounded, color: Colors.white, size: 20),
             const SizedBox(width: 8),
             Text(
-              'Están juntos ❤️',
+              'Estan juntos',
               style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
             ),
           ],
@@ -861,9 +948,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     );
   }
 
-  // ─────────────────────────────────────────────
-  //  BOTTOM SHEET
-  // ─────────────────────────────────────────────
   Widget _buildBottomSheet(ColorScheme cs, bool isDark) {
     return DraggableScrollableSheet(
       controller: _sheetCtrl,
@@ -887,69 +971,128 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, -4))],
                 ),
                 child: ListView(
-                controller: scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  // Handle
-                  Center(
-                    child: Container(
-                      margin: const EdgeInsets.only(top: 10, bottom: 14),
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: cs.onSurface.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(2),
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  children: [
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 10, bottom: 14),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: cs.onSurface.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
 
-                  // Partner Info Card
-                  _buildPartnerCard(cs, isDark),
-                  const SizedBox(height: 16),
+                    _buildPartnerCard(cs, isDark),
+                    const SizedBox(height: 16),
 
-                  // Quick Actions
-                  _buildQuickActions(cs, isDark),
-                  const SizedBox(height: 20),
+                    if (_partnerRouteActive)
+                      _buildRouteBanner(cs),
 
-                  // Info Strips
-                  _buildInfoStrips(cs),
-                  const SizedBox(height: 20),
+                    if (_areTogether)
+                      _buildTogetherBanner(cs),
 
-                  // Expandable Sections
-                  _buildExpandableSection(
-                    title: '📍 Historial',
-                    sectionKey: 'history',
-                    child: _buildHistorySection(cs),
-                    cs: cs,
-                  ),
-                  _buildExpandableSection(
-                    title: '⭐ Lugares',
-                    sectionKey: 'places',
-                    child: _buildPlacesSection(cs),
-                    cs: cs,
-                  ),
-                  _buildExpandableSection(
-                    title: '🔒 Privacidad',
-                    sectionKey: 'privacy',
-                    child: _buildPrivacySection(cs),
-                    cs: cs,
-                  ),
-                  _buildExpandableSection(
-                    title: '📊 Estadísticas',
-                    sectionKey: 'stats',
-                    child: _buildStatsSection(cs),
-                    cs: cs,
-                  ),
+                    _buildQuickActions(cs, isDark),
+                    const SizedBox(height: 20),
 
-                  const SizedBox(height: 40),
-                ],
+                    _buildInfoStrips(cs),
+                    const SizedBox(height: 12),
+
+                    _buildSecondInfoRow(cs),
+                    const SizedBox(height: 20),
+
+                    if (_weatherCondition.isNotEmpty)
+                      _buildWeatherSection(cs),
+
+                    _buildExpandableSection(
+                      title: 'Historial',
+                      sectionKey: 'history',
+                      child: _buildHistorySection(cs),
+                      cs: cs,
+                    ),
+                    _buildExpandableSection(
+                      title: 'Lugares',
+                      sectionKey: 'places',
+                      child: _buildPlacesSection(cs),
+                      cs: cs,
+                    ),
+                    _buildExpandableSection(
+                      title: 'Privacidad',
+                      sectionKey: 'privacy',
+                      child: _buildPrivacySection(cs),
+                      cs: cs,
+                    ),
+                    _buildExpandableSection(
+                      title: 'Estadisticas',
+                      sectionKey: 'stats',
+                      child: _buildStatsSection(cs),
+                      cs: cs,
+                    ),
+
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
             ),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRouteBanner(ColorScheme cs) {
+    return GestureDetector(
+      onTap: _centerOnPartner,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.orange.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
         ),
-      );
-    },
-  );
+        child: Row(
+          children: [
+            const Icon(Icons.route_rounded, color: Colors.orange, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '$_partnerName va hacia $_partnerRouteDest${_partnerRouteEta.isNotEmpty ? ' - ETA $_partnerRouteEta' : ''}',
+                style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.orange.shade800),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTogetherBanner(ColorScheme cs) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.pink.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.pink.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.favorite_rounded, color: Colors.pink, size: 20),
+          const SizedBox(width: 8),
+          Text(
+            'Estan juntos',
+            style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.pink),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildExpandableSection({
@@ -995,92 +1138,150 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     );
   }
 
-  // ── Partner Card ──
   Widget _buildPartnerCard(ColorScheme cs, bool isDark) {
     return GlassCard(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(colors: [cs.primary, cs.secondary]),
-              boxShadow: [BoxShadow(color: cs.primary.withValues(alpha: 0.3), blurRadius: 10)],
-            ),
-            child: const Icon(Icons.person_rounded, color: Colors.white, size: 26),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(colors: [cs.primary, cs.secondary]),
+                  boxShadow: [BoxShadow(color: cs.primary.withValues(alpha: 0.3), blurRadius: 10)],
+                ),
+                child: Center(
+                  child: Text(
+                    _partnerName.isNotEmpty ? _partnerName[0].toUpperCase() : '?',
+                    style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(
-                      child: Text(
-                        '💞 $_partnerName',
-                        style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.bold, color: cs.onSurface),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _partnerName,
+                            style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.bold, color: cs.onSurface),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _partnerOnline ? Colors.green : Colors.grey,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 6),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _partnerOnline ? Colors.green : Colors.grey,
-                      ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _partnerOnline ? 'En linea' : 'Sin conexion - ${_lastUpdateText()}',
+                      style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.6)),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _lastUpdateText(),
+                      style: TextStyle(fontSize: 10, color: cs.onSurface.withValues(alpha: 0.45)),
                     ),
                   ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  _partnerOnline
-                      ? (_partnerScreen.isNotEmpty ? '📱 $_partnerScreen' : '🟢 En línea')
-                      : '⚫ Sin conexión',
-                  style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.6)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '📍 ${_lastUpdateText()}',
-                  style: TextStyle(fontSize: 10, color: cs.onSurface.withValues(alpha: 0.45)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.favorite_rounded, size: 12, color: cs.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      _distanceKm > 0 ? '${_distanceKm.toStringAsFixed(1)} km' : '--',
+                      style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: cs.primary),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: cs.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              _distanceKm > 0 ? '${_distanceKm.toStringAsFixed(1)} km' : '--',
-              style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: cs.primary),
-            ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _ActionButtonSmall(
+                icon: Icons.directions_rounded,
+                label: 'Como llegar',
+                color: Colors.blue,
+                onTap: _openDirections,
+              ),
+              const SizedBox(width: 6),
+              _ActionButtonSmall(
+                icon: Icons.chat_rounded,
+                label: 'Mensaje',
+                color: Colors.green,
+                onTap: _openChatPlaceholder,
+              ),
+              const SizedBox(width: 6),
+              _ActionButtonSmall(
+                icon: Icons.phone_rounded,
+                label: 'Llamar',
+                color: Colors.orange,
+                onTap: _openPhoneDialer,
+              ),
+              const SizedBox(width: 6),
+              _ActionButtonSmall(
+                icon: Icons.check_circle_rounded,
+                label: 'Llegue bien',
+                color: Colors.pink,
+                onTap: _sendArrivedSafe,
+              ),
+              const SizedBox(width: 6),
+              _ActionButtonSmall(
+                icon: Icons.route_rounded,
+                label: 'Compartir ruta',
+                color: Colors.teal,
+                onTap: _showShareRouteDialog,
+              ),
+              const SizedBox(width: 6),
+              _ActionButtonSmall(
+                icon: Icons.place_rounded,
+                label: 'Lugares',
+                color: Colors.amber.shade700,
+                onTap: () => _scrollToSection('places'),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // ── Quick Actions ──
   Widget _buildQuickActions(ColorScheme cs, bool isDark) {
     return Row(
       children: [
         _QuickActionButton(
           icon: Icons.directions_rounded,
-          label: 'Cómo llegar',
+          label: 'Como llegar',
           color: Colors.blue,
           onTap: _openDirections,
         ),
         const SizedBox(width: 10),
         _QuickActionButton(
           icon: Icons.favorite_rounded,
-          label: 'Corazón',
+          label: 'Corazon',
           color: cs.primary,
           onTap: _sendHeartToPartner,
         ),
@@ -1089,7 +1290,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
           icon: Icons.share_rounded,
           label: 'Compartir',
           color: Colors.teal,
-          onTap: () => GeofenceService().sendHeadingHome(),
+          onTap: _showShareRouteDialog,
         ),
         const SizedBox(width: 10),
         _QuickActionButton(
@@ -1104,21 +1305,79 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     );
   }
 
-  // ── Info Strips ──
   Widget _buildInfoStrips(ColorScheme cs) {
+    final motionLabel = switch (_partnerMotion) {
+      'driving' => 'Conduciendo',
+      'walking' => 'Caminando',
+      _ => 'Quieto',
+    };
+    final motionColor = switch (_partnerMotion) {
+      'driving' => Colors.orange,
+      'walking' => Colors.green,
+      _ => Colors.blue,
+    };
     return Row(
       children: [
-        Expanded(child: _InfoChip(icon: Icons.speed_rounded, label: 'Velocidad', value: '${_partnerSpeed.toStringAsFixed(0)} km/h', color: Colors.orange)),
+        Expanded(child: _InfoChip(
+          icon: Icons.speed_rounded,
+          label: 'Velocidad',
+          value: '${_partnerSpeed.toStringAsFixed(0)} km/h',
+          color: Colors.orange,
+        )),
         const SizedBox(width: 8),
         Expanded(child: _InfoChip(
           icon: Icons.battery_std_rounded,
-          label: 'Batería',
+          label: 'Bateria',
           value: _partnerBattery > 0 ? '$_partnerBattery%' : '--',
           color: _partnerBattery < 20 ? Colors.red : Colors.green,
         )),
         const SizedBox(width: 8),
         Expanded(child: _InfoChip(
-          icon: Icons.timer_rounded,
+          icon: Icons.directions_walk_rounded,
+          label: 'Estado',
+          value: motionLabel,
+          color: motionColor,
+        )),
+      ],
+    );
+  }
+
+  Widget _buildSecondInfoRow(ColorScheme cs) {
+    String precisionLabel;
+    if (_partnerPrecision != null) {
+      if (_partnerPrecision! < 10) {
+        precisionLabel = 'Alta';
+      } else if (_partnerPrecision! < 50) {
+        precisionLabel = 'Media';
+      } else {
+        precisionLabel = 'Baja';
+      }
+    } else {
+      precisionLabel = '--';
+    }
+
+    final precisionValue = _partnerPrecision != null
+        ? '${_partnerPrecision!.toStringAsFixed(0)}m'
+        : precisionLabel;
+
+    return Row(
+      children: [
+        Expanded(child: _InfoChip(
+          icon: Icons.gps_fixed_rounded,
+          label: 'GPS',
+          value: precisionValue,
+          color: _partnerPrecision != null && _partnerPrecision! < 10 ? Colors.green : Colors.blue,
+        )),
+        const SizedBox(width: 8),
+        Expanded(child: _InfoChip(
+          icon: _partnerIsGPSOn ? Icons.signal_cellular_alt_rounded : Icons.signal_cellular_off_rounded,
+          label: 'Senal',
+          value: _partnerIsGPSOn ? 'Buena' : 'Sin senal',
+          color: _partnerIsGPSOn ? Colors.green : Colors.red,
+        )),
+        const SizedBox(width: 8),
+        Expanded(child: _InfoChip(
+          icon: Icons.access_time_rounded,
           label: 'Actualizado',
           value: _lastUpdateText(),
           color: Colors.blue,
@@ -1127,7 +1386,41 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     );
   }
 
-  // ── History Section ──
+  Widget _buildWeatherSection(ColorScheme cs) {
+    IconData weatherIconData;
+    switch (_weatherIcon) {
+      case 'sunny': weatherIconData = Icons.wb_sunny_rounded; break;
+      case 'partly_cloudy': weatherIconData = Icons.wb_cloudy_rounded; break;
+      case 'cloudy': weatherIconData = Icons.cloud_rounded; break;
+      case 'rainy': weatherIconData = Icons.umbrella_rounded; break;
+      case 'snowy': weatherIconData = Icons.ac_unit_rounded; break;
+      case 'storm': weatherIconData = Icons.flash_on_rounded; break;
+      default: weatherIconData = Icons.wb_sunny_rounded;
+    }
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.lightBlue.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.lightBlue.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        children: [
+          Icon(weatherIconData, color: Colors.lightBlue, size: 28),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('$_weatherTemp\u00B0C', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: cs.onSurface)),
+              Text(_weatherCondition, style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.6))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHistorySection(ColorScheme cs) {
     final history = GeofenceService().getLocationHistory(hours: 24);
     if (history.isEmpty) {
@@ -1137,59 +1430,80 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
       );
     }
 
-    final entries = history.reversed.take(20).toList();
+    final grouped = <String, List<Map<String, dynamic>>>{};
+    for (final e in history) {
+      final t = DateTime.tryParse(e['time'] ?? '');
+      final dayKey = t != null ? '${t.day}/${t.month}/${t.year}' : 'Hoy';
+      grouped.putIfAbsent(dayKey, () => []).add(e);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Hoy', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: cs.onSurface)),
-        const SizedBox(height: 8),
-        ...entries.map((e) {
-          final t = DateTime.tryParse(e['time'] ?? '');
-          final timeStr = t != null ? '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}' : '';
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(shape: BoxShape.circle, color: cs.primary),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  width: 2,
-                  height: 30,
-                  color: cs.primary.withValues(alpha: 0.2),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: GlassCard(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Row(
-                      children: [
-                        Icon(Icons.location_on_rounded, size: 14, color: cs.primary),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            '${(e['lat'] as double?)?.toStringAsFixed(4) ?? ''}, ${(e['lng'] as double?)?.toStringAsFixed(4) ?? ''}',
-                            style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.7)),
-                            overflow: TextOverflow.ellipsis,
+      children: grouped.entries.map((entry) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(entry.key, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: cs.onSurface)),
+            const SizedBox(height: 8),
+            ...entry.value.reversed.take(10).map((e) {
+              final t = DateTime.tryParse(e['time'] ?? '');
+              final timeStr = t != null ? '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}' : '';
+              final lat = (e['lat'] as num?)?.toDouble();
+              final lng = (e['lng'] as num?)?.toDouble();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    if (lat == null || lng == null) return;
+                    final url = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+                    launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                  },
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: cs.primary),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        width: 2,
+                        height: 30,
+                        color: cs.primary.withValues(alpha: 0.2),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GlassCard(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          child: Row(
+                            children: [
+                              Icon(Icons.location_on_rounded, size: 14, color: cs.primary),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  lat != null && lng != null
+                                      ? '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}'
+                                      : 'Ubicacion desconocida',
+                                  style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.7)),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text(timeStr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                            ],
                           ),
                         ),
-                        Text(timeStr, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: cs.onSurface)),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          );
-        }),
-      ],
+              );
+            }),
+          ],
+        );
+      }).toList(),
     );
   }
 
-  // ── Places Section ──
   Widget _buildPlacesSection(ColorScheme cs) {
     return StreamBuilder<List<PlaceModel>>(
       stream: FirebaseService().streamPlaces(),
@@ -1252,20 +1566,19 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     );
   }
 
-  // ── Privacy Section ──
   Widget _buildPrivacySection(ColorScheme cs) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('🔒 Privacidad', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: cs.onSurface)),
+        Text('Privacidad', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: cs.onSurface)),
         const SizedBox(height: 4),
-        Text('Controla exactamente qué compartes', style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.5))),
+        Text('Controla exactamente que compartes', style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.5))),
         const SizedBox(height: 12),
-        _PrivacyToggle(label: 'Ubicación en tiempo real', value: _shareLocation, icon: Icons.location_on_rounded,
+        _PrivacyToggle(label: 'Ubicacion en tiempo real', value: _shareLocation, icon: Icons.location_on_rounded,
           onChanged: (v) => setState(() { _shareLocation = v; _savePrivacySetting('privacy_share_location', v); })),
         _PrivacyToggle(label: 'Historial de ubicaciones', value: _shareHistory, icon: Icons.history_rounded,
           onChanged: (v) => setState(() { _shareHistory = v; _savePrivacySetting('privacy_share_history', v); })),
-        _PrivacyToggle(label: 'Batería', value: _shareBattery, icon: Icons.battery_std_rounded,
+        _PrivacyToggle(label: 'Bateria', value: _shareBattery, icon: Icons.battery_std_rounded,
           onChanged: (v) => setState(() { _shareBattery = v; _savePrivacySetting('privacy_share_battery', v); })),
         _PrivacyToggle(label: 'Velocidad', value: _shareSpeed, icon: Icons.speed_rounded,
           onChanged: (v) => setState(() { _shareSpeed = v; _savePrivacySetting('privacy_share_speed', v); })),
@@ -1277,7 +1590,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     );
   }
 
-  // ── Stats Section ──
   Widget _buildStatsSection(ColorScheme cs) {
     final history = GeofenceService().getLocationHistory(hours: 24 * 365);
     final totalPoints = history.length;
@@ -1285,7 +1597,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('📊 Estadísticas', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: cs.onSurface)),
+        Text('Estadisticas', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: cs.onSurface)),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -1297,7 +1609,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
         const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(child: _StatCard(label: 'Estado', value: _areTogether ? 'Juntos ❤️' : 'Separados', icon: Icons.people_rounded, color: Colors.green)),
+            Expanded(child: _StatCard(label: 'Estado', value: _areTogether ? 'Juntos' : 'Separados', icon: Icons.people_rounded, color: Colors.green)),
             const SizedBox(width: 8),
             Expanded(child: _StatCard(label: 'Compartiendo', value: GeofenceService().isMonitoring ? 'Activo' : 'Inactivo', icon: Icons.share_location_rounded, color: Colors.orange)),
           ],
@@ -1306,7 +1618,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     );
   }
 
-  // ── FABs ──
   Widget _buildArrivedButton(ColorScheme cs) {
     return GestureDetector(
       onTap: _sendArrivedSafe,
@@ -1326,7 +1637,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
               children: [
                 const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
                 const SizedBox(width: 6),
-                Text('Llegué bien', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                Text('Llegue bien', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
               ],
             ),
           ),
@@ -1363,9 +1674,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     );
   }
 
-  // ─────────────────────────────────────────────
-  //  PLACE CRUD (from MapTab)
-  // ─────────────────────────────────────────────
   void _showMapActionSheet(double lat, double lng) {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
@@ -1382,7 +1690,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '¿Qué deseas agregar aquí?',
+                'Que deseas agregar aqui?',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: cs.onSurface),
                 textAlign: TextAlign.center,
               ),
@@ -1390,7 +1698,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
               ListTile(
                 leading: Icon(Icons.add_location_rounded, color: cs.primary),
                 title: const Text('Agregar Lugar Especial'),
-                subtitle: const Text('Guarda este sitio en tu álbum de mapa'),
+                subtitle: const Text('Guarda este sitio en tu album de mapa'),
                 onTap: () {
                   Navigator.pop(context);
                   _addPlace(latitude: lat, longitude: lng);
@@ -1399,7 +1707,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
               ListTile(
                 leading: const Icon(Icons.notifications_active_rounded, color: Colors.orange),
                 title: const Text('Agregar Zona de Geocerca'),
-                subtitle: const Text('Recibe avisos automáticos al entrar/salir'),
+                subtitle: const Text('Recibe avisos automaticos al entrar/salir'),
                 onTap: () {
                   Navigator.pop(context);
                   _showAddZoneDialog(lat, lng);
@@ -1446,7 +1754,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
                 const SizedBox(height: 12),
                 TextField(
                   controller: _descCtrl,
-                  decoration: const InputDecoration(labelText: 'Descripción'),
+                  decoration: const InputDecoration(labelText: 'Descripcion'),
                   maxLines: 3,
                   textCapitalization: TextCapitalization.sentences,
                 ),
@@ -1458,7 +1766,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
                     DropdownMenuItem(value: 'visited', child: Text('Visitado')),
                     DropdownMenuItem(value: 'wish', child: Text('Por visitar')),
                     DropdownMenuItem(value: 'restaurant', child: Text('Restaurante favorito')),
-                    DropdownMenuItem(value: 'dream', child: Text('País soñado')),
+                    DropdownMenuItem(value: 'dream', child: Text('Pais sonado')),
                     DropdownMenuItem(value: 'first_date', child: Text('Primera cita')),
                     DropdownMenuItem(value: 'first_trip', child: Text('Primer viaje')),
                   ],
@@ -1466,7 +1774,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Ubicación detectada automáticamente.',
+                  'Ubicacion detectada automaticamente.',
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                 ),
               ],
@@ -1487,7 +1795,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
                   type: _placeType,
                 );
                 await FirebaseService().savePlace(place);
-                FirebaseService().sendActivityNotification('Añadió el lugar especial: "$placeName" 📍', 'map', icon: 'place');
+                FirebaseService().sendActivityNotification('Anadio el lugar especial: "$placeName"', 'map', icon: 'place');
                 _nameCtrl.clear();
                 _descCtrl.clear();
                 if (ctx.mounted) Navigator.pop(ctx);
@@ -1523,7 +1831,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
               children: [
                 TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nombre del lugar')),
                 const SizedBox(height: 8),
-                TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Descripción'), maxLines: 2),
+                TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Descripcion'), maxLines: 2),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: typeVal,
@@ -1532,7 +1840,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
                     DropdownMenuItem(value: 'visited', child: Text('Visitado')),
                     DropdownMenuItem(value: 'wish', child: Text('Por visitar')),
                     DropdownMenuItem(value: 'restaurant', child: Text('Restaurante favorito')),
-                    DropdownMenuItem(value: 'dream', child: Text('País soñado')),
+                    DropdownMenuItem(value: 'dream', child: Text('Pais sonado')),
                     DropdownMenuItem(value: 'first_date', child: Text('Primera cita')),
                     DropdownMenuItem(value: 'first_trip', child: Text('Primer viaje')),
                   ],
@@ -1548,14 +1856,14 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
                 showDialog(
                   context: context,
                   builder: (confirmCtx) => AlertDialog(
-                    title: const Text('¿Eliminar lugar?'),
-                    content: const Text('Esta acción borrará el lugar permanentemente.'),
+                    title: const Text('Eliminar lugar?'),
+                    content: const Text('Esta accion borrara el lugar permanentemente.'),
                     actions: [
                       TextButton(onPressed: () => Navigator.pop(confirmCtx), child: const Text('Cancelar')),
                       ElevatedButton(
                         onPressed: () async {
                           await FirebaseService().deletePlace(place.id);
-                          FirebaseService().sendActivityNotification('Eliminó un lugar especial 🗑️', 'map', icon: 'place');
+                          FirebaseService().sendActivityNotification('Elimino un lugar especial', 'map', icon: 'place');
                           if (confirmCtx.mounted) Navigator.pop(confirmCtx);
                         },
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
@@ -1577,7 +1885,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
                   type: typeVal,
                 );
                 await FirebaseService().savePlace(updated);
-                FirebaseService().sendActivityNotification('Actualizó el lugar especial: "${updated.name}" 📝', 'map', icon: 'place');
+                FirebaseService().sendActivityNotification('Actualizo el lugar especial: "${updated.name}"', 'map', icon: 'place');
                 if (ctx.mounted) Navigator.pop(ctx);
               },
               child: const Text('Guardar'),
@@ -1600,7 +1908,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
             Flexible(child: Text(p.name, overflow: TextOverflow.ellipsis)),
           ],
         ),
-        content: Text(p.description != null && p.description!.isNotEmpty ? p.description! : 'Sin descripción adicional.'),
+        content: Text(p.description != null && p.description!.isNotEmpty ? p.description! : 'Sin descripcion adicional.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
           TextButton(
@@ -1635,7 +1943,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
               children: [
                 TextField(
                   controller: _zoneNameCtrl,
-                  decoration: const InputDecoration(labelText: 'Nombre de la zona', hintText: 'Ej: Casa, Trabajo, Café...'),
+                  decoration: const InputDecoration(labelText: 'Nombre de la zona', hintText: 'Ej: Casa, Trabajo, Cafe...'),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -1676,7 +1984,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
                   radiusMeters: _zoneRadius,
                 );
                 FirebaseService().saveZone(zone);
-                FirebaseService().sendActivityNotification('Creó una nueva geocerca: "$zoneName" 🔔', 'map', icon: 'zone');
+                FirebaseService().sendActivityNotification('Creo una nueva geocerca: "$zoneName"', 'map', icon: 'zone');
                 Navigator.pop(ctx);
               },
               child: const Text('Guardar Zona'),
@@ -1687,102 +1995,266 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     );
   }
 
-  List<LatLng> _circlePoints(double lat, double lon, double radiusMeters) {
-    final points = <LatLng>[];
-    final steps = 36;
-    for (int i = 0; i <= steps; i++) {
-      final angle = (i * 360 / steps) * pi / 180;
-      final dx = radiusMeters * cos(angle);
-      final dy = radiusMeters * sin(angle);
-      final dLat = dy / 111320;
-      final dLon = dx / (111320 * cos(lat * pi / 180));
-      points.add(LatLng(lat + dLat, lon + dLon));
-    }
-    return points;
-  }
+  void _showPartnerSheet(BuildContext rootContext, ColorScheme cs) {
+    HapticFeedback.mediumImpact();
+    final precisionLabel = _partnerPrecision != null
+        ? (_partnerPrecision! < 10 ? 'Alta' : (_partnerPrecision! < 50 ? 'Media' : 'Baja'))
+        : '--';
+    final motionLabel = switch (_partnerMotion) {
+      'driving' => 'Conduciendo',
+      'walking' => 'Caminando',
+      _ => 'Quieto',
+    };
 
-  // ── Helpers ──
-  void _showPartnerSheet(ColorScheme cs) {
     showModalBottomSheet(
-      context: context,
+      context: rootContext,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-          child: Container(
+      builder: (ctx) => Container(
+        height: MediaQuery.of(ctx).size.height * 0.95,
+        decoration: BoxDecoration(
+          color: Theme.of(ctx).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.9),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            ),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(width: 40, height: 4, decoration: BoxDecoration(color: cs.onSurface.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2))),
-                const SizedBox(height: 20),
                 Container(
-                  width: 70, height: 70,
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: cs.onSurface.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  width: 80, height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(colors: [cs.primary, cs.secondary]),
+                    boxShadow: [BoxShadow(color: cs.primary.withValues(alpha: 0.3), blurRadius: 12)],
                   ),
-                  child: const Icon(Icons.person_rounded, size: 36, color: Colors.white),
+                  child: Center(
+                    child: Text(
+                      _partnerName.isNotEmpty ? _partnerName[0].toUpperCase() : '?',
+                      style: GoogleFonts.outfit(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 12),
-                Text('💞 $_partnerName', style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: cs.onSurface)),
-                const SizedBox(height: 4),
+                const SizedBox(height: 16),
+                Text(
+                  _partnerName,
+                  style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: cs.onSurface),
+                ),
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: _partnerOnline ? Colors.green : Colors.grey)),
-                    const SizedBox(width: 6),
-                    Text(_partnerOnline ? 'En línea' : 'Sin conexión', style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6))),
+                    Container(
+                      width: 10, height: 10,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _partnerOnline ? Colors.green : Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _partnerOnline ? 'En linea' : 'Sin conexion',
+                      style: TextStyle(fontSize: 16, color: cs.onSurface.withValues(alpha: 0.6)),
+                    ),
                   ],
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  'Ultima actualizacion: ${_lastUpdateText()}',
+                  style: TextStyle(fontSize: 13, color: cs.onSurface.withValues(alpha: 0.45)),
+                ),
                 const SizedBox(height: 20),
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _DetailItem(icon: Icons.straighten_rounded, label: 'Distancia', value: '${_distanceKm.toStringAsFixed(1)} km'),
-                    _DetailItem(icon: Icons.battery_std_rounded, label: 'Batería', value: _partnerBattery > 0 ? '$_partnerBattery%' : '--'),
-                    _DetailItem(icon: Icons.speed_rounded, label: 'Velocidad', value: '${_partnerSpeed.toStringAsFixed(0)} km/h'),
-                    _DetailItem(icon: Icons.access_time_rounded, label: 'Actualizado', value: _lastUpdateText()),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(child: ElevatedButton.icon(
-                      onPressed: _openDirections,
-                      icon: const Icon(Icons.directions_rounded, size: 18),
-                      label: const Text('Cómo llegar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    )),
-                    const SizedBox(width: 10),
-                    Expanded(child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _sendHeartToPartner();
-                      },
-                      icon: const Icon(Icons.favorite_rounded, size: 18),
-                      label: const Text('Corazón'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: cs.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    )),
+                    _PartnerDetailItem(
+                      icon: Icons.battery_std_rounded,
+                      label: 'Bateria',
+                      value: _partnerBattery > 0 ? '$_partnerBattery%' : '--',
+                      sub: _partnerIsCharging ? 'Cargando' : null,
+                      color: _partnerBattery < 20 ? Colors.red : Colors.green,
+                    ),
+                    _PartnerDetailItem(
+                      icon: Icons.speed_rounded,
+                      label: 'Velocidad',
+                      value: '${_partnerSpeed.toStringAsFixed(0)} km/h',
+                      color: Colors.orange,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _PartnerDetailItem(
+                      icon: Icons.directions_walk_rounded,
+                      label: 'Estado',
+                      value: motionLabel,
+                      color: Colors.blue,
+                    ),
+                    _PartnerDetailItem(
+                      icon: Icons.gps_fixed_rounded,
+                      label: 'GPS',
+                      value: precisionLabel,
+                      color: _partnerPrecision != null && _partnerPrecision! < 10 ? Colors.green : Colors.blue,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (_partnerAddress != null && _partnerAddress!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.map_rounded, size: 16, color: cs.onSurface.withValues(alpha: 0.5)),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            _partnerAddress!,
+                            style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.6)),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _PartnerDetailItem(
+                      icon: Icons.signal_cellular_alt_rounded,
+                      label: 'Senal',
+                      value: _partnerIsGPSOn ? 'Buena' : 'Sin senal',
+                      color: _partnerIsGPSOn ? Colors.green : Colors.red,
+                    ),
+                    _PartnerDetailItem(
+                      icon: Icons.straighten_rounded,
+                      label: 'Distancia',
+                      value: _distanceKm > 0 ? '${_distanceKm.toStringAsFixed(1)} km' : '--',
+                      color: cs.primary,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Column(
+                      children: [
+                        Icon(Icons.directions_car_rounded, color: Colors.blue, size: 24),
+                        const SizedBox(height: 4),
+                        Text(
+                          _partnerEtaCar != null
+                              ? '${_partnerEtaCar!.toStringAsFixed(0)} min'
+                              : '--',
+                          style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: cs.onSurface),
+                        ),
+                        Text('ETA auto', style: TextStyle(fontSize: 10, color: cs.onSurface.withValues(alpha: 0.5))),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        Icon(Icons.directions_walk_rounded, color: Colors.green, size: 24),
+                        const SizedBox(height: 4),
+                        Text(
+                          _partnerEtaWalk != null
+                              ? '${_partnerEtaWalk!.toStringAsFixed(0)} min'
+                              : '--',
+                          style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: cs.onSurface),
+                        ),
+                        Text('ETA caminando', style: TextStyle(fontSize: 10, color: cs.onSurface.withValues(alpha: 0.5))),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                const Divider(),
+                const SizedBox(height: 8),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ActionButtonBig(
+                        icon: Icons.directions_rounded,
+                        label: 'Como llegar',
+                        color: Colors.blue,
+                        onTap: () { Navigator.pop(ctx); _openDirections(); },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _ActionButtonBig(
+                        icon: Icons.chat_rounded,
+                        label: 'Mensaje',
+                        color: Colors.green,
+                        onTap: () { Navigator.pop(ctx); _openChatPlaceholder(); },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ActionButtonBig(
+                        icon: Icons.phone_rounded,
+                        label: 'Llamar',
+                        color: Colors.orange,
+                        onTap: () { Navigator.pop(ctx); _openPhoneDialer(); },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _ActionButtonBig(
+                        icon: Icons.check_circle_rounded,
+                        label: 'Llegue bien',
+                        color: Colors.pink,
+                        onTap: () { Navigator.pop(ctx); _sendArrivedSafe(); },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ActionButtonBig(
+                        icon: Icons.history_rounded,
+                        label: 'Historial',
+                        color: Colors.purple,
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _scrollToSection('history');
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _ActionButtonBig(
+                        icon: Icons.place_rounded,
+                        label: 'Lugares',
+                        color: Colors.amber.shade700,
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _scrollToSection('places');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1809,7 +2281,7 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
             const SizedBox(height: 8),
             Text(memory.title, style: GoogleFonts.caveat(fontSize: 22, fontWeight: FontWeight.bold, color: cs.onSurface)),
             const SizedBox(height: 4),
-            Text('📅 ${memory.date.day}/${memory.date.month}/${memory.date.year}',
+            Text('${memory.date.day}/${memory.date.month}/${memory.date.year}',
               style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.5))),
             if (memory.description.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -1821,6 +2293,20 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
         ),
       ),
     );
+  }
+
+  List<LatLng> _circlePoints(double lat, double lon, double radiusMeters) {
+    final points = <LatLng>[];
+    final steps = 36;
+    for (int i = 0; i <= steps; i++) {
+      final angle = (i * 360 / steps) * pi / 180;
+      final dx = radiusMeters * cos(angle);
+      final dy = radiusMeters * sin(angle);
+      final dLat = dy / 111320;
+      final dLon = dx / (111320 * cos(lat * pi / 180));
+      points.add(LatLng(lat + dLat, lon + dLon));
+    }
+    return points;
   }
 
   IconData _placeIcon(String type) {
@@ -1847,10 +2333,6 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
     }
   }
 }
-
-// ═══════════════════════════════════════════════
-//  HELPER WIDGETS
-// ═══════════════════════════════════════════════
 
 class _BatteryChip extends StatelessWidget {
   final String label;
@@ -1948,6 +2430,76 @@ class _QuickActionButton extends StatelessWidget {
   }
 }
 
+class _ActionButtonSmall extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _ActionButtonSmall({required this.icon, required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(fontSize: 8, color: color, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionButtonBig extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _ActionButtonBig({required this.icon, required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: color),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -2005,21 +2557,25 @@ class _PrivacyToggle extends StatelessWidget {
   }
 }
 
-class _DetailItem extends StatelessWidget {
+class _PartnerDetailItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _DetailItem({required this.icon, required this.label, required this.value});
+  final String? sub;
+  final Color color;
+  const _PartnerDetailItem({required this.icon, required this.label, required this.value, this.sub, required this.color});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Column(
       children: [
-        Icon(icon, size: 20, color: cs.primary),
+        Icon(icon, size: 24, color: color),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: cs.onSurface)),
-        Text(label, style: TextStyle(fontSize: 9, color: cs.onSurface.withValues(alpha: 0.5))),
+        Text(value, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: cs.onSurface)),
+        Text(label, style: TextStyle(fontSize: 10, color: cs.onSurface.withValues(alpha: 0.5))),
+        if (sub != null)
+          Text(sub!, style: TextStyle(fontSize: 9, color: color.withValues(alpha: 0.7))),
       ],
     );
   }
