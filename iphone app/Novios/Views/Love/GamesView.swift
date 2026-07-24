@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import FirebaseFirestore
 
 public struct GamesView: View {
@@ -326,9 +327,11 @@ public struct GamesView: View {
     }
 
     private func playGame(_ g: GameSession) {
-        onlineGameId = g.id
-        selectedGameType = g.gameType
-        showOnlineGame = true
+        let vc = UIHostingController(rootView: OnlineGameView(gameId: g.id, gameType: g.gameType, gamesRef: gamesRef))
+        if let top = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController }).first {
+            var t = top; while let p = t.presentedViewController { t = p }
+            t.present(vc, animated: true)
+        }
     }
 
     private func gameLabel(for type: String) -> String {
