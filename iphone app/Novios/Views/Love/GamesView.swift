@@ -20,6 +20,13 @@ public struct GamesView: View {
         db.collection("couples").document(coupleId).collection("games")
     }
 
+    private var hasOnline: Bool {
+        switch selectedGameType {
+        case "quiz", "truth_dare", "tictactoe", "rps", "hangman", "memorama": return true
+        default: return false
+        }
+    }
+
     private struct GameDef: Identifiable {
         let id: String; let icon: String; let name: String; let desc: String; let colors: [Color]
     }
@@ -52,7 +59,18 @@ public struct GamesView: View {
                 }
                 .padding(16)
             }
+
+            if showGamePicker {
+                Color.black.opacity(0.35)
+                    .ignoresSafeArea()
+                    .onTapGesture { showGamePicker = false }
+                    .transition(.opacity)
+
+                gamePickerCard
+                    .transition(.scale(scale: 0.9).combined(with: .opacity))
+            }
         }
+        .animation(.spring(response: 0.35), value: showGamePicker)
         .navigationTitle("Juegos de Pareja 🎮")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -68,7 +86,6 @@ public struct GamesView: View {
                 }
             }
         }
-        .sheet(isPresented: $showGamePicker) { gamePickerSheet }
         .onAppear { startListening() }
         .onDisappear { stopListening() }
     }
@@ -209,39 +226,24 @@ public struct GamesView: View {
 
     // MARK: - Game Picker Sheet
 
-    private var gamePickerSheet: some View {
-        let myName = AuthService.shared.currentUser?.displayName ?? "Yo"
+    private var gamePickerCard: some View {
         let partnerName = CoupleService.shared.partnerName
         let label = gameLabel(for: selectedGameType)
         let cs = ThemeManager.shared
 
-        return VStack(spacing: 16) {
+        return VStack(spacing: hasOnline ? 12 : 4) {
             Text("Jugar a \(label)")
                 .appFont(size: 18, weight: .bold)
                 .foregroundColor(cs.textPrimary)
                 .padding(.top, 20)
 
             Button {
-                showGamePicker = false
-                createGameSession(selectedGameType)
-            } label: {
-                HStack {
-                    Image(systemName: "wifi")
-                    Text("Jugar Online con mi pareja")
-                        .appFont(size: 15)
-                    Spacer()
-                    Text("Invitar a \(partnerName)")
-                        .appFont(size: 12)
-                        .foregroundColor(.secondary)
+                let vc = UIHostingController(rootView: LocalGameView(gameType: selectedGameType))
+                if let top = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController }).first {
+                    var t = top; while let p = t.presentedViewController { t = p }
+                    t.present(vc, animated: true)
                 }
-                .padding(12)
-                .background(cs.primary.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-
-            Button {
                 showGamePicker = false
-                startLocalGame(selectedGameType)
             } label: {
                 HStack {
                     Image(systemName: "iphone")
@@ -256,9 +258,42 @@ public struct GamesView: View {
                 .background(Color.gray.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+
+            if hasOnline {
+                Button {
+                    guard let uid = AuthService.shared.currentUser?.id else { return }
+                    let id = UUID().uuidString
+                    onlineGameId = id
+                    let name = AuthService.shared.currentUser?.displayName ?? "Yo"
+                    Task {
+                        try? await gamesRef.document(id).setData([
+                            "id": id, "gameType": selectedGameType, "status": "pending",
+                            "sender": name, "senderId": uid,
+                            "createdAt": FieldValue.serverTimestamp()
+                        ])
+                    }
+                    let ovc = UIHostingController(rootView: OnlineGameView(gameId: id, gameType: selectedGameType, gamesRef: gamesRef))
+                    if let top = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController }).first {
+                        var t = top; while let p = t.presentedViewController { t = p }
+                        t.present(ovc, animated: true)
+                    }
+                    showGamePicker = false
+                } label: {
+                    HStack {
+                        Image(systemName: "wifi")
+                        Text("Jugar Online con mi pareja")
+                            .appFont(size: 15)
+                    }
+                    .padding(12)
+                    .background(cs.primary.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
         }
         .padding(24)
-        .background(.regularMaterial)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
+        .padding(.horizontal, 40)
+        .shadow(color: .black.opacity(0.15), radius: 30)
     }
 
     // MARK: - Firestore
@@ -279,18 +314,6 @@ public struct GamesView: View {
         snapshotListener?.remove(); snapshotListener = nil
     }
 
-    private func createGameSession(_ type: String) {
-        guard let uid = AuthService.shared.currentUser?.id else { return }
-        Task {
-            let id = UUID().uuidString
-            try? await gamesRef.document(id).setData([
-                "id": id, "gameType": type, "status": "pending",
-                "sender": AuthService.shared.currentUser?.displayName ?? "Yo",
-                "senderId": uid, "createdAt": FieldValue.serverTimestamp()
-            ])
-        }
-    }
-
     private func deleteGameSession(_ id: String) {
         Task { try? await gamesRef.document(id).delete() }
     }
@@ -303,17 +326,9 @@ public struct GamesView: View {
     }
 
     private func playGame(_ g: GameSession) {
-        guard let top = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController }).first else { return }
-        var t = top; while let p = t.presentedViewController { t = p }
-        let host = UIHostingController(rootView: OnlineGameView(gameId: g.id, gameType: g.gameType, gamesRef: gamesRef))
-        t.present(host, animated: true)
-    }
-
-    private func startLocalGame(_ type: String) {
-        guard let top = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController }).first else { return }
-        var t = top; while let p = t.presentedViewController { t = p }
-        let host = UIHostingController(rootView: LocalGameView(gameType: type))
-        t.present(host, animated: true)
+        onlineGameId = g.id
+        selectedGameType = g.gameType
+        showOnlineGame = true
     }
 
     private func gameLabel(for type: String) -> String {

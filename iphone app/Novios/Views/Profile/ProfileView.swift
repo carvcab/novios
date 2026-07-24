@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import FirebaseFirestore
 
 public struct ProfileView: View {
     @ObservedObject private var theme = ThemeManager.shared
@@ -492,43 +493,42 @@ public struct ProfileView: View {
     }
 
     private func saveImportantDatesToFirestore() async {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         let dicts = importantDates.map { date -> [String: Any] in
-            let df = ISO8601DateFormatter()
-            return [
+            [
+                "id": date.id.uuidString,
                 "title": date.title,
-                "date": df.string(from: date.date),
+                "date": formatter.string(from: date.date),
                 "repeats": date.repeats
             ]
         }
-        try? await FirebaseRESTService.shared.firestoreSet(
-            path: "couples/\(CoupleService.coupleId)/data/dates",
-            fields: ["lista": dicts]
-        )
+        let db = Firestore.firestore()
+        let coupleId = CoupleService.coupleId
+        try? await db.collection("couples").document(coupleId)
+            .collection("lists").document("important_dates")
+            .setData(["items": dicts, "updatedAt": FieldValue.serverTimestamp()])
     }
 
     private func loadImportantDatesFromFirestore() async {
-        guard let doc = try? await FirebaseRESTService.shared.firestoreGet(
-            path: "couples/\(CoupleService.coupleId)/data/dates"
-        ),
-        let fields = doc["fields"] as? [String: Any],
-        let arrayVal = fields["lista"] as? [String: Any],
-        let values = arrayVal["arrayValue"] as? [String: Any],
-        let entries = values["values"] as? [[String: Any]] else { return }
+        let db = Firestore.firestore()
+        let coupleId = CoupleService.coupleId
+        guard let doc = try? await db.collection("couples").document(coupleId)
+            .collection("lists").document("important_dates").getDocument(),
+              let data = doc.data(),
+              let items = data["items"] as? [[String: Any]] else { return }
 
-        let df = ISO8601DateFormatter()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         var loaded: [ImportantDate] = []
-        for entry in entries {
-            guard let mapVal = entry["mapValue"] as? [String: Any],
-                  let mapFields = mapVal["fields"] as? [String: Any] else { continue }
-            let s = { (k: String) -> String in
-                ((mapFields[k] as? [String: Any])?["stringValue"] as? String) ?? ""
-            }
-            let b = { (k: String) -> Bool in
-                ((mapFields[k] as? [String: Any])?["booleanValue"] as? Bool) ?? false
-            }
-            if let date = df.date(from: s("date")) {
-                loaded.append(ImportantDate(title: s("title"), date: date, repeats: b("repeats")))
-            }
+        for entry in items {
+            guard let title = entry["title"] as? String,
+                  let dateStr = entry["date"] as? String,
+                  let date = formatter.date(from: dateStr) else { continue }
+            let repeats = entry["repeats"] as? Bool ?? false
+            loaded.append(ImportantDate(title: title, date: date, repeats: repeats))
         }
         if !loaded.isEmpty {
             await MainActor.run {
