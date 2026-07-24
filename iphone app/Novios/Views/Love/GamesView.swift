@@ -264,7 +264,6 @@ public struct GamesView: View {
                 Button {
                     guard let uid = AuthService.shared.currentUser?.id else { return }
                     let id = UUID().uuidString
-                    onlineGameId = id
                     let name = AuthService.shared.currentUser?.displayName ?? "Yo"
                     Task {
                         try? await gamesRef.document(id).setData([
