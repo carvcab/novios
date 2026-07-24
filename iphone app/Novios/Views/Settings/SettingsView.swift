@@ -654,13 +654,14 @@ public struct SettingsView: View {
                         "fontFamily": theme.fontFamily,
                     ])
 
-                // Also save to new Android-compatible path
+                // Save to Android-compatible path (ISO 8601 strings)
                 let newCoupleId = [CoupleService.diegoUid, CoupleService.yosmariUid].sorted().joined(separator: "_")
                 var coupleFields: [String: Any] = [:]
-                if let d = anniversaryDate { coupleFields["anniversaryDate"] = Timestamp(date: d) }
-                if let d = metDate { coupleFields["metDate"] = Timestamp(date: d) }
-                if let d = datingDate { coupleFields["datingDate"] = Timestamp(date: d) }
-                if let d = weddingDate { coupleFields["weddingDate"] = Timestamp(date: d) }
+                let df = ISO8601DateFormatter()
+                if let d = anniversaryDate { coupleFields["anniversaryDate"] = df.string(from: d) }
+                if let d = metDate { coupleFields["metDate"] = df.string(from: d) }
+                if let d = datingDate { coupleFields["datingDate"] = df.string(from: d) }
+                if let d = weddingDate { coupleFields["weddingDate"] = df.string(from: d) }
                 try? await FirebaseRESTService.shared.firestoreSet(path: "couples/\(newCoupleId)", fields: coupleFields)
             }
         }

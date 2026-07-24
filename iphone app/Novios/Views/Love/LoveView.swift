@@ -397,11 +397,12 @@ struct DateConfigView: View {
     }
 
     private func save() {
+        let df = ISO8601DateFormatter()
         var fields: [String: Any] = [:]
-        if metEnabled { fields["metDate"] = Timestamp(date: met) } else { fields["metDate"] = FieldValue.delete() }
-        if datingEnabled { fields["datingDate"] = Timestamp(date: dating) } else { fields["datingDate"] = FieldValue.delete() }
-        if annEnabled { fields["anniversaryDate"] = Timestamp(date: ann) } else { fields["anniversaryDate"] = FieldValue.delete() }
-        if weddingEnabled { fields["weddingDate"] = Timestamp(date: wedding) } else { fields["weddingDate"] = FieldValue.delete() }
+        if metEnabled { fields["metDate"] = df.string(from: met) } else { fields["metDate"] = FieldValue.delete() }
+        if datingEnabled { fields["datingDate"] = df.string(from: dating) } else { fields["datingDate"] = FieldValue.delete() }
+        if annEnabled { fields["anniversaryDate"] = df.string(from: ann) } else { fields["anniversaryDate"] = FieldValue.delete() }
+        if weddingEnabled { fields["weddingDate"] = df.string(from: wedding) } else { fields["weddingDate"] = FieldValue.delete() }
         Task { try? await coupleDocRef.setData(fields, merge: true) }
         dismiss()
     }
@@ -556,9 +557,9 @@ class LoveViewModel: ObservableObject {
         }
         alert.addAction(UIAlertAction(title: "Guardar", style: .default) { _ in
             let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
-            if let text = alert.textFields?.first?.text, let date = f.date(from: text) {
-                Task { try? await self.coupleDocRef.setData(["anniversaryDate": Timestamp(date: date)], merge: true) }
-            }
+                if let text = alert.textFields?.first?.text, let date = f.date(from: text) {
+                    Task { try? await self.coupleDocRef.setData(["anniversaryDate": ISO8601DateFormatter().string(from: date)], merge: true) }
+                }
         })
         alert.addAction(UIAlertAction(title: "Cancelar", style: .cancel))
         root.present(alert, animated: true)

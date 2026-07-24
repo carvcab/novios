@@ -561,22 +561,21 @@ private struct MilestoneConfigSheet: View {
     }
 
     private func save() {
+        let df = ISO8601DateFormatter()
         var fields: [String: Any] = [:]
-        if metEnabled { fields["metDate"] = Timestamp(date: metDate) } else { fields["metDate"] = FieldValue.delete() }
-        if datingEnabled { fields["datingDate"] = Timestamp(date: datingDate) } else { fields["datingDate"] = FieldValue.delete() }
-        if annEnabled { fields["anniversaryDate"] = Timestamp(date: annDate) } else { fields["anniversaryDate"] = FieldValue.delete() }
-        if weddingEnabled { fields["weddingDate"] = Timestamp(date: weddingDate) } else { fields["weddingDate"] = FieldValue.delete() }
+        if metEnabled { fields["metDate"] = df.string(from: metDate) } else { fields["metDate"] = FieldValue.delete() }
+        if datingEnabled { fields["datingDate"] = df.string(from: datingDate) } else { fields["datingDate"] = FieldValue.delete() }
+        if annEnabled { fields["anniversaryDate"] = df.string(from: annDate) } else { fields["anniversaryDate"] = FieldValue.delete() }
+        if weddingEnabled { fields["weddingDate"] = df.string(from: weddingDate) } else { fields["weddingDate"] = FieldValue.delete() }
         Task {
             try? await coupleRef.setData(fields, merge: true)
-            // Also sync to user document for cross-device
             if let uid = AuthService.shared.currentUser?.id {
-                let df = ISO8601DateFormatter()
-                var userFields: [String: Any] = [:]
-                if metEnabled { userFields["metDate"] = df.string(from: metDate) } else { userFields["metDate"] = "" }
-                if datingEnabled { userFields["datingDate"] = df.string(from: datingDate) } else { userFields["datingDate"] = "" }
-                if annEnabled { userFields["anniversaryDate"] = df.string(from: annDate) } else { userFields["anniversaryDate"] = "" }
-                if weddingEnabled { userFields["weddingDate"] = df.string(from: weddingDate) } else { userFields["weddingDate"] = "" }
-                try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: userFields)
+                var uf: [String: Any] = [:]
+                if metEnabled { uf["metDate"] = df.string(from: metDate) } else { uf["metDate"] = "" }
+                if datingEnabled { uf["datingDate"] = df.string(from: datingDate) } else { uf["datingDate"] = "" }
+                if annEnabled { uf["anniversaryDate"] = df.string(from: annDate) } else { uf["anniversaryDate"] = "" }
+                if weddingEnabled { uf["weddingDate"] = df.string(from: weddingDate) } else { uf["weddingDate"] = "" }
+                try? await FirebaseRESTService.shared.firestoreSet(path: "users/\(uid)", fields: uf)
             }
         }
         dismiss()
