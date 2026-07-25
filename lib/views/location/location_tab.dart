@@ -138,6 +138,20 @@ class _LocationTabState extends State<LocationTab> with TickerProviderStateMixin
   }
 
   void _initLocation() async {
+    // Solicitar permiso de ubicación explícitamente
+    final locPerm = await Geolocator.checkPermission();
+    if (locPerm == LocationPermission.denied) {
+      final requested = await Geolocator.requestPermission();
+      if (requested == LocationPermission.denied || requested == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Permiso de ubicación necesario para compartir tu ubicación')),
+          );
+        }
+        return;
+      }
+    }
+
     final pos = GeofenceService().lastPosition;
     if (pos != null) {
       setState(() {

@@ -613,8 +613,7 @@ class _LetterReaderScreenState extends State<_LetterReaderScreen> with SingleTic
                 offset: Offset(0, 200 * (1.0 - s)),
                 child: Transform.scale(
                   scale: 0.8 + 0.2 * s,
-                  child: Opacity(opacity: s),
-                  child: child,
+                  child: Opacity(opacity: s, child: child),
                 ),
               );
             },

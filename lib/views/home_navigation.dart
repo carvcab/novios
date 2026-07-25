@@ -10,6 +10,10 @@ import '../services/chat_notification_service.dart';
 import '../services/couple_service.dart';
 import '../services/widget_service.dart';
 import '../widgets/confetti_overlay.dart';
+import '../widgets/ai_assistant_overlay.dart';
+import '../services/ai_memory_service.dart';
+import '../services/local_ai_service.dart';
+import 'ai/ai_download_screen.dart';
 import 'home/home_tab.dart';
 import 'love/love_tab.dart';
 import 'messages/messages_tab.dart';
@@ -75,6 +79,18 @@ class _HomeNavigationState extends State<HomeNavigation> with WidgetsBindingObse
     ProfileTab(),
   ];
 
+  bool _aiInitDone = false;
+  void _initAi() {
+    if (_aiInitDone) return;
+    _aiInitDone = true;
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted) {
+        LocalAIService().initialize();
+        AiMemoryService().load();
+      }
+    });
+  }
+
   void _goToSettings() {
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -97,6 +113,9 @@ class _HomeNavigationState extends State<HomeNavigation> with WidgetsBindingObse
     final cs = Theme.of(context).colorScheme;
     final isDark = theme.isDark;
 
+    _initAi();
+
+    final contexts = ['home', 'chat', 'love', 'location', 'profile'];
     return ConfettiOverlay(
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -124,11 +143,19 @@ class _HomeNavigationState extends State<HomeNavigation> with WidgetsBindingObse
             ),
           ],
         ),
-        body: IndexedStack(
-          index: _currentIndex,
-          children: List.generate(_tabs.length, (index) {
-            return _loadedTabs[index] ? _tabs[index] : const SizedBox.shrink();
-          }),
+        body: Stack(
+          children: [
+            IndexedStack(
+              index: _currentIndex,
+              children: List.generate(_tabs.length, (index) {
+                return _loadedTabs[index] ? _tabs[index] : const SizedBox.shrink();
+              }),
+            ),
+            AiAssistantOverlay(
+              screenContext: contexts[_currentIndex],
+              onOpenSettings: _goToSettings,
+            ),
+          ],
         ),
         bottomNavigationBar: _buildNav(cs, isDark),
       ),
