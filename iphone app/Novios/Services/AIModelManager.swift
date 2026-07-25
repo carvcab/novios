@@ -11,7 +11,7 @@ public enum AIState: String {
     case updating = "Actualizando..."
 }
 
-public enum AIError: LocalizedError {
+public enum ModelError: LocalizedError {
     case noSpace(available: Int64, required: Int64)
     case downloadFailed(String)
     case verificationFailed(expected: String, got: String)
@@ -156,7 +156,7 @@ public class AIModelManager: ObservableObject {
 
     public func downloadModel() {
         guard let model = currentModel else {
-            errorMessage = AIError.noModelInfo.localizedDescription
+                errorMessage = ModelError.noModelInfo.localizedDescription
             state = .error
             return
         }
@@ -164,7 +164,7 @@ public class AIModelManager: ObservableObject {
         let freeBytes = freeDiskSpace()
         let required = Int64(model.requiredSpaceMB) * 1024 * 1024
         if freeBytes < required {
-            errorMessage = AIError.noSpace(available: freeBytes / (1024*1024), required: model.requiredSpaceMB).localizedDescription
+            errorMessage = ModelError.noSpace(available: freeBytes / (1024*1024), required: model.requiredSpaceMB).localizedDescription
             state = .error
             return
         }
@@ -275,7 +275,7 @@ public class AIModelManager: ObservableObject {
 
     // MARK: - Helpers
 
-    private func setError(_ error: AIError) {
+    private func setError(_ error: ModelError) {
         errorMessage = error.localizedDescription
         state = .error
         progress = 0
