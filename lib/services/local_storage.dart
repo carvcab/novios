@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart' as pp;
 
 typedef ListSyncCallback = Future<void> Function(String key, List<Map<String, dynamic>> items);
 typedef ListLoadCallback = Future<List<Map<String, dynamic>>?> Function(String key);
@@ -107,6 +108,19 @@ class LocalStorage {
         return <String, dynamic>{};
       }
     }).where((element) => element.isNotEmpty).toList();
+  }
+
+  Future<String> getAppSupportDir() async {
+    try {
+      final dir = await pp.getApplicationDocumentsDirectory();
+      return dir.path;
+    } catch (_) {
+      return '/data/data/com.everus.app/files';
+    }
+  }
+
+  void removeKey(String key) {
+    _prefs?.remove(key);
   }
 
   Future<bool> clear() async {

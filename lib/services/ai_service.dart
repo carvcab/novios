@@ -1,75 +1,144 @@
-import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'aimodel_manager.dart';
+import 'ai_memory_service.dart';
 import '../models/memory_model.dart';
 import '../models/goal_model.dart';
-import 'local_storage.dart';
-import 'local_ai_service.dart';
 
-enum AIMode { deepseek, local }
-
-class AIService {
-  static final AIService _instance = AIService._internal();
+class AIService extends ChangeNotifier {
+  static final AIService _instance = AIService._();
   factory AIService() => _instance;
-  AIService._internal();
+  AIService._();
 
-  String? get _deepseekKey => LocalStorage().getString('deepseek_api_key');
+  final _manager = AimodelManager();
+  final _memory = AiMemoryService();
 
-  bool get hasApiKey => _deepseekKey != null && _deepseekKey!.isNotEmpty;
+  bool _modelLoaded = false;
+  bool _isProcessing = false;
 
-  AIMode get currentMode {
-    final mode = LocalStorage().getString('ai_mode') ?? 'local';
-    return mode == 'local' ? AIMode.local : AIMode.deepseek;
+  bool get isReady => _manager.isReady;
+  bool get isProcessing => _isProcessing;
+  bool get modelLoaded => _modelLoaded;
+  AimodelManager get manager => _manager;
+  AiMemoryService get memory => _memory;
+
+  // -- Model lifecycle --
+  Future<void> init() async {
+    await _manager.init();
   }
 
-  Future<void> setMode(AIMode mode) async {
-    await LocalStorage().setString('ai_mode', mode.toString().split('.').last);
+  Future<bool> downloadModel() => _manager.downloadModel();
+
+  Future<bool> updateModel() => _manager.updateModel();
+
+  Future<void> deleteModel() => _manager.deleteModel();
+
+  // -- Load/unload model --
+  Future<bool> loadModel() async {
+    if (_modelLoaded) return true;
+    if (!_manager.isReady) return false;
+    // TODO: Load into inference engine (MediaPipe / llama.cpp)
+    _modelLoaded = true;
+    notifyListeners();
+    return true;
   }
 
-  Future<void> saveDeepseekKey(String key) async {
-    await LocalStorage().setString('deepseek_api_key', key);
+  void unloadModel() {
+    // TODO: Unload from inference engine
+    _modelLoaded = false;
+    notifyListeners();
   }
 
-  Future<String> _callDeepSeek(String prompt) async {
-    final key = _deepseekKey;
-    if (key == null || key.isEmpty) return '';
+  // -- Chat --
+  Future<String> chat(String prompt, {String? context}) async {
+    _isProcessing = true;
+    notifyListeners();
 
     try {
-      final url = Uri.parse('https://api.deepseek.com/chat/completions');
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $key',
-        },
-        body: jsonEncode({
-          'model': 'deepseek-chat',
-          'messages': [
-            {
-              'role': 'system',
-              'content': 'Eres un asistente romantico y carinoso para una app de parejas. Responde en espanol, de forma calida y poetica. Se conciso.'
-            },
-            {'role': 'user', 'content': prompt}
-          ],
-          'max_tokens': 800,
-          'temperature': 0.7,
-        }),
-      );
+      final memContext = _memory.buildContextPrompt();
+      final fullPrompt = '''
+$memContext
+${context != null ? "Contexto: $context" : ""}
+Usuario: $prompt
+Responde en espanol de forma carinosa y util. Maximo 3 parrafos.
+''';
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return (data['choices'][0]['message']['content'] as String).trim();
-      } else {
-        debugPrint('DeepSeek API Error: ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('DeepSeek connection error: $e');
+      // TODO: llamar al motor de inferencia local con el modelo cargado
+      // Por ahora usamos fallback
+      await Future.delayed(const Duration(milliseconds: 300));
+      return _fallbackResponse(prompt);
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
     }
-    return '';
   }
 
-  // --- Fallbacks ---
+  // -- Generators --
+  Future<String> generateLetter({required String tone, required String keywords}) async {
+    final r = await chat("Escribe una carta de amor en espanol con tono $tone. Incluye: $keywords. Hazla emotiva, poetica y en parrafos.");
+    return r.isNotEmpty ? r : _fbLetter(tone, keywords);
+  }
+
+  Future<String> suggestDate({required String type, required String budget}) async {
+    final r = await chat("Sugiere una cita romantica en espanol. Categoria: $type. Presupuesto: $budget.");
+    return r.isNotEmpty ? r : _fbDate(type);
+  }
+
+  Future<String> suggestGift({required String occasion}) async {
+    final r = await chat("Sugiere 3 ideas de regalo creativas y romanticas para: $occasion.");
+    return r.isNotEmpty ? r : _fbGift(occasion);
+  }
+
+  Future<String> generatePoem({required String style, required String topic}) async {
+    final r = await chat("Escribe un poema de amor en espanol sobre $topic en estilo $style.");
+    return r.isNotEmpty ? r : _fbPoem();
+  }
+
+  Future<String> generateSong({required String genre, required String details}) async {
+    final r = await chat("Escribe letra de cancion romantica genero $genre inspirada en: $details.");
+    return r.isNotEmpty ? r : _fbSong();
+  }
+
+  Future<String> generateStory({required String memoryTitle, required String details}) async {
+    final r = await chat("Escribe una historia corta romantica basada en: '$memoryTitle'. Detalles: $details.");
+    return r.isNotEmpty ? r : _fbStory(memoryTitle, details);
+  }
+
+  Future<String> answerQuestion({
+    required String question,
+    required List<MemoryModel> memories,
+    required List<GoalModel> goals,
+    required String partnerName,
+  }) async {
+    final memStr = memories.map((m) => "- ${m.title} (${m.date.day}/${m.date.month}/${m.date.year}): ${m.description}").join('\n');
+    final goalStr = goals.map((g) => "- ${g.title} (${(g.progress * 100).toInt()}%)").join('\n');
+    final r = await chat("Pregunta: '$question'.\nRecuerdos:\n$memStr\nMetas:\n$goalStr\nResponde de forma carinosa.");
+    return r.isNotEmpty ? r : _fbQuestion(question, memories, goals, partnerName);
+  }
+
+  // -- Fallbacks --
+  String _fallbackResponse(String q) {
+    final ql = q.toLowerCase();
+    if (ql.contains('hola') || ql.contains('buenos')) return 'Hola amor! Como estas hoy? En que puedo ayudarte?';
+    if (ql.contains('te amo') || ql.contains('quiero')) return 'Yo tambien te quiero mucho! Eres la persona mas especial del mundo.';
+    if (ql.contains('cita') || ql.contains('plan')) return 'Que tal un picnic al atardecer? Preparen algo rico y busquen un lugar bonito al aire libre.';
+    if (ql.contains('regalo') || ql.contains('sorprender')) return 'Un frasco con 100 razones por las que la amas nunca falla. O un mapa de rascadito.';
+    if (ql.contains('recuerdo') || ql.contains('recordar')) {
+      final mems = _memory.memories;
+      if (mems.isNotEmpty) {
+        final m = mems[Random().nextInt(mems.length)];
+        return "Me acuerdo de \"${m.key}\". Fue un momento especial para ustedes.";
+      }
+      return 'Aun estan creando sus recuerdos. Cada dia es una oportunidad.';
+    }
+    final r = [
+      'El amor es un viaje, no un destino. Disfruten cada paso.',
+      'La comunicacion es la llave maestra de toda relacion exitosa.',
+      'Los pequenos gestos de amor diario construyen un amor inquebrantable.',
+      'Lo mas valioso que pueden regalarse es tiempo de calidad juntos.',
+    ];
+    return r[Random().nextInt(r.length)];
+  }
 
   String _fbLetter(String tone, String keywords) {
     final f = [
@@ -81,174 +150,56 @@ class AIService {
 
   String _fbDate(String type) {
     final d = {
-      'aventura': 'Picnic en el mirador al atardecer. Lleven manta, snacks y una app de constelaciones.',
-      'hogarena': 'Noche de cocina tematica. Elijan un pais y cocinen juntos. Decoren con velas y pongan musica.',
-      'cultural': 'Busqueda del tesoro en una libreria. Elijan un libro para el otro con retos.',
+      'aventura': "Picnic al atardecer en un mirador. Lleven manta, snacks y una app de constelaciones.",
+      'hogarena': "Noche de cocina tematica. Elijan un pais y cocinen juntos.",
+      'cultural': "Busqueda del tesoro en una libreria.",
     };
-    return d[type.toLowerCase()] ?? 'Cena sorpresa a ciegas. Cocinen un plato secreto y usen una venda para adivinar.';
+    return d[type.toLowerCase()] ?? "Cena sorpresa a ciegas.";
   }
 
   String _fbGift(String occasion) {
-    return '3 ideas para $occasion:\n\n'
-        '1. Hecho a mano: Frasco con "100 razones por las que te amo".\n'
-        '2. Experiencia: Mapa de rascadito con lugares para visitar.\n'
-        '3. Fisico: Lampara con la constelacion del dia que se conocieron.';
+    return "3 ideas:\n1. Frasco con '100 razones por las que te amo'.\n2. Mapa de rascadito.\n3. Lampara de constelacion.";
   }
 
   String _fbPoem() {
-    return "En el vaiven del tiempo y de la brisa,\n"
-        "busco en tus ojos mi mejor destino,\n"
-        "tu voz es la musica en mi camino,\n"
-        "y mi paz se dibuja en tu sonrisa.\n\n"
-        "Eres el sol que alumbra mi manana,\n"
-        "el dulce abismo donde quiero estar,\n"
-        "amarte es mi verdad mas soberana,\n"
-        "un cielo eterno frente a nuestro mar.";
+    return "En el vaiven del tiempo y de la brisa,\nbusco en tus ojos mi mejor destino,\ntu voz es la musica en mi camino,\ny mi paz se dibuja en tu sonrisa.";
   }
 
   String _fbSong() {
-    return "[Estrofa I]\nCaminando en la lluvia sin direccion,\n"
-        "encontre en tus ojos mi cancion.\n\n"
-        "[Coro]\nPorque tu eres mi norte, mi constelacion,\n"
-        "el latido constante de mi corazon.\n\n"
-        "[Estrofa II]\nEn tus brazos la noche se vuelve azul,\n"
-        "llenas cada espacio con tu dulce luz...";
+    return "[Estrofa I]\nCaminando en la lluvia sin direccion,\nencontre en tus ojos mi cancion.\n\n[Coro]\nPorque tu eres mi norte, mi constelacion,\nel latido constante de mi corazon.";
   }
 
   String _fbStory(String title, String details) {
-    return "Habia una vez, dos almas llamadas a encontrarse. Aquel dia de '$title' quedo sellado en el libro del destino.\n\n"
-        "Cuando compartieron ese momento ($details), el universo brillo un poco mas.";
+    return "Habia una vez, dos almas llamadas a encontrarse. Aquel dia de '$title' quedo sellado en el libro del destino.";
   }
 
   String _fbQuestion(String question, List<MemoryModel> memories, List<GoalModel> goals, String partnerName) {
     final q = question.toLowerCase();
     if (q.contains('viaje') || q.contains('ir') || q.contains('conocer')) {
       final tg = goals.where((g) => g.category == 'travel').map((g) => g.title).join(', ');
-      return "Veo que sueñan con: $tg. Suena a un plan increíble para su próxima aventura juntos.";
+      return "Veo que suenan con: $tg. Suena a un plan increible.";
     }
     if (memories.isNotEmpty) {
       final m = memories[Random().nextInt(memories.length)];
-      return "Eso me recuerda a '${m.title}' el ${m.date.day}/${m.date.month}/${m.date.year}. Fue especial. ¿No les gustaría repetirlo?";
+      return "Eso me recuerda a '${m.title}' el ${m.date.day}/${m.date.month}/${m.date.year}. Fue especial.";
     }
-    return "Aún están construyendo su caja de recuerdos. Es el momento perfecto para escribir una carta o planear su próximo gran sueño juntos.";
-  }
-
-  // --- PUBLIC AI METHODS ---
-
-  Future<String> generateLetter({required String tone, required String keywords}) async {
-    if (currentMode == AIMode.local) {
-      return LocalAIService().generateLetter(tone: tone, keywords: keywords);
-    }
-    final prompt = "Escribe una carta de amor en espanol con tono $tone. Incluye: $keywords. Hazla emotiva, poetica y en parrafos.";
-    final r = await _callDeepSeek(prompt);
-    return r.isNotEmpty ? r : _fbLetter(tone, keywords);
-  }
-
-  Future<String> suggestDate({required String type, required String budget}) async {
-    if (currentMode == AIMode.local) {
-      return LocalAIService().suggestDate(type: type, budget: budget);
-    }
-    final prompt = "Sugiere una cita romantica en espanol. Categoria: $type. Presupuesto: $budget. Explica el plan paso a paso.";
-    final r = await _callDeepSeek(prompt);
-    return r.isNotEmpty ? r : _fbDate(type);
-  }
-
-  Future<String> suggestGift({required String occasion}) async {
-    if (currentMode == AIMode.local) {
-      return LocalAIService().suggestGift(occasion: occasion);
-    }
-    final prompt = "Sugiere 3 ideas de regalo creativas y romanticas para: $occasion. Incluye DIY, experiencia y fisico.";
-    final r = await _callDeepSeek(prompt);
-    return r.isNotEmpty ? r : _fbGift(occasion);
-  }
-
-  Future<String> generatePoem({required String style, required String topic}) async {
-    if (currentMode == AIMode.local) {
-      return LocalAIService().generatePoem(style: style, topic: topic);
-    }
-    final prompt = "Escribe un poema de amor en espanol sobre $topic en estilo $style. Lirico, emotivo, con rima o verso libre.";
-    final r = await _callDeepSeek(prompt);
-    return r.isNotEmpty ? r : _fbPoem();
-  }
-
-  Future<String> generateSong({required String genre, required String details}) async {
-    if (currentMode == AIMode.local) {
-      return LocalAIService().generateSong(genre: genre, details: details);
-    }
-    final prompt = "Escribe letra de cancion romantica genero $genre inspirada en: $details. Incluye Estrofa I, Coro, Estrofa II, Puente y Coro Final.";
-    final r = await _callDeepSeek(prompt);
-    return r.isNotEmpty ? r : _fbSong();
-  }
-
-  Future<String> generateStory({required String memoryTitle, required String details}) async {
-    if (currentMode == AIMode.local) {
-      return LocalAIService().generateStory(memoryTitle: memoryTitle, details: details);
-    }
-    final prompt = "Escribe una historia corta romantica y magica basada en: '$memoryTitle'. Detalles: $details. Conmovedora.";
-    final r = await _callDeepSeek(prompt);
-    return r.isNotEmpty ? r : _fbStory(memoryTitle, details);
-  }
-
-  Future<String> answerRelationshipQuestion({
-    required String question,
-    required List<MemoryModel> memories,
-    required List<GoalModel> goals,
-    required String partnerName,
-  }) async {
-    if (currentMode == AIMode.local) {
-      return LocalAIService().answerQuestion(
-        question: question,
-        memories: memories,
-        goals: goals,
-        partnerName: partnerName,
-      );
-    }
-    final memStr = memories.map((m) => "- ${m.title} (${m.date.day}/${m.date.month}/${m.date.year}): ${m.description}").join('\n');
-    final goalStr = goals.map((g) => "- ${g.title} (${(g.progress * 100).toInt()}%)").join('\n');
-    final prompt = "Eres la IA de esta relacion. Pregunta: '$question'.\nRecuerdos:\n$memStr\nMetas:\n$goalStr\nResponde de forma carinosa y creativa. Invita a crear nuevos recuerdos con $partnerName.";
-    final r = await _callDeepSeek(prompt);
-    return r.isNotEmpty ? r : _fbQuestion(question, memories, goals, partnerName);
+    return "Aun estan construyendo su caja de recuerdos.";
   }
 
   Future<String> generateTruthOrDare({required String type, required String category}) async {
-    if (currentMode == AIMode.local) {
-      return LocalAIService().generateTruthOrDare(type: type, category: category);
-    }
-    final prompt = "Genera una sola frase corta en espanol para un juego de $type de pareja. Categoria: $category. Debe ser divertida, interactiva, emocionante y respetuosa pero picante si es atrevida. Responde con solo el texto del reto/verdad, sin introducciones.";
-    final r = await _callDeepSeek(prompt);
+    final r = await chat("Genera una frase corta en espanol para un juego de $type de pareja. Categoria: $category.");
     return r.isNotEmpty ? r : _fbTruthOrDare(type, category);
   }
 
   String _fbTruthOrDare(String type, String category) {
-    if (type.toLowerCase() == 'verdad') {
-      if (category == 'Atrevido') {
-        return "¿Cuál es tu fantasía romántica más audaz que aún no hemos realizado?";
-      } else if (category == 'Romántico') {
-        return "¿Qué momento a mi lado te ha hecho sentir más amado/a?";
-      } else {
-        return "¿Qué hábito gracioso mío te da más ternura?";
-      }
+    if (type == 'verdad') {
+      if (category == 'Atrevido') return "Cual es tu fantasia mas audaz?";
+      if (category == 'Romanico') return "Que momento a mi lado te ha hecho sentir mas amado/a?";
+      return "Que habito gracioso mio te da mas ternura?";
     } else {
-      if (category == 'Atrevido') {
-        return "Dale un beso largo y apasionado a tu pareja en el cuello durante 10 segundos.";
-      } else if (category == 'Romántico') {
-        return "Escríbele un mensaje rápido al celular diciéndole 3 cosas que admiras de ella.";
-      } else {
-        return "Haz una imitación exagerada de cómo tu pareja actúa cuando tiene sueño.";
-      }
+      if (category == 'Atrevido') return "Dale un beso largo a tu pareja en el cuello durante 10 segundos.";
+      if (category == 'Romanico') return "Escribele 3 cosas que admiras de ella.";
+      return "Haz una imitacion de como tu pareja actua cuando tiene sueno.";
     }
-  }
-
-  Future<String> ask(String prompt, String systemPrompt) async {
-    if (currentMode == AIMode.local) {
-      try {
-        final result = await LocalAIService().chat(prompt);
-        return result;
-      } catch (_) {
-        return '';
-      }
-    }
-    final r = await _callDeepSeek(prompt);
-    return r;
   }
 }
