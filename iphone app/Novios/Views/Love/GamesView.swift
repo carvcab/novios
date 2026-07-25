@@ -23,7 +23,7 @@ public struct GamesView: View {
 
     private var hasOnline: Bool {
         switch selectedGameType {
-        case "quiz", "truth_dare", "tictactoe", "rps", "hangman", "memorama": return true
+        case "quiz", "truth_dare", "custom_td", "tictactoe", "rps", "hangman", "memorama", "custom_quiz": return true
         default: return false
         }
     }
@@ -44,7 +44,10 @@ public struct GamesView: View {
         GameDef(id: "prefer", icon: "questionmark.bubble.fill", name: "¿Qué Prefieres?", desc: "Elige tu dilema amoroso 🤔", colors: [Color(red: 0.23, green: 0.51, blue: 0.96), Color(red: 0.02, green: 0.71, blue: 0.83)]),
         GameDef(id: "roulette", icon: "arrow.trianglehead.2.clockwise.rotate.90", name: "Ruleta del Amor", desc: "Gira por un reto o premio 🎡", colors: [Color(red: 0.06, green: 0.73, blue: 0.51), Color(red: 0.2, green: 0.83, blue: 0.6)]),
         GameDef(id: "never", icon: "wineglass.fill", name: "Yo Nunca Nunca", desc: "Revela tus secretos 🍷", colors: [Color(red: 0.96, green: 0.62, blue: 0.04), Color(red: 0.98, green: 0.73, blue: 0.14)]),
-        GameDef(id: "picante", icon: "flame.fill", name: "Picante", desc: "Verdad, reto y más 🔥", colors: [Color(red: 1, green: 0.36, blue: 0.54), Color(red: 1, green: 0.54, blue: 0.67)]),
+        GameDef(id: "picante", icon: "flame.fill", name: "Picante", desc: "Verdad, reto y mas", colors: [Color(red: 1, green: 0.36, blue: 0.54), Color(red: 1, green: 0.54, blue: 0.67)]),
+        GameDef(id: "love_game", icon: "heart.square.fill", name: "El Amor", desc: "Cartas del corazon", colors: [Color(red: 0.9, green: 0.2, blue: 0.4), Color(red: 1, green: 0.4, blue: 0.6)]),
+        GameDef(id: "custom_quiz", icon: "plus.square.fill", name: "Crear Quiz", desc: "Tus propias preguntas", colors: [Color(red: 0.2, green: 0.6, blue: 0.9), Color(red: 0.4, green: 0.8, blue: 1)]),
+        GameDef(id: "custom_td", icon: "pencil.and.list.clipboard", name: "Verdad o Reto DIY", desc: "Crea tus retos", colors: [Color(red: 0.7, green: 0.3, blue: 0.9), Color(red: 0.85, green: 0.5, blue: 0.95)]),
     ]
 
     public init() {}
@@ -347,6 +350,9 @@ public struct GamesView: View {
         case "roulette": return "Ruleta del Amor"
         case "never": return "Yo Nunca Nunca"
         case "picante": return "Picante"
+        case "love_game": return "El Amor"
+        case "custom_quiz": return "Crear Quiz"
+        case "custom_td": return "Verdad o Reto DIY"
         default: return type
         }
     }
@@ -398,6 +404,8 @@ private struct OnlineGameView: View {
         case "tictactoe": return "Tres en Raya (Online)"
         case "rps": return "PPT (Online)"
         case "hangman": return "Ahorcado (Online)"
+        case "custom_quiz": return "Quiz Personalizado"
+        case "custom_td": return "Verdad o Reto Personalizado"
         default: return gameType
         }
     }
@@ -411,6 +419,8 @@ private struct OnlineGameView: View {
         case "tictactoe": OnlineTTTView(gameId: gameId, docData: $docData, update: update)
         case "rps": OnlineRPSView(gameId: gameId, docData: $docData, update: update)
         case "hangman": OnlineHangmanView(gameId: gameId, docData: $docData, update: update)
+        case "custom_quiz": OnlineQuizView(gameId: gameId, docData: $docData, update: update)
+        case "custom_td": OnlineTruthDareView(gameId: gameId, docData: $docData, update: update)
         default:
             VStack(spacing: 16) {
                 Image(systemName: "wifi").font(.system(size: 48)).foregroundColor(.green)
@@ -933,18 +943,21 @@ private struct LocalGameView: View {
     @ViewBuilder
     private var localGameContent: some View {
         switch gameType {
-        case "quiz": LocalQuizView()
-        case "truth_dare": LocalTruthDareView()
+        case "quiz": CustomQuizView()
+        case "truth_dare": TruthOrDareCustomView()
+        case "custom_td": TruthOrDareCustomView()
         case "memorama": LocalMemoramaView()
         case "tictactoe": LocalTTTView()
         case "rps": LocalRPSView()
-        case "hangman": LocalHangmanView()
-        case "dice": LoveDiceView()
+        case "hangman": HangmanView()
+        case "dice": DiceView()
         case "cards": HigherCardView()
         case "prefer": WouldYouRatherView()
-        case "roulette": LoveRouletteView()
+        case "roulette": RouletteView()
         case "never": NeverHaveIEverView()
-        case "picante": SpicyGamesView()
+        case "picante": TruthOrDareCustomView()
+        case "love_game": LoveGameView()
+        case "custom_quiz": CustomQuizView()
         default: Text("Coming Soon")
         }
     }
