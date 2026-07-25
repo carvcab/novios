@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
+import '../../services/game_service.dart';
+import '../../services/local_storage.dart';
 
 class TruthDareCustomScreen extends StatefulWidget {
   const TruthDareCustomScreen({super.key});
@@ -10,70 +12,134 @@ class TruthDareCustomScreen extends StatefulWidget {
   State<TruthDareCustomScreen> createState() => _TruthDareCustomScreenState();
 }
 
-class _TruthDareCustomScreenState extends State<TruthDareCustomScreen> with SingleTickerProviderStateMixin {
-  final _coupleId = ['joeBcVn2o1hfXfU68rWNOyAZIqt2', 'Dd1X94n3gxg7leWtMtnLlxDVHcm2'].join('_');
+class _TruthDareCustomScreenState extends State<TruthDareCustomScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
+  final _gs = GameService();
+  final _counts = <String, int>{};
 
-  static const _categories = ['Verdad', 'Reto', 'Video Reto', 'Picante'];
+  static const _categories = [
+    'Verdad',
+    'Reto',
+    'Foto',
+    'Video',
+    'Picante',
+    'Romanico',
+    'Divertido',
+    'Personalizado',
+  ];
 
   static const _defaults = {
     'Verdad': [
       'Cual fue tu primera impresion de mi?',
-      'Que es lo que mas te gusta de mi fisicamente?',
-      'Cual es tu fantasia secreta?',
-      'Has pensado en casarte conmigo?',
       'Que es lo que mas te gusta de nuestra relacion?',
-      'Cual es tu recuerdo favorito juntos?',
-      'Que miedo tienes en la relacion?',
-      'Que fue lo que te hizo enamorarte?',
-      'Cual es tu lugar favorito para tener citas?',
-      'Que cancion te recuerda a nosotros?',
-      'Cual es tu mayor arrepentimiento en el amor?',
-      'Que es lo que mas valoras de mi?',
+      'Cual fue tu momento favorito conmigo?',
+      'Que miedo tienes que no me hayas contado?',
+      'Cual es tu recuerdo mas bonito de nosotros?',
+      'Que es lo que mas te atrae de mi?',
+      'Cual fue tu primera cita ideal?',
+      'Que sueno tienes para nuestro futuro?',
+      'Que cancion te recuerda a mi?',
+      'Que es lo que mas extrañas cuando no estas conmigo?',
     ],
     'Reto': [
-      'Da un beso de 10 segundos',
-      'Baila una cancion romantica con tu pareja',
-      'Di algo dulce al oido de tu pareja',
-      'Abraza a tu pareja por 30 segundos',
-      'Masajea los hombros de tu pareja',
-      'Cantale una cancion a tu pareja',
-      'Hazle cosquillas a tu pareja por 15 segundos',
-      'Toma una foto juntos ahora mismo',
-      'Escribe un poema corto para tu pareja',
-      'Prepara algo rico para comer juntos',
-      'Di 3 cosas que amas de tu pareja',
-      'Besa la frente de tu pareja',
+      'Abrazame durante un minuto sin soltarme',
+      'Dame un beso en la mejilla y di algo bonito',
+      'Baila conmigo una cancion lenta',
+      'Hazme reir con una cara graciosa',
+      'Susurrame algo dulce al oido',
+      'Masajeame los hombros por 30 segundos',
+      'Miranos a los ojos sin reirte por 10 segundos',
+      'Toma mi mano y no la sueltes por 2 minutos',
+      'Escribe un poema improvisado de 2 lineas',
+      'Haz una imitacion graciosa de mi',
     ],
-    'Video Reto': [
-      'Graben un video bailando juntos',
-      'Graben un mensaje de amor de 15 segundos',
-      'Hagan un video de una cita rapida',
-      'Graben un tutorial de como se dan besos',
-      'Hagan un video cantando una cancion juntos',
-      'Graben una confesion de amor',
-      'Hagan un video contando un chiste malo',
-      'Graben un time-lapse de algo juntos',
-      'Hagan un video de ellos disfrazados',
-      'Graben un video haciendo una promesa de pareja',
-      'Hagan un video de su dia perfecto juntos',
-      'Graben un video de reto de risa',
+    'Foto': [
+      'Tomate una selfie haciendo una cara graciosa',
+      'Foto de algo que te recuerde a mi',
+      'Selfie con el lugar donde estamos ahora',
+      'Foto de tu parte favorita de tu cuerpo',
+      'Captura tu expresion cuando leas esto',
+      'Foto de algo rojo (mi color favorito)',
+      'Selfie sonriendo como cuando estas conmigo',
+      'Foto de tus pies con los mios',
+      'Captura tu mejor angulo',
+      'Foto de algo que hayas hecho hoy',
+    ],
+    'Video': [
+      'Graba un video de 10s diciendo 3 cosas que te gustan de mi',
+      'Video bailando tu cancion favorita 15s',
+      'Video soplando un beso con sonido',
+      'Video haciendo una declaracion de amor improvisada 20s',
+      'Video cantando el coro de nuestra cancion',
+      'Video mostrando tu dia hoy 15s',
+      'Video de ti riendo a carcajadas',
+      'Video saludando como si fuera un noticiero',
+      'Video haciendo un cumplido 10s',
+      'Video de ti cerrando los ojos y describiendo tu recuerdo favorito',
     ],
     'Picante': [
-      'Describe tu parte favorita del cuerpo de tu pareja',
-      'Que es lo que mas te prende de tu pareja?',
-      'Donde te gustaria hacerlo que nunca hemos hecho?',
-      'Cual es tu posicion favorita?',
-      'Que fantasia te gustaria cumplir?',
-      'Susurra algo picante al oido de tu pareja',
-      'Besa el cuello de tu pareja lentamente',
-      'Que es lo mas atrevido que has hecho?',
-      'Que parte de tu cuerpo te gusta que bese?',
-      'Cual es tu recuerdo mas intimo favorito?',
-      'Que te gustaria probar en la intimidad?',
-      'Di algo que te guste como besa tu pareja',
+      'Besame de una forma que nunca hayamos hecho',
+      'Susurrame algo prohibido al oido',
+      'Elige una cancion sexy y baila para mi 20s',
+      'Cuentame tu fantasia mas reciente',
+      'Dejame vendarte los ojos y sorprenderte por 1 minuto',
+      'Simula que me conoces por primera vez y coquetea conmigo',
+      'Elige una prenda para que se quite la otra persona',
+      'Hazme una caricia que sepas que me vuelve loco/a',
+      'Muerdeme el labio suavemente',
+      'Di algo al oido que me haga sonrojar',
     ],
+    'Romanico': [
+      'Que es lo que mas te gusta de mi?',
+      'Describe tu dia perfecto conmigo',
+      'Escribe una carta de amor de 3 lineas',
+      'Donde te ves conmigo en 5 anos?',
+      'Que promesa me quieres hacer?',
+      'Cual es tu forma favorita de demostrar amor?',
+      'Que pelicula describe nuestra relacion?',
+      'Cual es tu plan romantico ideal?',
+      'Que es lo que mas valoras de nosotros?',
+      'Como sabes que soy el/la correcto/a?',
+    ],
+    'Divertido': [
+      'Haz la mejor imitacion de mi que puedas',
+      'Cuenta el chiste mas malo que sepas',
+      'Pon una voz graciosa y dime algo',
+      'Baila como si nadie te viera 15s',
+      'Habla con acento extranjero por 1 minuto',
+      'Haz el sonido de tu animal favorito',
+      'Representa una pelicula y adivino',
+      'Di un trabalenguas 3 veces rapido',
+      'Inventa una cancion sobre nosotros ahora mismo',
+      'Haz una pose de modelo profesional',
+    ],
+    'Personalizado': <String>[],
   };
+
+  static const _gradients = {
+    'Verdad': [Color(0xFF6366F1), Color(0xFF818CF8)],
+    'Reto': [Color(0xFFF97316), Color(0xFFFB923C)],
+    'Foto': [Color(0xFF10B981), Color(0xFF34D399)],
+    'Video': [Color(0xFFEC4899), Color(0xFFF472B6)],
+    'Picante': [Color(0xFFEF4444), Color(0xFFF87171)],
+    'Romanico': [Color(0xFFE91E63), Color(0xFFFF6B9D)],
+    'Divertido': [Color(0xFFEAB308), Color(0xFFFDE047)],
+    'Personalizado': [Color(0xFF6B7280), Color(0xFF9CA3AF)],
+  };
+
+  static const _icons = {
+    'Verdad': Icons.psychology_rounded,
+    'Reto': Icons.fitness_center_rounded,
+    'Foto': Icons.camera_alt_rounded,
+    'Video': Icons.videocam_rounded,
+    'Picante': Icons.whatshot_rounded,
+    'Romanico': Icons.favorite_rounded,
+    'Divertido': Icons.celebration_rounded,
+    'Personalizado': Icons.person_rounded,
+  };
+
+  String get _userId => LocalStorage().getUserId() ?? '';
 
   @override
   void initState() {
@@ -83,33 +149,113 @@ class _TruthDareCustomScreenState extends State<TruthDareCustomScreen> with Sing
   }
 
   @override
-  void dispose() { _tabCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
+  }
 
-  CollectionReference _catRef(String cat) =>
-      FirebaseFirestore.instance.collection('couples').doc(_coupleId).collection('customTD').doc(cat).collection('items');
+  Future<void> _addItem(String currentCat) async {
+    final textCtrl = TextEditingController();
+    String selectedCat = currentCat;
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('Nueva entrada', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: selectedCat,
+                decoration: InputDecoration(
+                  labelText: 'Categoria',
+                  labelStyle: GoogleFonts.outfit(),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                items: _categories.map((c) => DropdownMenuItem(
+                  value: c,
+                  child: Text(c, style: GoogleFonts.outfit()),
+                )).toList(),
+                onChanged: (v) {
+                  if (v != null) setDlgState(() => selectedCat = v);
+                },
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: textCtrl,
+                autofocus: true,
+                maxLines: 3,
+                style: GoogleFonts.outfit(),
+                decoration: InputDecoration(
+                  hintText: 'Escribe tu entrada...',
+                  hintStyle: GoogleFonts.outfit(),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancelar', style: GoogleFonts.outfit()),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, {
+                'text': textCtrl.text.trim(),
+                'category': selectedCat,
+              }),
+              style: FilledButton.styleFrom(
+                backgroundColor: _gradients[selectedCat]![0],
+              ),
+              child: Text('Guardar', style: GoogleFonts.outfit(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result != null && result['text']!.isNotEmpty) {
+      await _gs.saveTD({
+        'text': result['text'],
+        'category': result['category'],
+        'authorId': _userId,
+      });
+      await _gs.saveGameStats('verdad_reto', {
+        'action': 'add',
+        'category': result['category'],
+      });
+      if (result['category'] != currentCat) {
+        setState(() {});
+      }
+    }
+  }
 
-  void _addItem(String cat) {
-    final c = TextEditingController();
-    showDialog(
+  Future<void> _deleteItem(String docId, String text) async {
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Agregar a $cat', style: GoogleFonts.outfit()),
-        content: TextField(controller: c, decoration: InputDecoration(hintText: 'Nueva entrada para $cat')),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Eliminar', style: GoogleFonts.outfit()),
+        content: Text(
+          'Eliminar "${text.length > 40 ? '${text.substring(0, 40)}...' : text}"?',
+          style: GoogleFonts.outfit(),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: GoogleFonts.outfit())),
           TextButton(
-            onPressed: () {
-              if (c.text.trim().isNotEmpty) {
-                _catRef(cat).add({'text': c.text.trim()});
-              }
-              Navigator.pop(ctx);
-            },
-            child: Text('Agregar', style: GoogleFonts.outfit()),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancelar', style: GoogleFonts.outfit()),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Eliminar', style: GoogleFonts.outfit(color: Colors.white)),
           ),
         ],
       ),
     );
+    if (confirm == true) {
+      await _gs.deleteTD(docId);
+    }
   }
 
   @override
@@ -119,158 +265,441 @@ class _TruthDareCustomScreenState extends State<TruthDareCustomScreen> with Sing
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Verdad o Reto', style: GoogleFonts.outfit(color: cs.onSurface)),
-        backgroundColor: cs.primary,
+        title: Text('Verdad o Reto', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+        centerTitle: true,
         bottom: TabBar(
           controller: _tabCtrl,
-          indicatorColor: cs.onSurface,
-          labelColor: cs.onSurface,
-          unselectedLabelColor: cs.onSurface.withValues(alpha: 0.6),
-          labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12),
-          tabs: _categories.map((c) => Tab(text: c)).toList(),
+          isScrollable: true,
+          indicatorSize: TabBarIndicatorSize.tab,
+          labelStyle: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w600),
+          unselectedLabelStyle: GoogleFonts.outfit(fontSize: 10),
+          tabs: _categories.map((cat) {
+            final total = _defaults[cat]!.length + (_counts[cat] ?? 0);
+            return Tab(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(_icons[cat]!, size: 16),
+                  const SizedBox(height: 2),
+                  Text(cat, style: GoogleFonts.outfit(fontSize: 10)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    margin: const EdgeInsets.only(top: 2),
+                    decoration: BoxDecoration(
+                      color: _gradients[cat]![0].withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '$total',
+                      style: GoogleFonts.outfit(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: _gradients[cat]![0],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         ),
       ),
-      body: TabBarView(
-        controller: _tabCtrl,
-        children: _categories.map((cat) => _CategoryView(cat, _catRef(cat), _defaults[cat]!, cs, () => _addItem(cat))).toList(),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              cs.surface,
+              _gradients[currentCat]![0].withValues(alpha: 0.04),
+              _gradients[currentCat]![1].withValues(alpha: 0.08),
+            ],
+          ),
+        ),
+        child: TabBarView(
+          controller: _tabCtrl,
+          children: _categories.map((cat) => _CategoryTabBody(
+            key: ValueKey(cat),
+            category: cat,
+            defaults: _defaults[cat]!,
+            gradient: _gradients[cat]!,
+            icon: _icons[cat]!,
+            userId: _userId,
+            gs: _gs,
+            onAdd: () => _addItem(cat),
+            onDelete: (id, text) => _deleteItem(id, text),
+            onCountChanged: (c) {
+              if (_counts[cat] != c) setState(() => _counts[cat] = c);
+            },
+          )).toList(),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addItem(currentCat),
-        backgroundColor: cs.primary,
-        child: Icon(Icons.add, color: cs.onSurface),
+        backgroundColor: _gradients[currentCat]![0],
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 }
 
-class _CategoryView extends StatefulWidget {
+class _CategoryTabBody extends StatefulWidget {
   final String category;
-  final CollectionReference ref;
   final List<String> defaults;
-  final ColorScheme cs;
+  final List<Color> gradient;
+  final IconData icon;
+  final String userId;
+  final GameService gs;
   final VoidCallback onAdd;
-  const _CategoryView(this.category, this.ref, this.defaults, this.cs, this.onAdd);
+  final Future<void> Function(String id, String text) onDelete;
+  final ValueChanged<int> onCountChanged;
+
+  const _CategoryTabBody({
+    super.key,
+    required this.category,
+    required this.defaults,
+    required this.gradient,
+    required this.icon,
+    required this.userId,
+    required this.gs,
+    required this.onAdd,
+    required this.onDelete,
+    required this.onCountChanged,
+  });
 
   @override
-  State<_CategoryView> createState() => _CategoryViewState();
+  State<_CategoryTabBody> createState() => _CategoryTabBodyState();
 }
 
-class _CategoryViewState extends State<_CategoryView> {
-  String? _currentText;
+class _CategoryTabBodyState extends State<_CategoryTabBody> {
+  final _rand = Random();
+  int _currentIndex = 0;
   bool _revealed = false;
-  List<String> _firestoreItems = [];
-  bool _loaded = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadAndPick();
+  List<Map<String, dynamic>> _buildItemList(List<Map<String, dynamic>> firestore) {
+    final items = <Map<String, dynamic>>[];
+    for (final text in widget.defaults) {
+      items.add({'text': text, 'isDefault': true, 'docId': null, 'authorId': null});
+    }
+    for (final item in firestore) {
+      items.add({...item, 'isDefault': false});
+    }
+    return items;
   }
 
-  Future<void> _loadAndPick() async {
-    final snap = await widget.ref.get();
+  void _pickRandom(int total) {
+    if (total <= 1) return;
+    int next;
+    do {
+      next = _rand.nextInt(total);
+    } while (next == _currentIndex);
     setState(() {
-      _firestoreItems = snap.docs.map((d) => (d.data() as Map<String, dynamic>)['text'] as String).toList();
-      _loaded = true;
-      _pickRandom();
-    });
-  }
-
-  void _pickRandom() {
-    final all = [...widget.defaults, ..._firestoreItems];
-    if (all.isEmpty) return;
-    setState(() {
-      _currentText = all[Random().nextInt(all.length)];
+      _currentIndex = next;
       _revealed = false;
     });
   }
 
+  void _reveal() {
+    if (!_revealed) {
+      setState(() => _revealed = true);
+      widget.gs.saveGameStats('verdad_reto', {
+        'action': 'view',
+        'category': widget.category,
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (!_loaded) return const Center(child: CircularProgressIndicator());
+    final cs = Theme.of(context).colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: _revealed ? null : () => setState(() => _revealed = true),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
-              child: _revealed ? _RevealedCard(_currentText, widget.cs, widget.category) : _HiddenCard(widget.category, widget.cs),
-            ),
+    return StreamBuilder<QuerySnapshot>(
+      stream: widget.gs.streamTD(widget.category),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+        final firestoreItems = docs.map((doc) {
+          final d = doc.data() as Map<String, dynamic>;
+          d['docId'] = doc.id;
+          return d;
+        }).toList();
+
+        widget.onCountChanged(firestoreItems.length);
+
+        final allItems = _buildItemList(firestoreItems);
+        if (allItems.isEmpty) {
+          return _buildEmptyState(cs);
+        }
+
+        final idx = _currentIndex < allItems.length ? _currentIndex : 0;
+        final current = allItems[idx];
+        final canDelete = current['isDefault'] != true &&
+            current['authorId'] == widget.userId;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            children: [
+              _buildHeader(cs, allItems.length),
+              const SizedBox(height: 16),
+              Expanded(
+                child: GestureDetector(
+                  onTap: _revealed ? null : _reveal,
+                  onVerticalDragEnd: (details) {
+                    if (details.primaryVelocity == null) return;
+                    if (details.primaryVelocity!.abs() > 200) {
+                      _pickRandom(allItems.length);
+                    }
+                  },
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    transitionBuilder: (child, anim) =>
+                        FadeTransition(opacity: anim, child: child),
+                    child: _revealed
+                        ? _buildRevealedCard(cs, current, canDelete)
+                        : _buildHiddenCard(cs),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildControls(cs, allItems.length),
+            ],
           ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: _pickRandom,
-            style: ElevatedButton.styleFrom(backgroundColor: widget.cs.primary, padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14)),
-            child: Text(_revealed ? 'Siguiente' : 'Saltar', style: GoogleFonts.outfit(color: widget.cs.onSurface, fontSize: 16)),
-          ),
-          const SizedBox(height: 12),
-          Text('Toca la tarjeta para revelar', style: GoogleFonts.outfit(color: widget.cs.onSurface.withValues(alpha: 0.5))),
-          const SizedBox(height: 16),
-          Text('${_firestoreItems.length + widget.defaults.length} entradas', style: GoogleFonts.outfit(color: widget.cs.onSurface.withValues(alpha: 0.4))),
-        ],
-      ),
+        );
+      },
     );
   }
-}
 
-class _HiddenCard extends StatelessWidget {
-  final String category;
-  final ColorScheme cs;
-  const _HiddenCard(this.category, this.cs);
+  Widget _buildHeader(ColorScheme cs, int total) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: widget.gradient),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(widget.icon, color: Colors.white, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          widget.category,
+          style: GoogleFonts.outfit(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: cs.onSurface,
+          ),
+        ),
+        const Spacer(),
+        Text(
+          '$total entradas',
+          style: GoogleFonts.outfit(
+            fontSize: 12,
+            color: cs.onSurface.withValues(alpha: 0.4),
+          ),
+        ),
+      ],
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      key: ValueKey('hidden_$category'),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: cs.primary.withValues(alpha: 0.8),
-      elevation: 6,
-      child: Container(
-        width: double.infinity,
-        height: 260,
-        padding: const EdgeInsets.all(32),
+  Widget _buildHiddenCard(ColorScheme cs) {
+    return Container(
+      key: const ValueKey('hidden'),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            widget.gradient[0].withValues(alpha: 0.9),
+            widget.gradient[1].withValues(alpha: 0.85),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: widget.gradient[0].withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.help_outline, color: Colors.white, size: 56),
+            Icon(widget.icon, color: Colors.white.withValues(alpha: 0.4), size: 64),
             const SizedBox(height: 16),
-            Text(category, style: GoogleFonts.outfit(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+            Text('?', style: GoogleFonts.outfit(
+              color: Colors.white,
+              fontSize: 52,
+              fontWeight: FontWeight.w900,
+            )),
             const SizedBox(height: 12),
-            Text('Toca para revelar', style: GoogleFonts.outfit(color: Colors.white.withValues(alpha: 0.7), fontSize: 14)),
+            Text('Toca para revelar', style: GoogleFonts.outfit(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 14,
+            )),
+            const SizedBox(height: 6),
+            Text('Desliza para siguiente', style: GoogleFonts.outfit(
+              color: Colors.white.withValues(alpha: 0.4),
+              fontSize: 12,
+            )),
           ],
         ),
       ),
     );
   }
-}
 
-class _RevealedCard extends StatelessWidget {
-  final String? text;
-  final ColorScheme cs;
-  final String category;
-  const _RevealedCard(this.text, this.cs, this.category);
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
+  Widget _buildRevealedCard(ColorScheme cs, Map<String, dynamic> current, bool canDelete) {
+    final text = current['text'] as String? ?? '';
+    return Container(
       key: ValueKey('revealed_$text'),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: cs.surface,
-      elevation: 6,
-      child: Container(
-        width: double.infinity,
-        height: 260,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: widget.gradient[0].withValues(alpha: 0.2),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: widget.gradient[0].withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: widget.gradient),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(widget.icon, color: Colors.white, size: 28),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              widget.category.toUpperCase(),
+              style: GoogleFonts.outfit(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: widget.gradient[0],
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Text(
+                    text,
+                    style: GoogleFonts.outfit(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurface,
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.swipe_vertical_rounded,
+                    size: 18, color: cs.onSurface.withValues(alpha: 0.2)),
+                const SizedBox(width: 4),
+                Text('Desliza para siguiente',
+                    style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        color: cs.onSurface.withValues(alpha: 0.3))),
+                if (canDelete) ...[
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(Icons.delete_outline, size: 20,
+                        color: Colors.red.withValues(alpha: 0.6)),
+                    onPressed: () => widget.onDelete(
+                        current['docId'] as String, text),
+                    tooltip: 'Eliminar',
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildControls(ColorScheme cs, int total) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        OutlinedButton.icon(
+          onPressed: total > 0 ? () => _pickRandom(total) : null,
+          icon: const Icon(Icons.shuffle_rounded, size: 18),
+          label: Text('Siguiente', style: GoogleFonts.outfit()),
+          style: OutlinedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            side: BorderSide(color: widget.gradient[0].withValues(alpha: 0.4)),
+            foregroundColor: widget.gradient[0],
+          ),
+        ),
+        const SizedBox(width: 16),
+        IconButton(
+          icon: Icon(Icons.add_circle_outline, color: widget.gradient[0]),
+          onPressed: widget.onAdd,
+          tooltip: 'Agregar entrada',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState(ColorScheme cs) {
+    return Center(
+      child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            text != null
-                ? Text(text!, style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w500), textAlign: TextAlign.center)
-                : Text('No hay entradas', style: GoogleFonts.outfit(color: Colors.grey, fontSize: 18)),
+            Icon(widget.icon,
+                size: 72, color: widget.gradient[0].withValues(alpha: 0.25)),
+            const SizedBox(height: 16),
+            Text(
+              widget.category == 'Personalizado'
+                  ? 'Crea tu primera entrada personalizada'
+                  : 'No hay entradas disponibles',
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                color: cs.onSurface.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: widget.onAdd,
+              icon: const Icon(Icons.add, size: 20),
+              label: Text('Agregar entrada', style: GoogleFonts.outfit()),
+              style: FilledButton.styleFrom(
+                backgroundColor: widget.gradient[0],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
           ],
         ),
       ),
