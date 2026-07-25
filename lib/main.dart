@@ -13,9 +13,12 @@ import 'services/geofence_service.dart';
 import 'services/couple_service.dart';
 import 'views/auth/login_screen.dart';
 import 'views/home_navigation.dart';
+import 'views/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Solo Firebase es obligatorio antes del runApp
   try {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(options: firebaseOptions);
@@ -23,10 +26,10 @@ void main() async {
   } catch (e) {
     debugPrint('Firebase init error: $e');
   }
+
+  // Inicializacion rapida de solo lo minimo
   await LocalStorage().init().catchError((_) => false);
-  try { await FirebaseService().init(); } catch (e) { debugPrint("FirebaseService init error: $e"); }
   try { WidgetService().init(); } catch (e) { debugPrint("WidgetService init error: $e"); }
-  try { await GeofenceService().init(); } catch (e) { debugPrint("Geofence init error: $e"); }
 
   FlutterError.onError = (details) {
     FlutterError.dumpErrorToConsole(details);
@@ -74,7 +77,7 @@ class EverUsApp extends StatelessWidget {
         Locale('es', 'ES'),
         Locale('en', 'US'),
       ],
-      home: const AppGate(),
+      home: const SplashScreen(),
     );
   }
 }

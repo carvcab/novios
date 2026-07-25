@@ -353,6 +353,8 @@ class GeofenceService {
           ongoing: true,
           autoCancel: false,
           icon: '@mipmap/ic_launcher',
+          foregroundService: true,
+          foregroundServiceType: AndroidForegroundServiceType.location,
         ),
       ),
     );
