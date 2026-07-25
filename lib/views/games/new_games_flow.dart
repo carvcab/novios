@@ -3,6 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/entrance_animation.dart';
+import 'hangman_screen.dart';
+import 'love_game_screen.dart';
+import 'custom_quiz_screen.dart';
+import 'truth_dare_custom_screen.dart';
+import 'dice_screen.dart';
+import 'roulette_screen.dart';
+import 'never_have_i_ever_screen.dart';
+import 'would_you_rather_screen.dart';
 
 class NewGameScreen extends StatelessWidget {
   final String gameType;
@@ -13,15 +21,25 @@ class NewGameScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (gameType) {
       case 'dice':
-        return const LoveDiceGame();
+        return const DiceScreen();
       case 'cards':
         return const HigherCardGame();
       case 'prefer':
-        return const WouldYouRatherGame();
+        return const WouldYouRatherScreen();
       case 'roulette':
-        return const LoveRouletteGame();
+        return const RouletteScreen();
       case 'never':
-        return const NeverHaveIEverGame();
+        return const NeverHaveIEverScreen();
+      case 'hangman':
+        return const HangmanScreen();
+      case 'love_game':
+        return const LoveGameScreen();
+      case 'custom_quiz':
+        return const CustomQuizScreen();
+      case 'custom_td':
+      case 'truth_dare':
+      case 'picante':
+        return const TruthDareCustomScreen();
       default:
         return Scaffold(
           appBar: AppBar(title: const Text('Juego')),

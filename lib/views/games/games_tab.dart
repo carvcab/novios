@@ -321,6 +321,78 @@ class _GamesTabState extends State<GamesTab> {
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SpicyGamesScreen())),
                   cs: cs,
                 ),
+                _GameCard(
+                  icon: Icons.person_search_rounded,
+                  name: 'Ahorcado',
+                  desc: 'Adivina palabras de amor',
+                  gradient: const LinearGradient(colors: [Color(0xFFEF5350), Color(0xFFE57373)],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  onTap: () => _onGameCardTapped('hangman'),
+                  cs: cs,
+                ),
+                _GameCard(
+                  icon: Icons.casino_rounded,
+                  name: 'Ruleta',
+                  desc: 'Gira por un reto o premio',
+                  gradient: const LinearGradient(colors: [Color(0xFF26A69A), Color(0xFF4DB6AC)],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  onTap: () => _onGameCardTapped('roulette'),
+                  cs: cs,
+                ),
+                _GameCard(
+                  icon: Icons.wine_bar_rounded,
+                  name: 'Yo Nunca Nunca',
+                  desc: 'Revela tus secretos',
+                  gradient: const LinearGradient(colors: [Color(0xFFF57C00), Color(0xFFFFB74D)],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  onTap: () => _onGameCardTapped('never'),
+                  cs: cs,
+                ),
+                _GameCard(
+                  icon: Icons.help_outline_rounded,
+                  name: 'Que Prefieres',
+                  desc: 'Elige tu dilema amoroso',
+                  gradient: const LinearGradient(colors: [Color(0xFF1E88E5), Color(0xFF64B5F6)],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  onTap: () => _onGameCardTapped('prefer'),
+                  cs: cs,
+                ),
+                _GameCard(
+                  icon: Icons.dice_4_rounded,
+                  name: 'Dados',
+                  desc: 'Accion y parte del cuerpo',
+                  gradient: const LinearGradient(colors: [Color(0xFFEC407A), Color(0xFFF06292)],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  onTap: () => _onGameCardTapped('dice'),
+                  cs: cs,
+                ),
+                _GameCard(
+                  icon: Icons.favorite_border_rounded,
+                  name: 'El Amor',
+                  desc: 'Cartas del corazon',
+                  gradient: const LinearGradient(colors: [Color(0xFFD81B60), Color(0xFFF48FB1)],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  onTap: () => _onGameCardTapped('love_game'),
+                  cs: cs,
+                ),
+                _GameCard(
+                  icon: Icons.add_box_rounded,
+                  name: 'Crear Quiz',
+                  desc: 'Tus propias preguntas',
+                  gradient: const LinearGradient(colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  onTap: () => _onGameCardTapped('custom_quiz'),
+                  cs: cs,
+                ),
+                _GameCard(
+                  icon: Icons.edit_note_rounded,
+                  name: 'Verdad o Reto DIY',
+                  desc: 'Crea tus retos',
+                  gradient: const LinearGradient(colors: [Color(0xFF7B1FA2), Color(0xFFCE93D8)],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  onTap: () => _onGameCardTapped('custom_td'),
+                  cs: cs,
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -387,12 +459,15 @@ class _GamesTabState extends State<GamesTab> {
     if (type == 'memorama') _startMemorama();
     if (type == 'tictactoe') _startTicTacToe();
     if (type == 'rps') _startRPS();
-    if (type == 'hangman') _startHangman();
+    if (type == 'hangman') Navigator.push(context, MaterialPageRoute(builder: (_) => const NewGameScreen(gameType: 'hangman')));
     if (type == 'dice') Navigator.push(context, MaterialPageRoute(builder: (_) => const NewGameScreen(gameType: 'dice')));
     if (type == 'cards') Navigator.push(context, MaterialPageRoute(builder: (_) => const NewGameScreen(gameType: 'cards')));
     if (type == 'prefer') Navigator.push(context, MaterialPageRoute(builder: (_) => const NewGameScreen(gameType: 'prefer')));
     if (type == 'roulette') Navigator.push(context, MaterialPageRoute(builder: (_) => const NewGameScreen(gameType: 'roulette')));
     if (type == 'never') Navigator.push(context, MaterialPageRoute(builder: (_) => const NewGameScreen(gameType: 'never')));
+    if (type == 'love_game') Navigator.push(context, MaterialPageRoute(builder: (_) => const NewGameScreen(gameType: 'love_game')));
+    if (type == 'custom_quiz') Navigator.push(context, MaterialPageRoute(builder: (_) => const NewGameScreen(gameType: 'custom_quiz')));
+    if (type == 'custom_td') Navigator.push(context, MaterialPageRoute(builder: (_) => const NewGameScreen(gameType: 'custom_td')));
   }
 
   String _getGameLabel(String type) {
@@ -408,6 +483,9 @@ class _GamesTabState extends State<GamesTab> {
       case 'prefer': return 'Que Prefieres?';
       case 'roulette': return 'Ruleta del Amor';
       case 'never': return 'Yo Nunca Nunca';
+      case 'love_game': return 'El Amor';
+      case 'custom_quiz': return 'Crear Quiz';
+      case 'custom_td': return 'Verdad o Reto DIY';
       default: return type;
     }
   }
@@ -435,6 +513,8 @@ class _GamesTabState extends State<GamesTab> {
       _showNewGameOnline('roulette', gameId);
     } else if (type == 'never') {
       _showNewGameOnline('never', gameId);
+    } else if (type == 'love_game' || type == 'custom_quiz' || type == 'custom_td') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const NewGameScreen(gameType: type)));
     }
   }
 
