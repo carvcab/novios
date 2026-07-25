@@ -12,6 +12,7 @@ public struct LoveGameView: View {
     @State private var cardsPlayed = 0
     @State private var offset: CGSize = .zero
     @State private var selectedCategory = "Todas"
+    @State private var hasSavedStats = false
 
     private let categories = ["Todas", "Romanticas", "Atrevidas", "Curiosas", "Acciones"]
 
@@ -54,7 +55,6 @@ public struct LoveGameView: View {
             ZStack {
                 theme.backgroundGradient.ignoresSafeArea()
                 VStack(spacing: 16) {
-                    header
                     categoryPicker
                     Spacer()
                     cardStack
@@ -65,23 +65,17 @@ public struct LoveGameView: View {
             }
             .navigationTitle("Love Game")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Cerrar") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Cerrar") { saveAndDismiss() } }
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "heart.fill").font(.system(size: 12)).foregroundColor(theme.primary)
+                        Text("\(intimacyScore)").appFont(size: 14, weight: .bold).foregroundColor(theme.primary)
+                    }
+                }
+            }
             .onAppear { filterCards() }
         }
-    }
-
-    private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Intimidad: \(intimacyScore)").appFont(size: 16, weight: .bold).foregroundColor(theme.primary)
-                Text("Cartas: \(cardsPlayed)/\(cards.count)").appFont(size: 12).foregroundColor(theme.textSecondary)
-            }
-            Spacer()
-            Text("\(currentIndex + 1)").appFont(size: 14, weight: .semibold).foregroundColor(theme.textSecondary)
-        }
-        .padding(12)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var categoryPicker: some View {
@@ -119,7 +113,7 @@ public struct LoveGameView: View {
                 let card = cards[currentIndex]
                 ZStack {
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(theme.isDarkMode ? Color.white.opacity(0.08) : Color.white)
+                        .fill(.ultraThinMaterial)
                         .shadow(color: theme.primary.opacity(0.1), radius: 16)
 
                     VStack(spacing: 16) {
@@ -255,6 +249,16 @@ public struct LoveGameView: View {
         currentIndex = 0
         isRevealed = false
         cardsPlayed = 0
+        intimacyScore = 0
+        hasSavedStats = false
+    }
+
+    private func saveAndDismiss() {
+        if !hasSavedStats {
+            GameService.shared.saveGameStats("love", ["score": intimacyScore])
+            hasSavedStats = true
+        }
+        dismiss()
     }
 
     private func categoryColor(_ category: String) -> Color {

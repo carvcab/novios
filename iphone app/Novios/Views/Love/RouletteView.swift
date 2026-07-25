@@ -1,21 +1,36 @@
 import SwiftUI
 import FirebaseFirestore
 
+private struct RouletteModel: Identifiable {
+    let id: String
+    let name: String
+    let items: [String]
+    let colorHex: String
+}
+
+private let defaultItems = ["Beso", "Abrazo", "Masaje", "Cumplido", "Baile", "Sorpresa", "Confesion", "Selfie"]
+
 public struct RouletteView: View {
     @ObservedObject private var theme = ThemeManager.shared
     @Environment(\.dismiss) private var dismiss
 
-    @State private var items: [String] = []
-    @State private var newItem = ""
-    @State private var showAddField = false
-    @State private var isSpinning = false
+    @State private var customRoulettes: [RouletteModel] = []
+    @State private var selectedRoulette: RouletteModel?
+    @State private var useClassic = true
+    @State private var currentItems: [String] = defaultItems
     @State private var rotation: Double = 0
+    @State private var isSpinning = false
     @State private var selectedResult: String?
     @State private var showResult = false
-    @State private var editMode: EditMode = .inactive
+    @State private var showAddSheet = false
+    @State private var editName = ""
+    @State private var editItems: [String] = []
+    @State private var editNewItem = ""
+    @State private var editColor = "#FF69B4"
+    @State private var editingRouletteId: String?
+    @State private var listener: ListenerRegistration?
 
-    private let defaultsKey = "roulette_items"
-    private let defaultItems = ["Beso", "Abrazo", "Masaje", "Cumplido", "Baile", "Sorpresa", "Confesion", "Selfie"]
+    private let colors: [Color] = [.pink, .purple, .orange, .blue, .green, .red, .teal, .yellow]
 
     public init() {}
 
@@ -23,17 +38,14 @@ public struct RouletteView: View {
         NavigationStack {
             ZStack {
                 theme.backgroundGradient.ignoresSafeArea()
-                VStack(spacing: 16) {
-                    if editMode == .inactive {
-                        wheelSection
-                        if let result = selectedResult {
-                            resultCard(result)
-                        }
-                        Spacer()
-                        spinButton
-                    } else {
-                        editSection
+                VStack(spacing: 12) {
+                    modePicker
+                    wheelSection
+                    if let result = selectedResult {
+                        resultCard(result)
                     }
+                    Spacer()
+                    spinButton
                 }
                 .padding()
             }
@@ -41,59 +53,99 @@ public struct RouletteView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Cerrar") { dismiss() } }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(editMode == .inactive ? "Editar" : "Listo") {
-                        withAnimation { editMode = editMode == .inactive ? .active : .inactive }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button { showAddSheet = true } label: {
+                        Image(systemName: "plus.circle.fill").font(.system(size: 22)).foregroundColor(theme.primary)
                     }
                 }
             }
-            .onAppear { loadItems() }
+            .sheet(isPresented: $showAddSheet) { addRouletteSheet }
+            .onAppear { setupListener() }
+            .onDisappear { listener?.remove() }
+        }
+    }
+
+    private var modePicker: some View {
+        Picker("Modo", selection: $useClassic) {
+            Text("Clasico").tag(true)
+            Text("Personalizado").tag(false)
+        }
+        .pickerStyle(.segmented)
+        .onChange(of: useClassic) { _ in
+            if useClassic {
+                currentItems = defaultItems
+                selectedRoulette = nil
+            } else if let first = customRoulettes.first {
+                selectRoulette(first)
+            } else {
+                currentItems = []
+            }
+            selectedResult = nil
+            rotation = 0
+            showResult = false
         }
     }
 
     private var wheelSection: some View {
-        ZStack {
-            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                let angle = 360.0 / Double(items.count) * Double(index)
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(segmentColor(index: index))
-                    .frame(width: 4, height: 120)
-                    .offset(y: -60)
-                    .rotationEffect(.degrees(angle))
-            }
-            Circle()
-                .trim(from: 0, to: 0.75)
-                .stroke(theme.primary.opacity(0.3), lineWidth: 2)
-                .frame(width: 160, height: 160)
-
-            Circle()
-                .stroke(theme.primary.opacity(0.15), lineWidth: 1)
-                .frame(width: 240, height: 240)
-                .rotationEffect(.degrees(rotation))
-                .overlay(
-                    ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                        let angle = 360.0 / Double(items.count) * Double(index)
-                        Text(item.prefix(3))
-                            .appFont(size: 9, weight: .bold)
-                            .foregroundColor(theme.textPrimary)
-                            .rotationEffect(.degrees(-rotation))
-                            .offset(y: -100)
-                            .rotationEffect(.degrees(angle))
+        VStack(spacing: 0) {
+            if !useClassic && !customRoulettes.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(customRoulettes) { r in
+                            Button {
+                                selectRoulette(r)
+                            } label: {
+                                Text(r.name)
+                                    .appFont(size: 12, weight: .semibold)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(selectedRoulette?.id == r.id ? theme.primary : .ultraThinMaterial)
+                                    .clipShape(Capsule())
+                                    .foregroundColor(selectedRoulette?.id == r.id ? .white : theme.textPrimary)
+                            }
+                        }
                     }
-                )
-
-            VStack(spacing: 4) {
-                Image(systemName: "chevron.up")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(theme.primary)
-                Text("TOCA")
-                    .appFont(size: 8, weight: .bold)
-                    .foregroundColor(theme.primary)
+                }
+                .padding(.bottom, 8)
             }
-            .offset(y: -150)
+            ZStack {
+                ForEach(Array(currentItems.enumerated()), id: \.offset) { index, item in
+                    let angle = 360.0 / Double(currentItems.count) * Double(index)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(segmentColor(index: index))
+                        .frame(width: 4, height: 120)
+                        .offset(y: -60)
+                        .rotationEffect(.degrees(angle))
+                }
+                Circle()
+                    .trim(from: 0, to: 0.75)
+                    .stroke(theme.primary.opacity(0.3), lineWidth: 2)
+                    .frame(width: 160, height: 160)
+                Circle()
+                    .stroke(theme.primary.opacity(0.15), lineWidth: 1)
+                    .frame(width: 240, height: 240)
+                    .rotationEffect(.degrees(rotation))
+                    .overlay(
+                        ForEach(Array(currentItems.enumerated()), id: \.offset) { index, item in
+                            let angle = 360.0 / Double(currentItems.count) * Double(index)
+                            Text(item.prefix(3))
+                                .appFont(size: 9, weight: .bold)
+                                .foregroundColor(theme.textPrimary)
+                                .rotationEffect(.degrees(-rotation))
+                                .offset(y: -100)
+                                .rotationEffect(.degrees(angle))
+                        }
+                    )
+                VStack(spacing: 4) {
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(theme.primary)
+                }
+                .offset(y: -150)
+            }
+            .frame(height: 300)
+            .frame(maxWidth: .infinity)
         }
-        .frame(height: 320)
-        .frame(maxWidth: .infinity)
     }
 
     private func resultCard(_ result: String) -> some View {
@@ -119,100 +171,128 @@ public struct RouletteView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14))
                 .foregroundColor(.white)
         }
-        .disabled(isSpinning || items.isEmpty)
+        .disabled(isSpinning || currentItems.isEmpty)
     }
 
-    private var editSection: some View {
-        VStack(spacing: 12) {
-            HStack {
-                TextField("Nueva opcion...", text: $newItem)
-                    .textFieldStyle(.plain)
-                    .padding(10)
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                Button {
-                    addItem()
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 28))
-                        .foregroundColor(theme.primary)
+    private var addRouletteSheet: some View {
+        NavigationStack {
+            Form {
+                Section("Nombre") {
+                    TextField("Nombre de la ruleta", text: $editName)
                 }
-                .disabled(newItem.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-
-            List {
-                ForEach(items, id: \.self) { item in
-                    Text(item).appFont(size: 14).foregroundColor(theme.textPrimary)
+                Section("Opciones") {
+                    HStack {
+                        TextField("Nueva opcion", text: $editNewItem)
+                        Button {
+                            let t = editNewItem.trimmingCharacters(in: .whitespaces)
+                            guard !t.isEmpty else { return }
+                            editItems.append(t)
+                            editNewItem = ""
+                        } label: {
+                            Image(systemName: "plus.circle.fill").foregroundColor(theme.primary)
+                        }
+                    }
+                    ForEach(editItems, id: \.self) { item in
+                        Text(item).appFont(size: 14).foregroundColor(theme.textPrimary)
+                    }
+                    .onDelete { editItems.remove(atOffsets: $0) }
                 }
-                .onDelete(perform: deleteItems)
-                .onMove(perform: moveItems)
+                Section("Tus ruletas") {
+                    ForEach(customRoulettes) { r in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(r.name).appFont(size: 14, weight: .semibold).foregroundColor(theme.textPrimary)
+                                Text("\(r.items.count) opciones").appFont(size: 11).foregroundColor(theme.textSecondary)
+                            }
+                            Spacer()
+                            Button("Editar") {
+                                editName = r.name
+                                editItems = r.items
+                                editingRouletteId = r.id
+                            }
+                            .appFont(size: 12).foregroundColor(theme.primary)
+                        }
+                    }
+                    .onDelete(perform: deleteRoulette)
+                }
             }
-            .listStyle(.plain)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .navigationTitle("Nueva ruleta")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Guardar") { saveRoulette() }.disabled(editName.trimmingCharacters(in: .whitespaces).isEmpty || editItems.isEmpty)
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cerrar") { showAddSheet = false }
+                }
+            }
         }
     }
 
     private func spin() {
-        guard !items.isEmpty else { return }
+        guard !currentItems.isEmpty else { return }
         isSpinning = true
         selectedResult = nil
-        withAnimation(.showResult) { showResult = false }
-
+        showResult = false
         let fullSpins = 5.0 + Double.random(in: 0...1)
-        let segmentAngle = 360.0 / Double(items.count)
-        let randomIndex = Int.random(in: 0..<items.count)
+        let segmentAngle = 360.0 / Double(currentItems.count)
+        let randomIndex = Int.random(in: 0..<currentItems.count)
         let targetAngle = 360.0 * fullSpins + Double(randomIndex) * segmentAngle
-
         withAnimation(.easeOut(duration: 3.0)) {
             rotation += targetAngle
         }
-
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-            selectedResult = items[randomIndex]
+            selectedResult = currentItems[randomIndex]
             isSpinning = false
             withAnimation { showResult = true }
+            GameService.shared.saveGameStats("roulette", ["result": selectedResult ?? ""])
         }
     }
 
-    private func addItem() {
-        let trimmed = newItem.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return }
-        withAnimation {
-            items.append(trimmed)
-            newItem = ""
-        }
-        saveItems()
-    }
-
-    private func deleteItems(at offsets: IndexSet) {
-        items.remove(atOffsets: offsets)
-        saveItems()
-    }
-
-    private func moveItems(from source: IndexSet, to destination: Int) {
-        items.move(fromOffsets: source, toOffset: destination)
-        saveItems()
+    private func selectRoulette(_ r: RouletteModel) {
+        selectedRoulette = r
+        currentItems = r.items
+        selectedResult = nil
+        rotation = 0
+        showResult = false
     }
 
     private func segmentColor(index: Int) -> Color {
-        let colors: [Color] = [theme.primary, theme.secondary, Color.orange, Color.blue.opacity(0.5), Color.green.opacity(0.5), Color.purple.opacity(0.5), Color.pink, Color.teal]
-        return colors[index % colors.count]
+        colors[index % colors.count]
     }
 
-    private func loadItems() {
-        if let saved = UserDefaults.standard.array(forKey: defaultsKey) as? [String], !saved.isEmpty {
-            items = saved
-        } else {
-            items = defaultItems
+    private func setupListener() {
+        listener = GameService.shared.streamRoulettes().addSnapshotListener { snapshot, error in
+            guard let docs = snapshot?.documents else { return }
+            customRoulettes = docs.compactMap { doc in
+                let d = doc.data()
+                guard let name = d["name"] as? String, let items = d["items"] as? [String] else { return nil }
+                return RouletteModel(id: doc.documentID, name: name, items: items, colorHex: d["color"] as? String ?? "#FF69B4")
+            }
+            if !useClassic, selectedRoulette == nil, let first = customRoulettes.first {
+                selectRoulette(first)
+            }
         }
     }
 
-    private func saveItems() {
-        UserDefaults.standard.set(items, forKey: defaultsKey)
+    private func saveRoulette() {
+        let name = editName.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty, !editItems.isEmpty else { return }
+        if let id = editingRouletteId {
+            GameService.shared.saveRoulette(["name": name, "items": editItems, "color": editColor], id: id)
+        } else {
+            GameService.shared.saveRoulette(["name": name, "items": editItems, "color": editColor])
+        }
+        editName = ""
+        editItems = []
+        editNewItem = ""
+        editingRouletteId = nil
+        showAddSheet = false
     }
-}
 
-extension Animation {
-    static var showResult: Animation { .spring(response: 0.4, dampingFraction: 0.7) }
+    private func deleteRoulette(at offsets: IndexSet) {
+        for idx in offsets {
+            GameService.shared.deleteRoulette(customRoulettes[idx].id)
+        }
+    }
 }

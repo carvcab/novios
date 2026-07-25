@@ -1,23 +1,41 @@
 import SwiftUI
 import FirebaseFirestore
 
+private let defaultWords = ["AMOR", "BESO", "ABRAZO", "CORAZON", "PAREJA", "ROMANTICO", "CARINO", "PASION", "SENTIMIENTO", "ALMA", "SEDUCCION", "COMPLICIDAD", "DESTINO", "FELICIDAD", "ILUSION", "MIRADA", "SONRISA", "TERNEZA", "UNION", "CARICIA"]
+private let categories = ["Romantico", "Viajes", "Recuerdos", "Lugares", "Apodos", "Peliculas", "Personalizado"]
+private let letters = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZÑ")
+
+private struct HangmanWordModel: Identifiable {
+    let id: String
+    let word: String
+    let hint: String
+    let category: String
+}
+
 public struct HangmanView: View {
     @ObservedObject private var theme = ThemeManager.shared
     @Environment(\.dismiss) private var dismiss
 
-    private let words = ["AMOR", "BESO", "ABRAZO", "CORAZON", "PAREJA", "ROMANTICO", "CARINO", "PASION", "SENTIMIENTO", "ALMA"]
-    private let maxWrongGuesses = 6
-
+    @State private var customWords: [HangmanWordModel] = []
+    @State private var wordPool: [String] = []
+    @State private var hintPool: [String: String] = [:]
     @State private var currentWord = ""
+    @State private var currentHint = ""
     @State private var guessedLetters: Set<Character> = []
     @State private var wrongGuesses = 0
     @State private var score = 0
     @State private var gamesPlayed = 0
-    @State private var showResult = false
-    @State private var resultMessage = ""
     @State private var gameOver = false
+    @State private var showResult = false
+    @State private var won = false
+    @State private var selectedCategory = "Romantico"
+    @State private var showAddSheet = false
+    @State private var newWord = ""
+    @State private var newHint = ""
+    @State private var newCategory = "Romantico"
+    @State private var listener: ListenerRegistration?
 
-    private let letters = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    private let maxWrong = 6
 
     public init() {}
 
@@ -25,9 +43,11 @@ public struct HangmanView: View {
         NavigationStack {
             ZStack {
                 theme.backgroundGradient.ignoresSafeArea()
-                VStack(spacing: 16) {
+                VStack(spacing: 10) {
                     scoreHeader
-                    hangmanArt
+                    categoryPicker
+                    hangmanCanvas
+                    hintText
                     wordDisplay
                     keyboardGrid
                     newGameButton
@@ -36,12 +56,25 @@ public struct HangmanView: View {
             }
             .navigationTitle("Ahorcado")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Cerrar") { dismiss() } } }
-            .alert(resultMessage, isPresented: $showResult) {
-                Button("Jugar otra") { resetGame() }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Cerrar") { dismiss() } }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button { showAddSheet = true } label: {
+                        Image(systemName: "plus.circle.fill").font(.system(size: 22)).foregroundColor(theme.primary)
+                    }
+                }
+            }
+            .alert(won ? "Ganaste!" : "Perdiste", isPresented: $showResult) {
+                Text(won ? "Palabra: \(currentWord)" : "Era: \(currentWord)")
+                Button("Siguiente") { pickWord() }
                 Button("Cerrar", role: .cancel) { dismiss() }
             }
-            .onAppear { resetGame() }
+            .sheet(isPresented: $showAddSheet) { addWordSheet }
+            .onAppear {
+                setupListener()
+                pickWord()
+            }
+            .onDisappear { listener?.remove() }
         }
     }
 
@@ -52,27 +85,112 @@ public struct HangmanView: View {
                 Text("Jugados: \(gamesPlayed)").appFont(size: 12).foregroundColor(theme.textSecondary)
             }
             Spacer()
-            Text("Errores: \(wrongGuesses)/\(maxWrongGuesses)").appFont(size: 14, weight: .semibold).foregroundColor(wrongGuesses > 3 ? .red : theme.textPrimary)
+            Text("Errores: \(wrongGuesses)/\(maxWrong)").appFont(size: 14, weight: .semibold).foregroundColor(wrongGuesses > 3 ? .red : theme.textPrimary)
         }
         .padding(12)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    private var hangmanArt: some View {
-        Text(hangmanStages[wrongGuesses])
-            .appFont(size: 14)
-            .foregroundColor(theme.textPrimary)
-            .frame(height: 120)
-            .frame(maxWidth: .infinity)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+    private var categoryPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(categories, id: \.self) { cat in
+                    Button {
+                        selectedCategory = cat
+                        pickWord()
+                    } label: {
+                        Text(cat)
+                            .appFont(size: 12, weight: .semibold)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(selectedCategory == cat ? theme.primary : .ultraThinMaterial)
+                            .clipShape(Capsule())
+                            .foregroundColor(selectedCategory == cat ? .white : theme.textPrimary)
+                    }
+                }
+            }
+            .padding(.horizontal, 4)
+        }
+    }
+
+    private var hangmanCanvas: some View {
+        Canvas { context, size in
+            let w = size.width
+            let h = size.height
+            let baseY = h * 0.9
+            context.stroke(Path { p in
+                p.move(to: CGPoint(x: w * 0.1, y: baseY))
+                p.addLine(to: CGPoint(x: w * 0.9, y: baseY))
+            }, with: .color(theme.textPrimary.opacity(0.4)), lineWidth: 3)
+            context.stroke(Path { p in
+                p.move(to: CGPoint(x: w * 0.2, y: baseY))
+                p.addLine(to: CGPoint(x: w * 0.2, y: h * 0.1))
+                p.addLine(to: CGPoint(x: w * 0.5, y: h * 0.1))
+                p.addLine(to: CGPoint(x: w * 0.5, y: h * 0.2))
+            }, with: .color(theme.textPrimary.opacity(0.4)), lineWidth: 3)
+            context.stroke(Path { p in
+                p.move(to: CGPoint(x: w * 0.5, y: h * 0.1))
+                p.addLine(to: CGPoint(x: w * 0.8, y: h * 0.1))
+            }, with: .color(theme.textPrimary.opacity(0.3)), lineWidth: 2)
+            if wrongGuesses > 0 {
+                let head = CGPoint(x: w * 0.5, y: h * 0.26)
+                context.stroke(Path { p in
+                    p.addArc(center: head, radius: w * 0.05, startAngle: .degrees(0), endAngle: .degrees(360), clockwise: false)
+                }, with: .color(theme.primary), lineWidth: 3)
+            }
+            if wrongGuesses > 1 {
+                let neck = CGPoint(x: w * 0.5, y: h * 0.35)
+                context.stroke(Path { p in
+                    p.move(to: CGPoint(x: w * 0.5, y: h * 0.31))
+                    p.addLine(to: neck)
+                }, with: .color(theme.primary), lineWidth: 3)
+            }
+            if wrongGuesses > 2 {
+                context.stroke(Path { p in
+                    p.move(to: CGPoint(x: w * 0.5, y: h * 0.35))
+                    p.addLine(to: CGPoint(x: w * 0.35, y: h * 0.55))
+                }, with: .color(theme.primary), lineWidth: 3)
+            }
+            if wrongGuesses > 3 {
+                context.stroke(Path { p in
+                    p.move(to: CGPoint(x: w * 0.5, y: h * 0.35))
+                    p.addLine(to: CGPoint(x: w * 0.65, y: h * 0.55))
+                }, with: .color(theme.primary), lineWidth: 3)
+            }
+            if wrongGuesses > 4 {
+                context.stroke(Path { p in
+                    p.move(to: CGPoint(x: w * 0.5, y: h * 0.45))
+                    p.addLine(to: CGPoint(x: w * 0.35, y: h * 0.75))
+                }, with: .color(theme.primary), lineWidth: 3)
+            }
+            if wrongGuesses > 5 {
+                context.stroke(Path { p in
+                    p.move(to: CGPoint(x: w * 0.5, y: h * 0.45))
+                    p.addLine(to: CGPoint(x: w * 0.65, y: h * 0.75))
+                }, with: .color(theme.primary), lineWidth: 3)
+            }
+        }
+        .frame(height: 140)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var hintText: some View {
+        Group {
+            if !currentHint.isEmpty {
+                Text("Pista: \(currentHint)")
+                    .appFont(size: 13, weight: .medium)
+                    .foregroundColor(theme.textSecondary)
+                    .padding(.horizontal)
+            }
+        }
     }
 
     private var wordDisplay: some View {
         let display = currentWord.map { guessedLetters.contains($0) ? String($0) : "_" }.joined(separator: " ")
         return Text(display)
-            .appFont(size: 32, weight: .bold)
+            .appFont(size: 28, weight: .bold)
             .foregroundColor(theme.primary)
             .tracking(4)
             .padding()
@@ -90,8 +208,8 @@ public struct HangmanView: View {
                     guess(letter)
                 } label: {
                     Text(String(letter))
-                        .appFont(size: 16, weight: .semibold)
-                        .frame(width: 36, height: 36)
+                        .appFont(size: 15, weight: .semibold)
+                        .frame(width: 34, height: 34)
                         .background(used ? (isCorrect ? Color.green.opacity(0.3) : Color.red.opacity(0.3)) : theme.primary.opacity(0.15))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .foregroundColor(used ? (isCorrect ? .green : .red) : theme.textPrimary)
@@ -106,7 +224,7 @@ public struct HangmanView: View {
 
     private var newGameButton: some View {
         Button {
-            resetGame()
+            pickWord()
         } label: {
             Label("Nueva palabra", systemImage: "arrow.counterclockwise")
                 .appFont(size: 14, weight: .semibold)
@@ -118,6 +236,45 @@ public struct HangmanView: View {
         .foregroundColor(theme.textPrimary)
     }
 
+    private var addWordSheet: some View {
+        NavigationStack {
+            Form {
+                Section("Nueva palabra") {
+                    TextField("Palabra", text: $newWord)
+                        .autocapitalization(.allCharacters)
+                    TextField("Pista (opcional)", text: $newHint)
+                    Picker("Categoria", selection: $newCategory) {
+                        ForEach(categories, id: \.self) { Text($0) }
+                    }
+                }
+                Section("Tus palabras") {
+                    if customWords.isEmpty {
+                        Text("Sin palabras personalizadas").foregroundColor(theme.textSecondary)
+                    }
+                    List {
+                        ForEach(customWords) { word in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(word.word).appFont(size: 14, weight: .bold).foregroundColor(theme.textPrimary)
+                                Text("\(word.category)\(word.hint.isEmpty ? "" : " - \(word.hint)")").appFont(size: 11).foregroundColor(theme.textSecondary)
+                            }
+                        }
+                        .onDelete(perform: deleteCustomWord)
+                    }
+                }
+            }
+            .navigationTitle("Personalizar")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Guardar") { saveCustomWord() }.disabled(newWord.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cerrar") { showAddSheet = false }
+                }
+            }
+        }
+    }
+
     private func guess(_ letter: Character) {
         guard !gameOver else { return }
         guessedLetters.insert(letter)
@@ -127,7 +284,7 @@ public struct HangmanView: View {
             }
         } else {
             wrongGuesses += 1
-            if wrongGuesses >= maxWrongGuesses {
+            if wrongGuesses >= maxWrong {
                 endGame(won: false)
             }
         }
@@ -136,86 +293,57 @@ public struct HangmanView: View {
     private func endGame(won: Bool) {
         gameOver = true
         gamesPlayed += 1
+        self.won = won
         if won {
             score += 1
-            resultMessage = "Ganaste 🎉\nLa palabra era: \(currentWord)"
-        } else {
-            resultMessage = "Perdiste 😞\nLa palabra era: \(currentWord)"
         }
         showResult = true
+        GameService.shared.saveGameStats("hangman", ["score": score, "word": currentWord, "won": won])
     }
 
-    private func resetGame() {
-        currentWord = words.randomElement() ?? "AMOR"
+    private func pickWord() {
+        let catWords = customWords.filter { $0.category == selectedCategory }.map(\.word)
+        let defaultsInCategory = selectedCategory == "Personalizado" ? [] : defaultWords.shuffled()
+        wordPool = catWords.isEmpty ? defaultsInCategory : catWords + defaultsInCategory
+        if wordPool.isEmpty {
+            wordPool = defaultWords
+        }
+        currentWord = wordPool.randomElement() ?? "AMOR"
+        currentHint = hintPool[currentWord] ?? ""
         guessedLetters = []
         wrongGuesses = 0
         gameOver = false
         showResult = false
     }
 
-    private let hangmanStages = [
-        """
-          +---+
-              |
-              |
-              |
-              |
-              |
-        =========
-        """,
-        """
-          +---+
-          O   |
-              |
-              |
-              |
-              |
-        =========
-        """,
-        """
-          +---+
-          O   |
-          |   |
-              |
-              |
-              |
-        =========
-        """,
-        """
-          +---+
-          O   |
-         /|   |
-              |
-              |
-              |
-        =========
-        """,
-        """
-          +---+
-          O   |
-         /|\\  |
-              |
-              |
-              |
-        =========
-        """,
-        """
-          +---+
-          O   |
-         /|\\  |
-         /    |
-              |
-              |
-        =========
-        """,
-        """
-          +---+
-          O   |
-         /|\\  |
-         / \\  |
-              |
-              |
-        =========
-        """
-    ]
+    private func setupListener() {
+        listener = GameService.shared.streamHangman().addSnapshotListener { snapshot, error in
+            guard let docs = snapshot?.documents else { return }
+            customWords = docs.compactMap { doc in
+                let d = doc.data()
+                guard let word = d["word"] as? String else { return nil }
+                return HangmanWordModel(id: doc.documentID, word: word.uppercased(), hint: d["hint"] as? String ?? "", category: d["category"] as? String ?? "Personalizado")
+            }
+            for w in customWords {
+                hintPool[w.word] = w.hint
+            }
+        }
+    }
+
+    private func saveCustomWord() {
+        let word = newWord.trimmingCharacters(in: .whitespaces).uppercased()
+        guard !word.isEmpty else { return }
+        GameService.shared.saveHangmanWord(["word": word, "hint": newHint, "category": newCategory])
+        newWord = ""
+        newHint = ""
+        showAddSheet = false
+    }
+
+    private func deleteCustomWord(at offsets: IndexSet) {
+        for idx in offsets {
+            let w = customWords[idx]
+            GameService.shared.deleteHangmanWord(w.id)
+        }
+    }
 }
+

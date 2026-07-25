@@ -1,55 +1,82 @@
 import SwiftUI
 import FirebaseFirestore
 
-public struct NeverHaveIEverView: View {
-    @ObservedObject private var theme = ThemeManager.shared
-    @Environment(\.dismiss) private var dismiss
+private struct NeverModel: Identifiable {
+    let id: String
+    let text: String
+    let category: String
+}
 
-    @State private var statements: [String] = []
-    @State private var currentIndex = 0
-    @State private var scoreDiego = 0
-    @State private var scoreYosmari = 0
-    @State private var gameOver = false
-    @State private var currentPlayer = 0
+private let categories = ["Romantico", "Divertido", "Parejas", "Viajes", "Universidad", "Infancia", "Picante"]
 
-    private let allStatements: [String] = [
+private let defaultStatements: [String: [String]] = [
+    "Romantico": [
         "Nunca he fingido un orgasmo",
         "Nunca he espiado tu telefono",
         "Nunca he mentido sobre mis sentimientos",
         "Nunca he pensado en terminar",
-        "Nunca he tenido una cita a escondidas",
-        "Nunca he stalkeado a un ex",
-        "Nunca me he quedado dormido en una cita",
         "Nunca he dicho 'te amo' sin sentirlo",
+    ],
+    "Divertido": [
+        "Nunca me he quedado dormido en una cita",
         "Nunca he cancelado planes solo por flojera",
-        "Nunca he comparado nuestra relacion con otra",
-        "Nunca he visto tu historial de busquedas",
-        "Nunca he contado un secreto que me confiaste",
-        "Nunca he hecho algo solo para impresionarte",
-        "Nunca he usado tu ropa sin permiso",
         "Nunca he fingido gustar de algo que odio",
-        "Nunca he evitado una discusion importante",
-        "Nunca he puesto a alguien mas antes que a ti",
         "Nunca he hecho cena y dicho que la cocine yo",
         "Nunca me he hecho el enojado sin razon",
-        "Nunca he guardado mensajes viejos de otros",
-        "Nunca he fingido estar bien cuando no lo estoy",
-        "Nunca he hecho un plan sin consultarte",
+    ],
+    "Parejas": [
+        "Nunca he comparado nuestra relacion con otra",
+        "Nunca he contado un secreto que me confiaste",
+        "Nunca he puesto a alguien mas antes que a ti",
+        "Nunca he evitado una discusion importante",
         "Nunca he usado el silencio como castigo",
-        "Nunca he gastado dinero a escondidas",
-        "Nunca he fingido escuchar cuando no ponia atencion",
-        "Nunca he dicho 'no me importa' cuando si importaba",
-        "Nunca he revisado tus notificaciones",
+    ],
+    "Viajes": [
+        "Nunca he hecho un viaje sin avisarte",
+        "Nunca he planeado un viaje a escondidas",
+        "Nunca he perdido algo tuyo en un viaje",
+        "Nunca he querido irme de viaje solo",
+        "Nunca he tenido una cita en el extranjero",
+    ],
+    "Universidad": [
+        "Nunca he faltado a clase por estar contigo",
+        "Nunca he hecho una tarea mientras hablaba contigo",
+        "Nunca te he esperado en la entrada",
+        "Nunca he estudiado contigo en la biblioteca",
+        "Nunca he copiado en un examen",
+    ],
+    "Infancia": [
+        "Nunca he tenido un sueno erotico contigo",
+        "Nunca he escondido mis emociones verdaderas",
+        "Nunca he hecho algo solo para impresionarte",
+        "Nunca he fingido estar bien cuando no lo estoy",
+        "Nunca he guardado mensajes viejos de otros",
+    ],
+    "Picante": [
+        "Nunca he usado algo tuyo sin permiso",
         "Nunca he fingido estar dormido para evitar hablar",
-        "Nunca he usado algo tuyo sin devolverlo",
-        "Nunca he tenido un sueno erotico con otra persona",
-        "Nunca he fingido recordar algo que olvide",
         "Nunca he hecho un regalo que me gustaba mas a mi",
-        "Nunca he escondido mis emociones verdaderas"
-    ]
+        "Nunca he visto tu historial de busquedas",
+        "Nunca he revisado tus notificaciones",
+    ],
+]
 
-    private let db = Firestore.firestore()
-    private var coupleId: String { [CoupleService.diegoUid, CoupleService.yosmariUid].sorted().joined(separator: "_") }
+public struct NeverHaveIEverView: View {
+    @ObservedObject private var theme = ThemeManager.shared
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var customStatements: [NeverModel] = []
+    @State private var currentStatements: [NeverModel] = []
+    @State private var currentIndex = 0
+    @State private var score1 = 0
+    @State private var score2 = 0
+    @State private var currentPlayer = 0
+    @State private var gameOver = false
+    @State private var selectedCategory = "Romantico"
+    @State private var showAddSheet = false
+    @State private var newText = ""
+    @State private var newCategory = "Romantico"
+    @State private var listener: ListenerRegistration?
 
     public init() {}
 
@@ -57,11 +84,12 @@ public struct NeverHaveIEverView: View {
         NavigationStack {
             ZStack {
                 theme.backgroundGradient.ignoresSafeArea()
-                VStack(spacing: 20) {
+                VStack(spacing: 16) {
                     if gameOver {
                         resultView
                     } else {
                         scoreBoard
+                        categoryPicker
                         progressBar
                         statementCard
                         actionButtons
@@ -71,16 +99,28 @@ public struct NeverHaveIEverView: View {
             }
             .navigationTitle("Nunca He Hecho")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Cerrar") { dismiss() } } }
-            .onAppear { shuffleAndStart() }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Cerrar") { dismiss() } }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button { showAddSheet = true } label: {
+                        Image(systemName: "plus.circle.fill").font(.system(size: 22)).foregroundColor(theme.primary)
+                    }
+                }
+            }
+            .sheet(isPresented: $showAddSheet) { addStatementSheet }
+            .onAppear {
+                setupListener()
+                shuffleAndStart()
+            }
+            .onDisappear { listener?.remove() }
         }
     }
 
     private var scoreBoard: some View {
         HStack {
-            playerScore(name: "Diego", score: scoreDiego, color: Color.blue.opacity(0.7))
+            playerScore(name: "Jugador 1", score: score1, color: Color.blue.opacity(0.7))
             Spacer()
-            playerScore(name: "Yosmari", score: scoreYosmari, color: Color.pink.opacity(0.7))
+            playerScore(name: "Jugador 2", score: score2, color: Color.pink.opacity(0.7))
         }
         .padding(12)
         .background(.ultraThinMaterial)
@@ -95,13 +135,35 @@ public struct NeverHaveIEverView: View {
         .frame(maxWidth: .infinity)
     }
 
+    private var categoryPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(categories, id: \.self) { cat in
+                    Button {
+                        selectedCategory = cat
+                        shuffleAndStart()
+                    } label: {
+                        Text(cat)
+                            .appFont(size: 12, weight: .semibold)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(selectedCategory == cat ? theme.primary : .ultraThinMaterial)
+                            .clipShape(Capsule())
+                            .foregroundColor(selectedCategory == cat ? .white : theme.textPrimary)
+                    }
+                }
+            }
+            .padding(.horizontal, 4)
+        }
+    }
+
     private var progressBar: some View {
         HStack(spacing: 8) {
-            Text("\(currentIndex + 1)/\(statements.count)").appFont(size: 12).foregroundColor(theme.textSecondary)
+            Text("\(currentIndex + 1)/\(currentStatements.count)").appFont(size: 12).foregroundColor(theme.textSecondary)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.gray.opacity(0.2)).frame(height: 6)
-                    Capsule().fill(theme.primary).frame(width: geo.size.width * CGFloat(currentIndex + 1) / CGFloat(statements.count), height: 6)
+                    Capsule().fill(theme.primary).frame(width: geo.size.width * CGFloat(currentIndex + 1) / CGFloat(max(currentStatements.count, 1)), height: 6)
                 }
             }
             .frame(height: 6)
@@ -110,24 +172,31 @@ public struct NeverHaveIEverView: View {
 
     private var statementCard: some View {
         VStack(spacing: 16) {
-            Text(statements[currentIndex])
-                .appFont(size: 20, weight: .semibold)
-                .multilineTextAlignment(.center)
-                .foregroundColor(theme.textPrimary)
-                .padding()
-                .frame(maxWidth: .infinity, minHeight: 160)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+            if currentStatements.isEmpty {
+                Text("Sin preguntas para esta categoria")
+                    .appFont(size: 16, weight: .medium)
+                    .foregroundColor(theme.textSecondary)
+                    .padding()
+            } else {
+                Text(currentStatements[currentIndex].text)
+                    .appFont(size: 20, weight: .semibold)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(theme.textPrimary)
+                    .padding()
+            }
         }
+        .frame(maxWidth: .infinity, minHeight: 160)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+        .id(currentIndex)
     }
 
     private var actionButtons: some View {
         VStack(spacing: 12) {
-            Text("Tu turno: \(currentPlayer == 0 ? "Diego" : "Yosmari")")
+            Text("Turno: \(currentPlayer == 0 ? "Jugador 1" : "Jugador 2")")
                 .appFont(size: 13, weight: .semibold)
                 .foregroundColor(theme.textSecondary)
-
             HStack(spacing: 16) {
                 Button {
                     tapHeHecho()
@@ -140,7 +209,6 @@ public struct NeverHaveIEverView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .foregroundColor(.green)
-
                 Button {
                     tapNunca()
                 } label: {
@@ -158,25 +226,21 @@ public struct NeverHaveIEverView: View {
 
     private var resultView: some View {
         VStack(spacing: 20) {
-            Image(systemName: scoreDiego > scoreYosmari ? "diego" : scoreYosmari > scoreDiego ? "yosmari" : "heart.fill")
+            Image(systemName: score1 > score2 ? "person.fill" : score2 > score1 ? "person.fill" : "heart.fill")
                 .font(.system(size: 60))
                 .foregroundColor(theme.primary)
-
             Text("Juego terminado").appFont(size: 22, weight: .bold).foregroundColor(theme.textPrimary)
-
             HStack(spacing: 30) {
                 VStack {
-                    Text("Diego").appFont(size: 14).foregroundColor(theme.textSecondary)
-                    Text("\(scoreDiego)").appFont(size: 36, weight: .bold).foregroundColor(Color.blue)
+                    Text("Jugador 1").appFont(size: 14).foregroundColor(theme.textSecondary)
+                    Text("\(score1)").appFont(size: 36, weight: .bold).foregroundColor(.blue)
                 }
                 VStack {
-                    Text("Yosmari").appFont(size: 14).foregroundColor(theme.textSecondary)
-                    Text("\(scoreYosmari)").appFont(size: 36, weight: .bold).foregroundColor(Color.pink)
+                    Text("Jugador 2").appFont(size: 14).foregroundColor(theme.textSecondary)
+                    Text("\(score2)").appFont(size: 36, weight: .bold).foregroundColor(.pink)
                 }
             }
-
             Text(winnerText()).appFont(size: 16, weight: .semibold).foregroundColor(theme.textPrimary)
-
             Button {
                 shuffleAndStart()
             } label: {
@@ -191,8 +255,43 @@ public struct NeverHaveIEverView: View {
         }
     }
 
+    private var addStatementSheet: some View {
+        NavigationStack {
+            Form {
+                Section("Nueva afirmacion") {
+                    TextField("Texto", text: $newText)
+                    Picker("Categoria", selection: $newCategory) {
+                        ForEach(categories, id: \.self) { Text($0) }
+                    }
+                }
+                Section("Tus afirmaciones") {
+                    if customStatements.isEmpty {
+                        Text("Sin afirmaciones personalizadas").foregroundColor(theme.textSecondary)
+                    }
+                    ForEach(customStatements) { stmt in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(stmt.text).appFont(size: 14).foregroundColor(theme.textPrimary)
+                            Text(stmt.category).appFont(size: 11).foregroundColor(theme.textSecondary)
+                        }
+                    }
+                    .onDelete(perform: deleteStatement)
+                }
+            }
+            .navigationTitle("Anadir afirmacion")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Guardar") { saveStatement() }.disabled(newText.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cerrar") { showAddSheet = false }
+                }
+            }
+        }
+    }
+
     private func tapHeHecho() {
-        if currentPlayer == 0 { scoreDiego += 1 } else { scoreYosmari += 1 }
+        if currentPlayer == 0 { score1 += 1 } else { score2 += 1 }
         nextStatement()
     }
 
@@ -202,8 +301,9 @@ public struct NeverHaveIEverView: View {
 
     private func nextStatement() {
         withAnimation {
-            if currentIndex + 1 >= statements.count {
+            if currentIndex + 1 >= currentStatements.count {
                 gameOver = true
+                GameService.shared.saveGameStats("nunca", ["score1": score1, "score2": score2, "category": selectedCategory])
             } else {
                 currentIndex += 1
                 currentPlayer = currentPlayer == 0 ? 1 : 0
@@ -212,17 +312,50 @@ public struct NeverHaveIEverView: View {
     }
 
     private func shuffleAndStart() {
-        statements = allStatements.shuffled()
+        let defaults = defaultStatements[selectedCategory] ?? []
+        let customs = customStatements.filter { $0.category == selectedCategory }.map(\.text)
+        let combined = (defaults + customs).shuffled()
+        currentStatements = combined.enumerated().map { i, text in
+            NeverModel(id: "\(i)", text: text, category: selectedCategory)
+        }
         currentIndex = 0
-        scoreDiego = 0
-        scoreYosmari = 0
-        gameOver = false
+        score1 = 0
+        score2 = 0
         currentPlayer = 0
+        gameOver = false
     }
 
     private func winnerText() -> String {
-        if scoreDiego > scoreYosmari { return "Gano Diego 🎉" }
-        if scoreYosmari > scoreDiego { return "Gano Yosmari 🎉" }
-        return "Empate! 🤝"
+        if score1 > score2 { return "Gana Jugador 1!" }
+        if score2 > score1 { return "Gana Jugador 2!" }
+        return "Empate!"
+    }
+
+    private func setupListener() {
+        listener = GameService.shared.streamNever().addSnapshotListener { snapshot, error in
+            guard let docs = snapshot?.documents else { return }
+            customStatements = docs.compactMap { doc in
+                let d = doc.data()
+                guard let text = d["text"] as? String else { return nil }
+                return NeverModel(id: doc.documentID, text: text, category: d["category"] as? String ?? "Romantico")
+            }
+            if !currentStatements.isEmpty {
+                shuffleAndStart()
+            }
+        }
+    }
+
+    private func saveStatement() {
+        let text = newText.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return }
+        GameService.shared.saveNever(["text": text, "category": newCategory])
+        newText = ""
+        showAddSheet = false
+    }
+
+    private func deleteStatement(at offsets: IndexSet) {
+        for idx in offsets {
+            GameService.shared.deleteNever(customStatements[idx].id)
+        }
     }
 }
