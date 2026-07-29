@@ -3,6 +3,7 @@ import MapKit
 import FirebaseFirestore
 import CoreLocation
 
+@available(iOS 17.0, *)
 public struct LocationView: View {
     @ObservedObject private var locationService = LocationService.shared
     @ObservedObject private var theme = ThemeManager.shared

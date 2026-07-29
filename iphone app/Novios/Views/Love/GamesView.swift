@@ -5,7 +5,7 @@ public struct GamesView: View {
     @ObservedObject private var theme = ThemeManager.shared
     @Environment(\.dismiss) private var dismiss
 
-    private struct GameDef: Identifiable {
+    struct GameDef: Identifiable {
         let id: String; let icon: String; let name: String; let desc: String; let colors: [Color]; let destination: AnyView
     }
 

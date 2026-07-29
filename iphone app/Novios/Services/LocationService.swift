@@ -28,7 +28,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     @Published public var partnerIsGPSOn = true
     @Published public var distanceToPartner: Double?
     @Published public var partnerMotion: String?
-    @Published public var partnerRoute: ActiveRoute?
+    @Published var partnerRoute: ActiveRoute?
     @Published public var partnerName = ""
 
     @Published public var isRouting = false
