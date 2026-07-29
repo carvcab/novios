@@ -11,6 +11,6 @@ target 'Novios' do
   firebase_pods
 end
 
-target 'ShareExtension' do
-  firebase_pods
-end
+#target 'ShareExtension' do
+#  firebase_pods
+#end
