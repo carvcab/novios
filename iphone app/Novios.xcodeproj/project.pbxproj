@@ -8,6 +8,34 @@
 
 /* Begin PBXBuildFile section */
 		9A1000012C00000100000001 /* NoviosApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2000012C00000100000001 /* NoviosApp.swift */; };
+		9A002002C000000000000200 /* batched.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100002C00000000000010000 /* batched.swift */; };
+		9A002012C000000000000201 /* Package.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100012C00000000000010001 /* Package.swift */; };
+		9A002022C000000000000202 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100022C00000000000010002 /* main.swift */; };
+		9A002032C000000000000203 /* llama.cpp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100032C00000000000010003 /* llama.cpp.swift */; };
+		9A002042C000000000000204 /* LibLlama.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100042C00000000000010004 /* LibLlama.swift */; };
+		9A002052C000000000000205 /* llama_swiftuiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100052C00000000000010005 /* llama_swiftuiApp.swift */; };
+		9A002062C000000000000206 /* LlamaState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100062C00000000000010006 /* LlamaState.swift */; };
+		9A002072C000000000000207 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100072C00000000000010007 /* ContentView.swift */; };
+		9A002082C000000000000208 /* DownloadButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100082C00000000000010008 /* DownloadButton.swift */; };
+		9A002092C000000000000209 /* InputButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100092C00000000000010009 /* InputButton.swift */; };
+		9A0020A2C00000000000020A /* LoadCustomButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1000A2C0000000000001000A /* LoadCustomButton.swift */; };
+		9A0020B2C00000000000020B /* AIMemoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1000B2C0000000000001000B /* AIMemoryService.swift */; };
+		9A0020C2C00000000000020C /* AIModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1000C2C0000000000001000C /* AIModelManager.swift */; };
+		9A0020D2C00000000000020D /* GameService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1000D2C0000000000001000D /* GameService.swift */; };
+		9A0020E2C00000000000020E /* SharedNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1000E2C0000000000001000E /* SharedNotificationService.swift */; };
+		9A0020F2C00000000000020F /* AIAssistantOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1000F2C0000000000001000F /* AIAssistantOverlay.swift */; };
+		9A002102C000000000000210 /* AIDownloadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100102C00000000000010010 /* AIDownloadView.swift */; };
+		9A002112C000000000000211 /* LocationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100112C00000000000010011 /* LocationModels.swift */; };
+		9A002122C000000000000212 /* CollectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100122C00000000000010012 /* CollectionsView.swift */; };
+		9A002132C000000000000213 /* CompatibilityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100132C00000000000010013 /* CompatibilityView.swift */; };
+		9A002142C000000000000214 /* CustomQuizView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100142C00000000000010014 /* CustomQuizView.swift */; };
+		9A002152C000000000000215 /* DiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100152C00000000000010015 /* DiceView.swift */; };
+		9A002162C000000000000216 /* HangmanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100162C00000000000010016 /* HangmanView.swift */; };
+		9A002172C000000000000217 /* LoveGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100172C00000000000010017 /* LoveGameView.swift */; };
+		9A002182C000000000000218 /* NeverHaveIEverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100182C00000000000010018 /* NeverHaveIEverView.swift */; };
+		9A002192C000000000000219 /* RouletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100192C00000000000010019 /* RouletteView.swift */; };
+		9A0021A2C00000000000021A /* TruthOrDareCustomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1001A2C0000000000001001A /* TruthOrDareCustomView.swift */; };
+		9A0021B2C00000000000021B /* WouldYouRatherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1001B2C0000000000001001B /* WouldYouRatherView.swift */; };
 		9A002002C000000000000200 /* CapsulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100002C00000000000010000 /* CapsulesView.swift */; };
 		9A002012C000000000000201 /* DateIdeasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100012C00000000000010001 /* DateIdeasView.swift */; };
 		9A002022C000000000000202 /* GamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A100022C00000000000010002 /* GamesView.swift */; };
@@ -77,6 +105,34 @@
 /* Begin PBXFileReference section */
 		9A2000012C00000100000001 /* NoviosApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/NoviosApp.swift; sourceTree = "<group>"; };
 		9A2000002C00000000000000 /* Novios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Novios.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9A100002C00000000000010000 /* batched.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core/batched.swift; sourceTree = "<group>"; };
+		9A100012C00000000000010001 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = llama/llama.cpp/examples/batched.swift/Package.swift; sourceTree = "<group>"; };
+		9A100022C00000000000010002 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = llama/llama.cpp/examples/batched.swift/Sources/main.swift; sourceTree = "<group>"; };
+		9A100032C00000000000010003 /* llama.cpp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = llama/llama.cpp/examples/batched.swift/Sources/llama.cpp.swift; sourceTree = "<group>"; };
+		9A100042C00000000000010004 /* LibLlama.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = llama/llama.cpp/examples/llama.swiftui/llama.cpp.swift/LibLlama.swift; sourceTree = "<group>"; };
+		9A100052C00000000000010005 /* llama_swiftuiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = llama/llama.cpp/examples/llama.swiftui/llama.swiftui/llama_swiftuiApp.swift; sourceTree = "<group>"; };
+		9A100062C00000000000010006 /* LlamaState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = llama/llama.cpp/examples/llama.swiftui/llama.swiftui/Models/LlamaState.swift; sourceTree = "<group>"; };
+		9A100072C00000000000010007 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = llama/llama.cpp/examples/llama.swiftui/llama.swiftui/UI/ContentView.swift; sourceTree = "<group>"; };
+		9A100082C00000000000010008 /* DownloadButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = llama/llama.cpp/examples/llama.swiftui/llama.swiftui/UI/DownloadButton.swift; sourceTree = "<group>"; };
+		9A100092C00000000000010009 /* InputButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = llama/llama.cpp/examples/llama.swiftui/llama.swiftui/UI/InputButton.swift; sourceTree = "<group>"; };
+		9A1000A2C0000000000001000A /* LoadCustomButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = llama/llama.cpp/examples/llama.swiftui/llama.swiftui/UI/LoadCustomButton.swift; sourceTree = "<group>"; };
+		9A1000B2C0000000000001000B /* AIMemoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AIMemoryService.swift; sourceTree = "<group>"; };
+		9A1000C2C0000000000001000C /* AIModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AIModelManager.swift; sourceTree = "<group>"; };
+		9A1000D2C0000000000001000D /* GameService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/GameService.swift; sourceTree = "<group>"; };
+		9A1000E2C0000000000001000E /* SharedNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/SharedNotificationService.swift; sourceTree = "<group>"; };
+		9A1000F2C0000000000001000F /* AIAssistantOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/AI/AIAssistantOverlay.swift; sourceTree = "<group>"; };
+		9A100102C00000000000010010 /* AIDownloadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/AI/AIDownloadView.swift; sourceTree = "<group>"; };
+		9A100112C00000000000010011 /* LocationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Location/LocationModels.swift; sourceTree = "<group>"; };
+		9A100122C00000000000010012 /* CollectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/CollectionsView.swift; sourceTree = "<group>"; };
+		9A100132C00000000000010013 /* CompatibilityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/CompatibilityView.swift; sourceTree = "<group>"; };
+		9A100142C00000000000010014 /* CustomQuizView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/CustomQuizView.swift; sourceTree = "<group>"; };
+		9A100152C00000000000010015 /* DiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/DiceView.swift; sourceTree = "<group>"; };
+		9A100162C00000000000010016 /* HangmanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/HangmanView.swift; sourceTree = "<group>"; };
+		9A100172C00000000000010017 /* LoveGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/LoveGameView.swift; sourceTree = "<group>"; };
+		9A100182C00000000000010018 /* NeverHaveIEverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/NeverHaveIEverView.swift; sourceTree = "<group>"; };
+		9A100192C00000000000010019 /* RouletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/RouletteView.swift; sourceTree = "<group>"; };
+		9A1001A2C0000000000001001A /* TruthOrDareCustomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/TruthOrDareCustomView.swift; sourceTree = "<group>"; };
+		9A1001B2C0000000000001001B /* WouldYouRatherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/WouldYouRatherView.swift; sourceTree = "<group>"; };
 		9A100002C00000000000010000 /* CapsulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/CapsulesView.swift; sourceTree = "<group>"; };
 		9A100012C00000000000010001 /* DateIdeasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/DateIdeasView.swift; sourceTree = "<group>"; };
 		9A100022C00000000000010002 /* GamesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Love/GamesView.swift; sourceTree = "<group>"; };
@@ -178,6 +234,34 @@
 			isa = PBXGroup;
 			children = (
 				9A2000012C00000100000001 /* NoviosApp.swift */,
+				9A100002C00000000000010000 /* batched.swift */,
+				9A100012C00000000000010001 /* Package.swift */,
+				9A100022C00000000000010002 /* main.swift */,
+				9A100032C00000000000010003 /* llama.cpp.swift */,
+				9A100042C00000000000010004 /* LibLlama.swift */,
+				9A100052C00000000000010005 /* llama_swiftuiApp.swift */,
+				9A100062C00000000000010006 /* LlamaState.swift */,
+				9A100072C00000000000010007 /* ContentView.swift */,
+				9A100082C00000000000010008 /* DownloadButton.swift */,
+				9A100092C00000000000010009 /* InputButton.swift */,
+				9A1000A2C0000000000001000A /* LoadCustomButton.swift */,
+				9A1000B2C0000000000001000B /* AIMemoryService.swift */,
+				9A1000C2C0000000000001000C /* AIModelManager.swift */,
+				9A1000D2C0000000000001000D /* GameService.swift */,
+				9A1000E2C0000000000001000E /* SharedNotificationService.swift */,
+				9A1000F2C0000000000001000F /* AIAssistantOverlay.swift */,
+				9A100102C00000000000010010 /* AIDownloadView.swift */,
+				9A100112C00000000000010011 /* LocationModels.swift */,
+				9A100122C00000000000010012 /* CollectionsView.swift */,
+				9A100132C00000000000010013 /* CompatibilityView.swift */,
+				9A100142C00000000000010014 /* CustomQuizView.swift */,
+				9A100152C00000000000010015 /* DiceView.swift */,
+				9A100162C00000000000010016 /* HangmanView.swift */,
+				9A100172C00000000000010017 /* LoveGameView.swift */,
+				9A100182C00000000000010018 /* NeverHaveIEverView.swift */,
+				9A100192C00000000000010019 /* RouletteView.swift */,
+				9A1001A2C0000000000001001A /* TruthOrDareCustomView.swift */,
+				9A1001B2C0000000000001001B /* WouldYouRatherView.swift */,
 				9A100002C00000000000010000 /* CapsulesView.swift */,
 				9A100012C00000000000010001 /* DateIdeasView.swift */,
 				9A100022C00000000000010002 /* GamesView.swift */,
@@ -316,6 +400,34 @@
 			buildActionMask = 2147483647;
 			files = (
 				9A1000012C00000100000001 /* NoviosApp.swift in Sources */,
+				9A002002C000000000000200 /* batched.swift in Sources */,
+				9A002012C000000000000201 /* Package.swift in Sources */,
+				9A002022C000000000000202 /* main.swift in Sources */,
+				9A002032C000000000000203 /* llama.cpp.swift in Sources */,
+				9A002042C000000000000204 /* LibLlama.swift in Sources */,
+				9A002052C000000000000205 /* llama_swiftuiApp.swift in Sources */,
+				9A002062C000000000000206 /* LlamaState.swift in Sources */,
+				9A002072C000000000000207 /* ContentView.swift in Sources */,
+				9A002082C000000000000208 /* DownloadButton.swift in Sources */,
+				9A002092C000000000000209 /* InputButton.swift in Sources */,
+				9A0020A2C00000000000020A /* LoadCustomButton.swift in Sources */,
+				9A0020B2C00000000000020B /* AIMemoryService.swift in Sources */,
+				9A0020C2C00000000000020C /* AIModelManager.swift in Sources */,
+				9A0020D2C00000000000020D /* GameService.swift in Sources */,
+				9A0020E2C00000000000020E /* SharedNotificationService.swift in Sources */,
+				9A0020F2C00000000000020F /* AIAssistantOverlay.swift in Sources */,
+				9A002102C000000000000210 /* AIDownloadView.swift in Sources */,
+				9A002112C000000000000211 /* LocationModels.swift in Sources */,
+				9A002122C000000000000212 /* CollectionsView.swift in Sources */,
+				9A002132C000000000000213 /* CompatibilityView.swift in Sources */,
+				9A002142C000000000000214 /* CustomQuizView.swift in Sources */,
+				9A002152C000000000000215 /* DiceView.swift in Sources */,
+				9A002162C000000000000216 /* HangmanView.swift in Sources */,
+				9A002172C000000000000217 /* LoveGameView.swift in Sources */,
+				9A002182C000000000000218 /* NeverHaveIEverView.swift in Sources */,
+				9A002192C000000000000219 /* RouletteView.swift in Sources */,
+				9A0021A2C00000000000021A /* TruthOrDareCustomView.swift in Sources */,
+				9A0021B2C00000000000021B /* WouldYouRatherView.swift in Sources */,
 				9A002002C000000000000200 /* CapsulesView.swift in Sources */,
 				9A002012C000000000000201 /* DateIdeasView.swift in Sources */,
 				9A002022C000000000000202 /* GamesView.swift in Sources */,
@@ -386,7 +498,8 @@
 		9A9000002C00000000000000 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-												SDKROOT = iphoneos;
+																SDKROOT = iphoneos;
+SDKROOT = iphoneos;
 SDKROOT = iphoneos;
 ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -422,7 +535,8 @@ ALWAYS_SEARCH_USER_PATHS = NO;
 		9A9000012C00000000000000 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-												SDKROOT = iphoneos;
+																SDKROOT = iphoneos;
+SDKROOT = iphoneos;
 SDKROOT = iphoneos;
 ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
