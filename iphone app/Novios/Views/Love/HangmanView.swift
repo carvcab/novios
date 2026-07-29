@@ -1,8 +1,6 @@
 import SwiftUI
 import FirebaseFirestore
 
-private let defaultWords = ["AMOR", "BESO", "ABRAZO", "CORAZON", "PAREJA", "ROMANTICO", "CARINO", "PASION", "SENTIMIENTO", "ALMA", "SEDUCCION", "COMPLICIDAD", "DESTINO", "FELICIDAD", "ILUSION", "MIRADA", "SONRISA", "TERNEZA", "UNION", "CARICIA"]
-private let categories = ["Romantico", "Viajes", "Recuerdos", "Lugares", "Apodos", "Peliculas", "Personalizado"]
 private let letters = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZÑ")
 
 private struct HangmanWordModel: Identifiable {
@@ -17,8 +15,6 @@ public struct HangmanView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var customWords: [HangmanWordModel] = []
-    @State private var wordPool: [String] = []
-    @State private var hintPool: [String: String] = [:]
     @State private var currentWord = ""
     @State private var currentHint = ""
     @State private var guessedLetters: Set<Character> = []
@@ -28,14 +24,25 @@ public struct HangmanView: View {
     @State private var gameOver = false
     @State private var showResult = false
     @State private var won = false
-    @State private var selectedCategory = "Romantico"
+    @State private var selectedCategory = ""
     @State private var showAddSheet = false
     @State private var newWord = ""
     @State private var newHint = ""
-    @State private var newCategory = "Romantico"
+    @State private var newCategory = ""
+    @State private var editingWordId: String?
     @State private var listener: ListenerRegistration?
+    @State private var editMode = false
 
     private let maxWrong = 6
+
+    private var categories: [String] {
+        let fromData = Set(customWords.map(\.category))
+        return fromData.sorted()
+    }
+
+    private var availableWords: [HangmanWordModel] {
+        customWords.filter { $0.category == selectedCategory }
+    }
 
     public init() {}
 
@@ -43,16 +50,27 @@ public struct HangmanView: View {
         NavigationStack {
             ZStack {
                 theme.backgroundGradient.ignoresSafeArea()
-                VStack(spacing: 10) {
-                    scoreHeader
-                    categoryPicker
-                    hangmanCanvas
-                    hintText
-                    wordDisplay
-                    keyboardGrid
-                    newGameButton
+                if editMode {
+                    wordList
+                } else {
+                    VStack(spacing: 10) {
+                        scoreHeader
+                        categoryPicker
+                        if currentWord.isEmpty {
+                            Text("No hay palabras para esta categoria")
+                                .appFont(size: 14)
+                                .foregroundColor(theme.textSecondary)
+                                .frame(maxHeight: .infinity)
+                        } else {
+                            hangmanCanvas
+                            hintText
+                            wordDisplay
+                            keyboardGrid
+                        }
+                        newGameButton
+                    }
+                    .padding()
                 }
-                .padding()
             }
             .navigationTitle("Ahorcado")
             .navigationBarTitleDisplayMode(.inline)
@@ -63,6 +81,10 @@ public struct HangmanView: View {
                         Image(systemName: "plus.circle.fill").font(.system(size: 22)).foregroundColor(theme.primary)
                     }
                 }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(editMode ? "Listo" : "Editar") { editMode.toggle() }
+                        .foregroundColor(theme.primary)
+                }
             }
             .alert(won ? "Ganaste!" : "Perdiste", isPresented: $showResult) {
                 Text(won ? "Palabra: \(currentWord)" : "Era: \(currentWord)")
@@ -72,7 +94,12 @@ public struct HangmanView: View {
             .sheet(isPresented: $showAddSheet) { addWordSheet }
             .onAppear {
                 setupListener()
-                pickWord()
+                if !customWords.isEmpty, selectedCategory.isEmpty {
+                    selectedCategory = categories.first ?? ""
+                }
+                if !currentWord.isEmpty || (!availableWords.isEmpty && currentWord.isEmpty) {
+                    pickWord()
+                }
             }
             .onDisappear { listener?.remove() }
         }
@@ -214,7 +241,7 @@ public struct HangmanView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .foregroundColor(used ? (isCorrect ? .green : .red) : theme.textPrimary)
                 }
-                .disabled(used || gameOver)
+                .disabled(used || gameOver || currentWord.isEmpty)
             }
         }
         .padding(8)
@@ -234,42 +261,60 @@ public struct HangmanView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .foregroundColor(theme.textPrimary)
+        .disabled(availableWords.isEmpty)
+    }
+
+    private var wordList: some View {
+        List {
+            ForEach(customWords) { w in
+                Button {
+                    newWord = w.word
+                    newHint = w.hint
+                    newCategory = w.category
+                    editingWordId = w.id
+                    showAddSheet = true
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(w.word).appFont(size: 14, weight: .bold).foregroundColor(theme.textPrimary)
+                            HStack(spacing: 4) {
+                                Text(w.category).appFont(size: 11).foregroundColor(theme.primary)
+                                if !w.hint.isEmpty {
+                                    Text("- \(w.hint)").appFont(size: 11).foregroundColor(theme.textSecondary)
+                                }
+                            }
+                        }
+                        Spacer()
+                        Image(systemName: "pencil.circle.fill").foregroundColor(theme.primary)
+                    }
+                }
+            }
+            .onDelete(perform: deleteCustomWord)
+        }
+        .scrollContentBackground(.hidden)
     }
 
     private var addWordSheet: some View {
         NavigationStack {
             Form {
-                Section("Nueva palabra") {
+                Section(editingWordId != nil ? "Editar palabra" : "Nueva palabra") {
                     TextField("Palabra", text: $newWord)
                         .autocapitalization(.allCharacters)
                     TextField("Pista (opcional)", text: $newHint)
-                    Picker("Categoria", selection: $newCategory) {
-                        ForEach(categories, id: \.self) { Text($0) }
-                    }
-                }
-                Section("Tus palabras") {
-                    if customWords.isEmpty {
-                        Text("Sin palabras personalizadas").foregroundColor(theme.textSecondary)
-                    }
-                    List {
-                        ForEach(customWords) { word in
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(word.word).appFont(size: 14, weight: .bold).foregroundColor(theme.textPrimary)
-                                Text("\(word.category)\(word.hint.isEmpty ? "" : " - \(word.hint)")").appFont(size: 11).foregroundColor(theme.textSecondary)
-                            }
-                        }
-                        .onDelete(perform: deleteCustomWord)
-                    }
+                    TextField("Categoria", text: $newCategory)
                 }
             }
-            .navigationTitle("Personalizar")
+            .navigationTitle(editingWordId != nil ? "Editar" : "Agregar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Guardar") { saveCustomWord() }.disabled(newWord.trimmingCharacters(in: .whitespaces).isEmpty)
+                    Button("Guardar") { saveCustomWord() }.disabled(newWord.trimmingCharacters(in: .whitespaces).isEmpty || newCategory.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cerrar") { showAddSheet = false }
+                    Button("Cancelar") {
+                        resetWordFields()
+                        showAddSheet = false
+                    }
                 }
             }
         }
@@ -302,14 +347,19 @@ public struct HangmanView: View {
     }
 
     private func pickWord() {
-        let catWords = customWords.filter { $0.category == selectedCategory }.map(\.word)
-        let defaultsInCategory = selectedCategory == "Personalizado" ? [] : defaultWords.shuffled()
-        wordPool = catWords.isEmpty ? defaultsInCategory : catWords + defaultsInCategory
-        if wordPool.isEmpty {
-            wordPool = defaultWords
+        let pool = availableWords
+        if pool.isEmpty {
+            currentWord = ""
+            currentHint = ""
+            guessedLetters = []
+            wrongGuesses = 0
+            gameOver = false
+            showResult = false
+            return
         }
-        currentWord = wordPool.randomElement() ?? "AMOR"
-        currentHint = hintPool[currentWord] ?? ""
+        let chosen = pool.randomElement()!
+        currentWord = chosen.word
+        currentHint = chosen.hint
         guessedLetters = []
         wrongGuesses = 0
         gameOver = false
@@ -324,26 +374,41 @@ public struct HangmanView: View {
                 guard let word = d["word"] as? String else { return nil }
                 return HangmanWordModel(id: doc.documentID, word: word.uppercased(), hint: d["hint"] as? String ?? "", category: d["category"] as? String ?? "Personalizado")
             }
-            for w in customWords {
-                hintPool[w.word] = w.hint
+            if selectedCategory.isEmpty, let first = categories.first {
+                selectedCategory = first
+            }
+            if !categories.contains(selectedCategory) {
+                selectedCategory = categories.first ?? ""
+            }
+            if currentWord.isEmpty || !availableWords.contains(where: { $0.word == currentWord }) {
+                pickWord()
             }
         }
     }
 
     private func saveCustomWord() {
         let word = newWord.trimmingCharacters(in: .whitespaces).uppercased()
-        guard !word.isEmpty else { return }
-        GameService.shared.saveHangmanWord(["word": word, "hint": newHint, "category": newCategory])
-        newWord = ""
-        newHint = ""
+        let category = newCategory.trimmingCharacters(in: .whitespaces)
+        guard !word.isEmpty, !category.isEmpty else { return }
+        if let id = editingWordId {
+            GameService.shared.saveHangmanWord(["word": word, "hint": newHint, "category": category], id: id)
+        } else {
+            GameService.shared.saveHangmanWord(["word": word, "hint": newHint, "category": category])
+        }
+        resetWordFields()
         showAddSheet = false
     }
 
     private func deleteCustomWord(at offsets: IndexSet) {
         for idx in offsets {
-            let w = customWords[idx]
-            GameService.shared.deleteHangmanWord(w.id)
+            GameService.shared.deleteHangmanWord(customWords[idx].id)
         }
     }
-}
 
+    private func resetWordFields() {
+        newWord = ""
+        newHint = ""
+        newCategory = ""
+        editingWordId = nil
+    }
+}

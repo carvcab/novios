@@ -1,11 +1,19 @@
 import SwiftUI
 import FirebaseFirestore
 
+private struct LoveCard: Identifiable {
+    let id: String
+    let content: String
+    let category: String
+    let points: Int
+}
+
 public struct LoveGameView: View {
     @ObservedObject private var theme = ThemeManager.shared
     @Environment(\.dismiss) private var dismiss
 
-    @State private var cards: [LoveCard] = []
+    @State private var allCards: [LoveCard] = []
+    @State private var displayCards: [LoveCard] = []
     @State private var currentIndex = 0
     @State private var isRevealed = false
     @State private var intimacyScore = 0
@@ -13,40 +21,17 @@ public struct LoveGameView: View {
     @State private var offset: CGSize = .zero
     @State private var selectedCategory = "Todas"
     @State private var hasSavedStats = false
+    @State private var editMode = false
+    @State private var showAddSheet = false
+    @State private var editContent = ""
+    @State private var editCategory = "Romanticas"
+    @State private var editPoints = 1
+    @State private var editingCardId: String?
+    @State private var listener: ListenerRegistration?
 
-    private let categories = ["Todas", "Romanticas", "Atrevidas", "Curiosas", "Acciones"]
-
-    private let allCards: [LoveCard] = [
-        LoveCard(question: "Cual fue tu primera impresion de mi?", category: "Romanticas"),
-        LoveCard(question: "Que es lo que mas te gusta de nosotros?", category: "Romanticas"),
-        LoveCard(question: "Describe nuestro momento mas feliz", category: "Romanticas"),
-        LoveCard(question: "Que promesa te gustaria que hicieramos?", category: "Romanticas"),
-        LoveCard(question: "Cual es tu cancion favorita de nuestra historia?", category: "Romanticas"),
-        LoveCard(question: "Que es lo que mas valoras de nuestra relacion?", category: "Romanticas"),
-        LoveCard(question: "Donde te gustaria estar conmigo ahora mismo?", category: "Romanticas"),
-        LoveCard(question: "Que fue lo que te enamoro de mi?", category: "Romanticas"),
-
-        LoveCard(question: "Besa el lugar que mas te guste de mi", category: "Atrevidas"),
-        LoveCard(question: "Quitame una prenda con los dientes", category: "Atrevidas"),
-        LoveCard(question: "Susurrame algo sexy al oido", category: "Atrevidas"),
-        LoveCard(question: "Bailame una cancion sensual", category: "Atrevidas"),
-        LoveCard(question: "Hazme un masaje donde mas lo necesite", category: "Atrevidas"),
-        LoveCard(question: "Di algo que me haga sonrojar", category: "Atrevidas"),
-
-        LoveCard(question: "En que piensas cuando no estamos juntos?", category: "Curiosas"),
-        LoveCard(question: "Cual es tu recuerdo favorito de nuestra primera cita?", category: "Curiosas"),
-        LoveCard(question: "Que es lo que nunca me has dicho y quisieras decirme?", category: "Curiosas"),
-        LoveCard(question: "Que te gustaria aprender juntos?", category: "Curiosas"),
-        LoveCard(question: "Cual es tu mayor miedo en la relacion?", category: "Curiosas"),
-        LoveCard(question: "Que es lo que mas te sorprende de mi?", category: "Curiosas"),
-
-        LoveCard(question: "Escribeme una nota de amor en la mano", category: "Acciones"),
-        LoveCard(question: "Prepara tu bebida favorita para mi", category: "Acciones"),
-        LoveCard(question: "Bailemos una cancion lenta ahora mismo", category: "Acciones"),
-        LoveCard(question: "Hazme cosquillas por 15 segundos", category: "Acciones"),
-        LoveCard(question: "Abrázame fuerte por 20 segundos", category: "Acciones"),
-        LoveCard(question: "Dime 3 cosas que te gusten de mi", category: "Acciones"),
-    ]
+    private var categories: [String] {
+        ["Todas"] + Array(Set(allCards.map(\.category))).sorted()
+    }
 
     public init() {}
 
@@ -54,14 +39,18 @@ public struct LoveGameView: View {
         NavigationStack {
             ZStack {
                 theme.backgroundGradient.ignoresSafeArea()
-                VStack(spacing: 16) {
-                    categoryPicker
-                    Spacer()
-                    cardStack
-                    Spacer()
-                    actionButtons
+                if editMode {
+                    cardList
+                } else {
+                    VStack(spacing: 16) {
+                        categoryPicker
+                        Spacer()
+                        cardStack
+                        Spacer()
+                        actionButtons
+                    }
+                    .padding()
                 }
-                .padding()
             }
             .navigationTitle("Love Game")
             .navigationBarTitleDisplayMode(.inline)
@@ -73,8 +62,87 @@ public struct LoveGameView: View {
                         Text("\(intimacyScore)").appFont(size: 14, weight: .bold).foregroundColor(theme.primary)
                     }
                 }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button { showAddSheet = true } label: {
+                        Image(systemName: "plus.circle.fill").font(.system(size: 22)).foregroundColor(theme.primary)
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(editMode ? "Listo" : "Editar") { editMode.toggle() }
+                        .foregroundColor(theme.primary)
+                }
             }
-            .onAppear { filterCards() }
+            .sheet(isPresented: $showAddSheet) { addCardSheet }
+            .onAppear {
+                setupListener()
+                filterCards()
+            }
+            .onDisappear { listener?.remove() }
+        }
+    }
+
+    private var cardList: some View {
+        List {
+            ForEach(allCards) { card in
+                Button {
+                    editContent = card.content
+                    editCategory = card.category
+                    editPoints = card.points
+                    editingCardId = card.id
+                    showAddSheet = true
+                } label: {
+                    HStack(alignment: .top, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(card.content)
+                                .appFont(size: 13, weight: .medium)
+                                .foregroundColor(theme.textPrimary)
+                                .lineLimit(2)
+                            HStack(spacing: 6) {
+                                Text(card.category)
+                                    .appFont(size: 10, weight: .bold)
+                                    .foregroundColor(categoryColor(card.category))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(categoryColor(card.category).opacity(0.12))
+                                    .clipShape(Capsule())
+                                Text("\(card.points) pts")
+                                    .appFont(size: 10)
+                                    .foregroundColor(theme.textSecondary)
+                            }
+                        }
+                        Spacer()
+                        Image(systemName: "pencil.circle.fill").foregroundColor(theme.primary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .onDelete(perform: deleteCard)
+        }
+        .scrollContentBackground(.hidden)
+    }
+
+    private var addCardSheet: some View {
+        NavigationStack {
+            Form {
+                Section(editingCardId != nil ? "Editar carta" : "Nueva carta") {
+                    TextField("Pregunta / contenido", text: $editContent)
+                    TextField("Categoria", text: $editCategory)
+                    Stepper("Puntos: \(editPoints)", value: $editPoints, in: 1...10)
+                }
+            }
+            .navigationTitle(editingCardId != nil ? "Editar" : "Agregar")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Guardar") { saveCard() }.disabled(editContent.trimmingCharacters(in: .whitespaces).isEmpty || editCategory.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancelar") {
+                        resetCardFields()
+                        showAddSheet = false
+                    }
+                }
+            }
         }
     }
 
@@ -102,15 +170,15 @@ public struct LoveGameView: View {
 
     private var cardStack: some View {
         ZStack {
-            if cards.isEmpty {
+            if displayCards.isEmpty {
                 Text("No hay cartas en esta categoria")
                     .appFont(size: 16)
                     .foregroundColor(theme.textSecondary)
                     .frame(maxWidth: .infinity, minHeight: 300)
                     .background(.ultraThinMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
-            } else if currentIndex < cards.count {
-                let card = cards[currentIndex]
+            } else if currentIndex < displayCards.count {
+                let card = displayCards[currentIndex]
                 ZStack {
                     RoundedRectangle(cornerRadius: 20)
                         .fill(.ultraThinMaterial)
@@ -122,7 +190,7 @@ public struct LoveGameView: View {
                                 .font(.system(size: 36))
                                 .foregroundColor(categoryColor(card.category))
 
-                            Text(card.question)
+                            Text(card.content)
                                 .appFont(size: 20, weight: .semibold)
                                 .multilineTextAlignment(.center)
                                 .foregroundColor(theme.textPrimary)
@@ -135,6 +203,10 @@ public struct LoveGameView: View {
                                 .padding(.vertical, 4)
                                 .background(categoryColor(card.category).opacity(0.12))
                                 .clipShape(Capsule())
+
+                            Text("+\(card.points) pts")
+                                .appFont(size: 12, weight: .semibold)
+                                .foregroundColor(theme.primary)
                         } else {
                             VStack(spacing: 12) {
                                 Image(systemName: "questionmark.circle.fill")
@@ -197,7 +269,7 @@ public struct LoveGameView: View {
 
             if isRevealed {
                 Button {
-                    intimacyScore += 1
+                    intimacyScore += displayCards[safe: currentIndex]?.points ?? 1
                     withAnimation { swipeCard() }
                 } label: {
                     Text("Completado")
@@ -212,7 +284,7 @@ public struct LoveGameView: View {
             }
 
             Button {
-                if currentIndex < cards.count - 1 {
+                if currentIndex < displayCards.count - 1 {
                     withAnimation {
                         currentIndex += 1
                         isRevealed = false
@@ -225,13 +297,13 @@ public struct LoveGameView: View {
                     .background(.ultraThinMaterial)
                     .clipShape(Circle())
             }
-            .disabled(currentIndex >= cards.count - 1)
+            .disabled(currentIndex >= displayCards.count - 1)
             .foregroundColor(theme.textPrimary)
         }
     }
 
     private func swipeCard() {
-        if currentIndex < cards.count - 1 {
+        if currentIndex < displayCards.count - 1 {
             withAnimation(.spring()) {
                 currentIndex += 1
                 isRevealed = false
@@ -241,10 +313,13 @@ public struct LoveGameView: View {
     }
 
     private func filterCards() {
+        if !categories.contains(selectedCategory) {
+            selectedCategory = "Todas"
+        }
         if selectedCategory == "Todas" {
-            cards = allCards.shuffled()
+            displayCards = allCards.shuffled()
         } else {
-            cards = allCards.filter { $0.category == selectedCategory }.shuffled()
+            displayCards = allCards.filter { $0.category == selectedCategory }.shuffled()
         }
         currentIndex = 0
         isRevealed = false
@@ -270,9 +345,53 @@ public struct LoveGameView: View {
         default: return theme.primary
         }
     }
+
+    private func setupListener() {
+        listener = GameService.shared.streamLoveQuestions().addSnapshotListener { snapshot, error in
+            guard let docs = snapshot?.documents else { return }
+            allCards = docs.compactMap { doc in
+                let d = doc.data()
+                return LoveCard(
+                    id: doc.documentID,
+                    content: d["content"] as? String ?? d["question"] as? String ?? "",
+                    category: d["category"] as? String ?? "Romanticas",
+                    points: d["points"] as? Int ?? 1
+                )
+            }
+            filterCards()
+        }
+    }
+
+    private func saveCard() {
+        let content = editContent.trimmingCharacters(in: .whitespaces)
+        let category = editCategory.trimmingCharacters(in: .whitespaces)
+        guard !content.isEmpty, !category.isEmpty else { return }
+        let data: [String: Any] = ["content": content, "category": category, "points": editPoints]
+        if let id = editingCardId {
+            GameService.shared.saveLoveQuestion(data, id: id)
+        } else {
+            GameService.shared.saveLoveQuestion(data)
+        }
+        resetCardFields()
+        showAddSheet = false
+    }
+
+    private func deleteCard(at offsets: IndexSet) {
+        for idx in offsets {
+            GameService.shared.deleteItem(gameType: "amor", id: allCards[idx].id)
+        }
+    }
+
+    private func resetCardFields() {
+        editContent = ""
+        editCategory = "Romanticas"
+        editPoints = 1
+        editingCardId = nil
+    }
 }
 
-private struct LoveCard {
-    let question: String
-    let category: String
+private extension Collection {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
 }

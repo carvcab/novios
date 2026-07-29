@@ -62,3 +62,7 @@ iphone app/DerivedData/
 iphone app/build/
 *.ipa
 /dist/
+/out.txt
+/err.txt
+/stdout.txt
+/stderr.txt

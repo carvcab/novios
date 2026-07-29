@@ -6,47 +6,11 @@ private struct PreferModel: Identifiable {
     let optionA: String
     let optionB: String
     let category: String
+    let collection: String
 }
 
 private let categories = ["Romantico", "Divertido", "Viajes", "Comida", "Futuro", "Personalizado"]
-
-private let defaultDilemmas: [String: [(String, String)]] = [
-    "Romantico": [
-        ("Una cena romantica en casa", "Una cena elegante en un restaurante"),
-        ("Un viaje a la playa", "Un viaje a la montana"),
-        ("Ver una pelicula juntos", "Ver una serie completa juntos"),
-        ("Mensajes de texto todo el dia", "Una llamada larga antes de dormir"),
-        ("Despertarme con un beso", "Dormirme abrazado de ti"),
-    ],
-    "Divertido": [
-        ("Una carta escrita a mano", "Un mensaje largo y bonito"),
-        ("Bailar lento en la sala", "Bailar en una fiesta"),
-        ("Reirnos hasta llorar", "Llorar de emocion juntos"),
-        ("Una noche de juegos de mesa", "Una noche de videojuegos"),
-        ("Un dia sin telefonos", "Un dia sin reloj"),
-    ],
-    "Viajes": [
-        ("Un fin de semana de aventura", "Un fin de semana de solo relax"),
-        ("Un viaje largo en carro", "Un vuelo corto a algun lado"),
-        ("Ver el amanecer juntos", "Ver el atardecer juntos"),
-        ("Caminar descalzos en la playa", "Caminar tomados de la mano en la ciudad"),
-        ("Un concierto de tu banda favorita", "Un festival contigo"),
-    ],
-    "Comida": [
-        ("Que me cocines", "Cocinar juntos"),
-        ("Hacer un picnic en el parque", "Una cena en la azotea"),
-        ("Cocinar algo dulce juntos", "Pedir comida a domicilio"),
-        ("Desayuno en la cama", "Cena a la luz de las velas"),
-        ("Comer en un food truck", "Comer en un restaurante con estrellas"),
-    ],
-    "Futuro": [
-        ("Planear nuestras vacaciones", "Planear nuestra boda"),
-        ("Comprar una casa juntos", "Viajar por el mundo juntos"),
-        ("Tener hijos", "Tener mascotas"),
-        ("Vivir en la ciudad", "Vivir en el campo"),
-        ("Trabajar juntos", "Trabajar desde casa juntos"),
-    ],
-]
+private let collections = ["Novios", "Amigos", "Familia", "Pareja", "Personalizado"]
 
 public struct WouldYouRatherView: View {
     @ObservedObject private var theme = ThemeManager.shared
@@ -62,9 +26,12 @@ public struct WouldYouRatherView: View {
     @State private var showFinal = false
     @State private var selectedCategory = "Romantico"
     @State private var showAddSheet = false
+    @State private var editMode = false
+    @State private var editingDilemma: PreferModel?
     @State private var newOptionA = ""
     @State private var newOptionB = ""
     @State private var newCategory = "Romantico"
+    @State private var newCollection = "Novios"
     @State private var listener: ListenerRegistration?
 
     public init() {}
@@ -73,22 +40,26 @@ public struct WouldYouRatherView: View {
         NavigationStack {
             ZStack {
                 theme.backgroundGradient.ignoresSafeArea()
-                VStack(spacing: 16) {
-                    if showFinal {
-                        finalResultView
-                    } else {
-                        scoreHeader
-                        categoryPicker
-                        progressBar
-                        if gameOver {
-                            summaryView
+                if editMode {
+                    editListView
+                } else {
+                    VStack(spacing: 16) {
+                        if showFinal {
+                            finalResultView
                         } else {
-                            questionCard
-                            pickerButtons
+                            scoreHeader
+                            categoryPicker
+                            progressBar
+                            if gameOver {
+                                summaryView
+                            } else {
+                                questionCard
+                                pickerButtons
+                            }
                         }
                     }
+                    .padding()
                 }
-                .padding()
             }
             .navigationTitle("Que prefieres?")
             .navigationBarTitleDisplayMode(.inline)
@@ -99,6 +70,12 @@ public struct WouldYouRatherView: View {
                         Image(systemName: "plus.circle.fill").font(.system(size: 22)).foregroundColor(theme.primary)
                     }
                 }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(editMode ? "Hecho" : "Editar") {
+                        withAnimation { editMode.toggle() }
+                    }
+                    .foregroundColor(theme.primary)
+                }
             }
             .sheet(isPresented: $showAddSheet) { addDilemmaSheet }
             .onAppear {
@@ -107,6 +84,36 @@ public struct WouldYouRatherView: View {
             }
             .onDisappear { listener?.remove() }
         }
+    }
+
+    private var editListView: some View {
+        List {
+            ForEach(customDilemmas) { d in
+                Button {
+                    editingDilemma = d
+                    newOptionA = d.optionA
+                    newOptionB = d.optionB
+                    newCategory = d.category
+                    newCollection = d.collection
+                    showAddSheet = true
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("A: \(d.optionA)").appFont(size: 13).foregroundColor(theme.textPrimary)
+                        Text("B: \(d.optionB)").appFont(size: 13).foregroundColor(theme.textPrimary)
+                        HStack(spacing: 6) {
+                            Text(d.category).appFont(size: 11).foregroundColor(theme.textSecondary)
+                            Text("·").foregroundColor(theme.textSecondary)
+                            Text(d.collection).appFont(size: 11).foregroundColor(theme.textSecondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .listRowBackground(Color.clear)
+            }
+            .onDelete(perform: deleteDilemma)
+        }
+        .scrollContentBackground(.hidden)
+        .listStyle(.plain)
     }
 
     private var scoreHeader: some View {
@@ -280,11 +287,14 @@ public struct WouldYouRatherView: View {
     private var addDilemmaSheet: some View {
         NavigationStack {
             Form {
-                Section("Nuevo dilema") {
+                Section(editingDilemma == nil ? "Nuevo dilema" : "Editar dilema") {
                     TextField("Opcion A", text: $newOptionA)
                     TextField("Opcion B", text: $newOptionB)
                     Picker("Categoria", selection: $newCategory) {
                         ForEach(categories, id: \.self) { Text($0) }
+                    }
+                    Picker("Coleccion", selection: $newCollection) {
+                        ForEach(collections, id: \.self) { Text($0) }
                     }
                 }
                 Section("Tus dilemas") {
@@ -295,22 +305,31 @@ public struct WouldYouRatherView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("A: \(d.optionA)").appFont(size: 13).foregroundColor(theme.textPrimary)
                             Text("B: \(d.optionB)").appFont(size: 13).foregroundColor(theme.textPrimary)
-                            Text(d.category).appFont(size: 11).foregroundColor(theme.textSecondary)
+                            HStack(spacing: 6) {
+                                Text(d.category).appFont(size: 11).foregroundColor(theme.textSecondary)
+                                Text("·").foregroundColor(theme.textSecondary)
+                                Text(d.collection).appFont(size: 11).foregroundColor(theme.textSecondary)
+                            }
                         }
                     }
                     .onDelete(perform: deleteDilemma)
                 }
             }
-            .navigationTitle("Anadir dilema")
+            .navigationTitle(editingDilemma == nil ? "Anadir dilema" : "Editar dilema")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Guardar") { saveDilemma() }.disabled(newOptionA.trimmingCharacters(in: .whitespaces).isEmpty || newOptionB.trimmingCharacters(in: .whitespaces).isEmpty)
+                    Button(editingDilemma == nil ? "Guardar" : "Actualizar") { saveDilemma() }
+                        .disabled(newOptionA.trimmingCharacters(in: .whitespaces).isEmpty || newOptionB.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cerrar") { showAddSheet = false }
+                    Button("Cerrar") {
+                        editingDilemma = nil
+                        showAddSheet = false
+                    }
                 }
             }
+            .onDisappear { editingDilemma = nil }
         }
     }
 
@@ -331,10 +350,8 @@ public struct WouldYouRatherView: View {
     }
 
     private func shuffleQuestions() {
-        let defaults = defaultDilemmas[selectedCategory] ?? []
-        let customs = customDilemmas.filter { $0.category == selectedCategory }
-        let all = defaults.map { PreferModel(id: UUID().uuidString, optionA: $0.0, optionB: $0.1, category: selectedCategory) } + customs
-        currentDilemmas = all.shuffled()
+        let filtered = customDilemmas.filter { $0.category == selectedCategory }
+        currentDilemmas = filtered.shuffled()
         currentIndex = 0
         answers1 = []
         answers2 = []
@@ -353,7 +370,13 @@ public struct WouldYouRatherView: View {
             customDilemmas = docs.compactMap { doc in
                 let d = doc.data()
                 guard let a = d["optionA"] as? String, let b = d["optionB"] as? String else { return nil }
-                return PreferModel(id: doc.documentID, optionA: a, optionB: b, category: d["category"] as? String ?? "Personalizado")
+                return PreferModel(
+                    id: doc.documentID,
+                    optionA: a,
+                    optionB: b,
+                    category: d["category"] as? String ?? "Personalizado",
+                    collection: d["collection"] as? String ?? "Novios"
+                )
             }
             if !currentDilemmas.isEmpty {
                 shuffleQuestions()
@@ -365,9 +388,15 @@ public struct WouldYouRatherView: View {
         let a = newOptionA.trimmingCharacters(in: .whitespaces)
         let b = newOptionB.trimmingCharacters(in: .whitespaces)
         guard !a.isEmpty, !b.isEmpty else { return }
-        GameService.shared.savePrefer(["optionA": a, "optionB": b, "category": newCategory])
+        let data: [String: Any] = ["optionA": a, "optionB": b, "category": newCategory, "collection": newCollection]
+        if let editId = editingDilemma?.id {
+            GameService.shared.savePrefer(data, id: editId)
+        } else {
+            GameService.shared.savePrefer(data)
+        }
         newOptionA = ""
         newOptionB = ""
+        editingDilemma = nil
         showAddSheet = false
     }
 

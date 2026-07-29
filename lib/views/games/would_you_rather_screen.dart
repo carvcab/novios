@@ -17,39 +17,6 @@ class _WouldYouRatherScreenState extends State<WouldYouRatherScreen> {
     'Todas', 'Romantico', 'Divertido', 'Viajes', 'Comida', 'Futuro', 'Personalizado'
   ];
 
-  static const _defaults = [
-    {'a': 'Viajar por el mundo conmigo', 'b': 'Recibir un regalo sorpresa cada mes', 'category': 'Viajes'},
-    {'a': 'Una cena romantica en casa', 'b': 'Una cita en un restaurante elegante', 'category': 'Romantico'},
-    {'a': 'Reir sin parar todos los dias', 'b': 'Conversar profundamente cada noche', 'category': 'Divertido'},
-    {'a': 'Comer pizza todas las semanas', 'b': 'Comer sushi todas las semanas', 'category': 'Comida'},
-    {'a': 'Vivir en la ciudad', 'b': 'Vivir en el campo', 'category': 'Futuro'},
-    {'a': 'Besos apasionados cada manana', 'b': 'Abrazos largos cada noche', 'category': 'Romantico'},
-    {'a': 'Una discusion honesta que duele', 'b': 'Una mentira piadosa que protege', 'category': 'Romantico'},
-    {'a': 'Cocinar juntos todas las noches', 'b': 'Pedir comida y ver peliculas', 'category': 'Comida'},
-    {'a': 'Un viaje espontaneo de fin de semana', 'b': 'Vacaciones perfectas de dos semanas', 'category': 'Viajes'},
-    {'a': 'Que me escribas un poema cada dia', 'b': 'Que me cantes en publico', 'category': 'Divertido'},
-    {'a': 'Tener el mismo sueno cada noche', 'b': 'Sonar contigo cuando quiera', 'category': 'Romantico'},
-    {'a': 'Un fin de semana en la montana', 'b': 'Un fin de semana en la playa', 'category': 'Viajes'},
-    {'a': 'Despertar con un beso cada manana', 'b': 'Dormir abrazados cada noche', 'category': 'Romantico'},
-    {'a': 'Una cita en un concierto', 'b': 'Una cita en una obra de teatro', 'category': 'Divertido'},
-    {'a': 'Comprar una casa juntos', 'b': 'Viajar por el mundo sin casa fija', 'category': 'Futuro'},
-    {'a': 'Un masaje relajante de 30 min', 'b': 'Un baile sensual de 10 min', 'category': 'Romantico'},
-    {'a': 'Recibir flores cada semana', 'b': 'Mensajes romanticos cada dia', 'category': 'Romantico'},
-    {'a': 'Una cita sorpresa preparada por ti', 'b': 'Planear juntos cada detalle', 'category': 'Divertido'},
-    {'a': 'Poder leer tu mente', 'b': 'Que puedas leer la mia', 'category': 'Futuro'},
-    {'a': 'Un beso bajo la lluvia', 'b': 'Un abrazo frente a la chimenea', 'category': 'Romantico'},
-    {'a': 'Hacer un album de fotos juntos', 'b': 'Escribir un diario de pareja', 'category': 'Romantico'},
-    {'a': 'Bailar bajo la lluvia', 'b': 'Hacer un muneco de nieve juntos', 'category': 'Divertido'},
-    {'a': 'Una cita en un globo aerostatico', 'b': 'Un paseo en barco al atardecer', 'category': 'Viajes'},
-    {'a': 'Tener una cita en la azotea', 'b': 'Un picnic en el parque', 'category': 'Romantico'},
-    {'a': 'Desayuno en la cama todos los dias', 'b': 'Cena a la luz de las velas', 'category': 'Comida'},
-    {'a': 'Ver el atardecer juntos', 'b': 'Ver el amanecer juntos', 'category': 'Romantico'},
-    {'a': 'Tener 3 hijos', 'b': 'Tener 3 mascotas', 'category': 'Futuro'},
-    {'a': 'Aprender a bailar salsa juntos', 'b': 'Aprender a cocinar juntos', 'category': 'Divertido'},
-    {'a': 'Vivir cerca de la familia', 'b': 'Vivir lejos pero viajar seguido', 'category': 'Futuro'},
-    {'a': 'Compartir el mismo celular', 'b': 'Tener total privacidad', 'category': 'Personalizado'},
-  ];
-
   List<Map<String, dynamic>> _allDilemmas = [];
   String _selectedCategory = 'Todas';
   int _currentIndex = 0;
@@ -62,6 +29,8 @@ class _WouldYouRatherScreenState extends State<WouldYouRatherScreen> {
 
   StreamSubscription? _sub;
   List<Map<String, dynamic>> _customDilemmas = [];
+
+  bool _editMode = false;
 
   @override
   void initState() {
@@ -76,7 +45,7 @@ class _WouldYouRatherScreenState extends State<WouldYouRatherScreen> {
             'a': data['optionA'],
             'b': data['optionB'],
             'category': data['category'] ?? 'Personalizado',
-            'custom': true,
+            ...data,
           };
         }).toList();
       });
@@ -84,18 +53,13 @@ class _WouldYouRatherScreenState extends State<WouldYouRatherScreen> {
     _startGame();
   }
 
-  List<Map<String, dynamic>> _filteredDilemmas() {
-    final combined = [
-      ..._defaults.map((e) => Map<String, dynamic>.from(e)..['custom'] = false),
-      ..._customDilemmas,
-    ];
-    if (_selectedCategory == 'Todas') return combined;
-    return combined.where((d) => d['category'] == _selectedCategory).toList();
+  List<Map<String, dynamic>> get _filteredDilemmas {
+    if (_selectedCategory == 'Todas') return _customDilemmas;
+    return _customDilemmas.where((d) => d['category'] == _selectedCategory).toList();
   }
 
   void _startGame() {
-    final filtered = _filteredDilemmas();
-    filtered.shuffle(Random());
+    final filtered = List<Map<String, dynamic>>.from(_filteredDilemmas)..shuffle(Random());
     setState(() {
       _allDilemmas = filtered;
       _currentIndex = 0;
@@ -200,16 +164,16 @@ class _WouldYouRatherScreenState extends State<WouldYouRatherScreen> {
     );
   }
 
-  void _showAddDialog() {
-    final aCtrl = TextEditingController();
-    final bCtrl = TextEditingController();
-    String selectedCat = _categories[1];
+  void _showAddDialog({String? editId, String? editA, String? editB, String? editCategory}) {
+    final aCtrl = TextEditingController(text: editA);
+    final bCtrl = TextEditingController(text: editB);
+    String selectedCat = editCategory ?? _categories[1];
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Nuevo dilema', style: GoogleFonts.outfit()),
+          title: Text(editId != null ? 'Editar dilema' : 'Nuevo dilema', style: GoogleFonts.outfit()),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -240,11 +204,16 @@ class _WouldYouRatherScreenState extends State<WouldYouRatherScreen> {
             TextButton(
               onPressed: () async {
                 if (aCtrl.text.trim().isEmpty || bCtrl.text.trim().isEmpty) return;
-                await GameService().savePrefer({
+                final data = {
                   'optionA': aCtrl.text.trim(),
                   'optionB': bCtrl.text.trim(),
                   'category': selectedCat,
-                });
+                };
+                if (editId != null) {
+                  await GameService().savePrefer(data, id: editId);
+                } else {
+                  await GameService().savePrefer(data);
+                }
                 Navigator.pop(ctx);
               },
               child: Text('Guardar', style: GoogleFonts.outfit()),
@@ -256,7 +225,21 @@ class _WouldYouRatherScreenState extends State<WouldYouRatherScreen> {
   }
 
   void _deleteDilemma(String id) {
-    GameService().deletePrefer(id);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Eliminar', style: GoogleFonts.outfit()),
+        content: Text('Eliminar este dilema?', style: GoogleFonts.outfit()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: GoogleFonts.outfit())),
+          TextButton(
+            onPressed: () { Navigator.pop(ctx); GameService().deletePrefer(id); },
+            child: Text('Eliminar', style: GoogleFonts.outfit(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -272,122 +255,180 @@ class _WouldYouRatherScreenState extends State<WouldYouRatherScreen> {
       appBar: AppBar(
         title: Text('Que prefieres...', style: GoogleFonts.outfit(color: cs.onSurface)),
         backgroundColor: cs.primary,
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: SizedBox(
-              height: 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: _categories.map((cat) => Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(cat, style: GoogleFonts.outfit(fontSize: 12)),
-                    selected: _selectedCategory == cat,
-                    onSelected: (v) {
-                      setState(() => _selectedCategory = cat);
-                      _startGame();
-                    },
-                  ),
-                )).toList(),
-              ),
-            ),
+        actions: [
+          IconButton(
+            icon: Icon(_editMode ? Icons.play_arrow_rounded : Icons.edit_note_rounded, color: cs.onSurface),
+            onPressed: () => setState(() => _editMode = !_editMode),
           ),
-          if (_allDilemmas.isEmpty)
-            Expanded(
-              child: Center(
-                child: Text('No hay dilemas para esta categoria',
-                    style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.6))),
-              ),
-            )
-          else
-            Expanded(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Jugador $_currentPlayer',
-                            style: GoogleFonts.outfit(fontSize: 14, color: cs.secondary, fontWeight: FontWeight.bold)),
-                        Text('${_p1Choices.length + 1} de ${_allDilemmas.length}',
-                            style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.6))),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Que prefieres...',
-                      style: GoogleFonts.outfit(fontSize: 16, color: cs.onSurface.withValues(alpha: 0.7))),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _OptionCard(
-                          0,
-                          _allDilemmas[_currentIndex]['a'] ?? '',
-                          cs.primary,
-                          cs.onSurface,
-                          _gameOver || _currentPlayer == 2 && !_showBoth && _p1Choices.length > _p2Choices.length,
-                          () => _pick(0),
-                          _showBoth && _p1Choices.length > _currentIndex ? _p1Choices[_currentIndex] == 0 : null,
-                          _showBoth && _p2Choices.length > _currentIndex ? _p2Choices[_currentIndex] == 0 : null,
-                        ),
-                        const SizedBox(height: 12),
-                        Text('O', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: cs.secondary)),
-                        const SizedBox(height: 12),
-                        _OptionCard(
-                          1,
-                          _allDilemmas[_currentIndex]['b'] ?? '',
-                          cs.secondary,
-                          cs.onSurface,
-                          _gameOver || _currentPlayer == 2 && !_showBoth && _p1Choices.length > _p2Choices.length,
-                          () => _pick(1),
-                          _showBoth && _p1Choices.length > _currentIndex ? _p1Choices[_currentIndex] == 1 : null,
-                          _showBoth && _p2Choices.length > _currentIndex ? _p2Choices[_currentIndex] == 1 : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_showBoth && _lastP2Choice != null)
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        _p1Choices[_currentIndex] == _lastP2Choice
-                            ? 'Coincidieron!'
-                            : 'Respuestas diferentes!',
-                        style: GoogleFonts.outfit(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: _p1Choices[_currentIndex] == _lastP2Choice ? Colors.green : Colors.red.shade400,
-                        ),
-                      ),
-                    ),
-                  if (_allDilemmas[_currentIndex]['custom'] == true)
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deleteDilemma(_allDilemmas[_currentIndex]['id']),
-                    ),
-                  if (_gameOver)
-                    ElevatedButton(
-                      onPressed: _showResult,
-                      style: ElevatedButton.styleFrom(backgroundColor: cs.primary),
-                      child: Text('Ver resultado', style: GoogleFonts.outfit(color: cs.onSurface)),
-                    ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddDialog,
-        backgroundColor: cs.primary,
-        child: Icon(Icons.add, color: cs.onSurface),
-      ),
+      body: _editMode ? _buildEditMode(cs) : _buildGameMode(cs),
+      floatingActionButton: _editMode
+          ? FloatingActionButton(
+              onPressed: () => _showAddDialog(),
+              backgroundColor: cs.primary,
+              child: Icon(Icons.add, color: cs.onSurface),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildGameMode(ColorScheme cs) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: _categories.map((cat) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  label: Text(cat, style: GoogleFonts.outfit(fontSize: 12)),
+                  selected: _selectedCategory == cat,
+                  onSelected: (v) {
+                    setState(() => _selectedCategory = cat);
+                    _startGame();
+                  },
+                ),
+              )).toList(),
+            ),
+          ),
+        ),
+        if (_allDilemmas.isEmpty)
+          Expanded(
+            child: Center(
+              child: Text('No hay dilemas para esta categoria',
+                  style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.6))),
+            ),
+          )
+        else
+          Expanded(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Jugador $_currentPlayer',
+                          style: GoogleFonts.outfit(fontSize: 14, color: cs.secondary, fontWeight: FontWeight.bold)),
+                      Text('${_p1Choices.length + 1} de ${_allDilemmas.length}',
+                          style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.6))),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text('Que prefieres...',
+                    style: GoogleFonts.outfit(fontSize: 16, color: cs.onSurface.withValues(alpha: 0.7))),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _OptionCard(
+                        0,
+                        _allDilemmas[_currentIndex]['a'] ?? '',
+                        cs.primary,
+                        cs.onSurface,
+                        _gameOver || _currentPlayer == 2 && !_showBoth && _p1Choices.length > _p2Choices.length,
+                        () => _pick(0),
+                        _showBoth && _p1Choices.length > _currentIndex ? _p1Choices[_currentIndex] == 0 : null,
+                        _showBoth && _p2Choices.length > _currentIndex ? _p2Choices[_currentIndex] == 0 : null,
+                      ),
+                      const SizedBox(height: 12),
+                      Text('O', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: cs.secondary)),
+                      const SizedBox(height: 12),
+                      _OptionCard(
+                        1,
+                        _allDilemmas[_currentIndex]['b'] ?? '',
+                        cs.secondary,
+                        cs.onSurface,
+                        _gameOver || _currentPlayer == 2 && !_showBoth && _p1Choices.length > _p2Choices.length,
+                        () => _pick(1),
+                        _showBoth && _p1Choices.length > _currentIndex ? _p1Choices[_currentIndex] == 1 : null,
+                        _showBoth && _p2Choices.length > _currentIndex ? _p2Choices[_currentIndex] == 1 : null,
+                      ),
+                    ],
+                  ),
+                ),
+                if (_showBoth && _lastP2Choice != null)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      _p1Choices[_currentIndex] == _lastP2Choice
+                          ? 'Coincidieron!'
+                          : 'Respuestas diferentes!',
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: _p1Choices[_currentIndex] == _lastP2Choice ? Colors.green : Colors.red.shade400,
+                      ),
+                    ),
+                  ),
+                if (_gameOver)
+                  ElevatedButton(
+                    onPressed: _showResult,
+                    style: ElevatedButton.styleFrom(backgroundColor: cs.primary),
+                    child: Text('Ver resultado', style: GoogleFonts.outfit(color: cs.onSurface)),
+                  ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildEditMode(ColorScheme cs) {
+    if (_customDilemmas.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.help_outline_rounded, size: 72, color: cs.onSurface.withValues(alpha: 0.2)),
+            const SizedBox(height: 16),
+            Text('No hay dilemas', style: GoogleFonts.outfit(fontSize: 18, color: cs.onSurface.withValues(alpha: 0.5))),
+            const SizedBox(height: 8),
+            Text('Agrega el primero con +', style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.4))),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+      itemCount: _customDilemmas.length,
+      itemBuilder: (_, i) {
+        final d = _customDilemmas[i];
+        final isOwner = d['authorId'] == LocalStorage().getUserId();
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            title: Text('${d['a']}  vs  ${d['b']}', style: GoogleFonts.outfit(fontSize: 13)),
+            subtitle: Text(d['category'] ?? '', style: GoogleFonts.outfit(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.5))),
+            trailing: isOwner ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.edit, size: 18, color: cs.primary),
+                  onPressed: () => _showAddDialog(
+                    editId: d['id'],
+                    editA: d['a'],
+                    editB: d['b'],
+                    editCategory: d['category'],
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete, size: 18, color: Colors.red),
+                  onPressed: () => _deleteDilemma(d['id']),
+                ),
+              ],
+            ) : null,
+          ),
+        );
+      },
     );
   }
 }

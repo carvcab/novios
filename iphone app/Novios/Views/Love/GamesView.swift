@@ -10,6 +10,7 @@ public struct GamesView: View {
     }
 
     private let games: [GameDef] = [
+        GameDef(id: "collections", icon: "folder.fill", name: "Colecciones", desc: "Organiza tu contenido en carpetas", colors: [Color(red: 0.38, green: 0.49, blue: 0.55), Color(red: 0.56, green: 0.64, blue: 0.69)], destination: AnyView(CollectionsView())),
         GameDef(id: "quiz", icon: "questionmark.square.fill", name: "Quiz", desc: "Pon a prueba tu conocimiento", colors: [Color(red: 1, green: 0.36, blue: 0.54), Color(red: 1, green: 0.54, blue: 0.67)], destination: AnyView(CustomQuizView())),
         GameDef(id: "roulette", icon: "arrow.triangle.2.clockwise.rotate.90", name: "Ruleta", desc: "Gira por un reto o premio", colors: [Color(red: 0.06, green: 0.73, blue: 0.51), Color(red: 0.2, green: 0.83, blue: 0.6)], destination: AnyView(RouletteView())),
         GameDef(id: "hangman", icon: "person.fill.questionmark", name: "Ahorcado", desc: "Adivina palabras de amor", colors: [Color(red: 0.94, green: 0.33, blue: 0.31), Color(red: 0.94, green: 0.6, blue: 0.6)], destination: AnyView(HangmanView())),
@@ -101,9 +102,16 @@ private struct GameCardView: View {
     }
 
     private func loadCount() {
-        let ref = db.collection("parejas").document(coupleId).collection("juegos").document(game.id).collection("items")
-        ref.getDocuments { snapshot, _ in
-            itemCount = snapshot?.documents.count ?? 0
+        if game.id == "collections" {
+            let ref = db.collection("parejas").document(coupleId).collection("colecciones")
+            ref.getDocuments { snapshot, _ in
+                itemCount = snapshot?.documents.count ?? 0
+            }
+        } else {
+            let ref = db.collection("parejas").document(coupleId).collection("juegos").document(game.id).collection("items")
+            ref.getDocuments { snapshot, _ in
+                itemCount = snapshot?.documents.count ?? 0
+            }
         }
     }
 }

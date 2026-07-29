@@ -5,12 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/game_service.dart';
 import '../../services/local_storage.dart';
 
-const _defaultWords = [
-  'AMOR', 'BESO', 'ABRAZO', 'CORAZON', 'PAREJA', 'ROMANTICO', 'CARINO',
-  'PASION', 'SENTIMIENTO', 'ALMA', 'BONITO', 'QUERER', 'DULCE', 'FELIZ',
-  'SONRISA', 'DESTINO', 'SUENO', 'BODA', 'CIELO', 'ETERNO',
-];
-
 const _categories = [
   'Romantico',
   'Viajes',
@@ -52,7 +46,7 @@ class _HangmanScreenState extends State<HangmanScreen> {
   String get _userId => LocalStorage().getUserId() ?? '';
 
   List<String> get _filteredWords {
-    final all = <String>[..._defaultWords];
+    final all = <String>[];
     for (final cw in _customWords) {
       final word = (cw['word'] as String?)?.toUpperCase();
       if (word != null && !all.contains(word)) {
@@ -194,10 +188,10 @@ class _HangmanScreenState extends State<HangmanScreen> {
     );
   }
 
-  Future<void> _addWord() async {
-    final wordCtrl = TextEditingController();
-    final hintCtrl = TextEditingController();
-    String category = _categories[0];
+  Future<void> _addWord({String? editDocId, String? editWord, String? editHint, String? editCategory}) async {
+    final wordCtrl = TextEditingController(text: editWord);
+    final hintCtrl = TextEditingController(text: editHint);
+    String category = editCategory ?? _categories[0];
     String? validationError;
 
     final result = await showDialog<Map<String, dynamic>>(
@@ -205,7 +199,7 @@ class _HangmanScreenState extends State<HangmanScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text('Agregar palabra', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          title: Text(editDocId != null ? 'Editar palabra' : 'Agregar palabra', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -285,12 +279,17 @@ class _HangmanScreenState extends State<HangmanScreen> {
     );
 
     if (result != null) {
-      await _gs.saveHangmanWord({
+      final data = {
         'word': result['word'],
         'hint': result['hint'],
         'category': result['category'],
         'authorId': _userId,
-      });
+      };
+      if (editDocId != null) {
+        await _gs.saveHangmanWord(data, id: editDocId);
+      } else {
+        await _gs.saveHangmanWord(data);
+      }
     }
   }
 
@@ -335,7 +334,7 @@ class _HangmanScreenState extends State<HangmanScreen> {
             ),
           ),
           IconButton(
-            icon: Icon(_manageMode ? Icons.play_arrow_rounded : Icons.list_alt_rounded, color: cs.onSurface),
+            icon: Icon(_manageMode ? Icons.play_arrow_rounded : Icons.edit_note_rounded, color: cs.onSurface),
             tooltip: _manageMode ? 'Jugar' : 'Administrar palabras',
             onPressed: () => setState(() => _manageMode = !_manageMode),
           ),
@@ -343,11 +342,13 @@ class _HangmanScreenState extends State<HangmanScreen> {
         ],
       ),
       body: _manageMode ? _buildManageView(cs) : _buildGameView(cs),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addWord,
-        backgroundColor: cs.primary,
-        child: Icon(Icons.add, color: cs.onSurface),
-      ),
+      floatingActionButton: _manageMode
+          ? FloatingActionButton(
+              onPressed: () => _addWord(),
+              backgroundColor: cs.primary,
+              child: Icon(Icons.add, color: cs.onSurface),
+            )
+          : null,
     );
   }
 
@@ -369,7 +370,7 @@ class _HangmanScreenState extends State<HangmanScreen> {
                         const SizedBox(height: 12),
                         Text('No hay palabras disponibles', style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.5))),
                         const SizedBox(height: 8),
-                        Text('Agrega palabras con el boton +', style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.4))),
+                        Text('Agrega palabras desde el modo de edicion', style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.4))),
                       ],
                     ),
                   )
@@ -539,22 +540,6 @@ class _HangmanScreenState extends State<HangmanScreen> {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
             children: [
-              Text('Palabras predeterminadas', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: _defaultWords.map((w) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: cs.onSurface.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: cs.onSurface.withValues(alpha: 0.1)),
-                  ),
-                  child: Text(w, style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w500)),
-                )).toList(),
-              ),
-              const SizedBox(height: 24),
               Text('Palabras personalizadas', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 12),
               if (customDocs.isEmpty)
@@ -577,70 +562,68 @@ class _HangmanScreenState extends State<HangmanScreen> {
                   final category = d['category'] as String? ?? '';
                   final authorId = d['authorId'] as String? ?? '';
                   final isOwner = authorId == _userId;
-                  return Dismissible(
-                    key: Key('hangman_${d['docId']}'),
-                    direction: isOwner ? DismissDirection.endToStart : DismissDirection.none,
-                    background: Container(
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 24),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(Icons.delete, color: Colors.white, size: 28),
-                    ),
-                    confirmDismiss: (_) async {
-                      await _deleteWord(d['docId'] as String);
-                      return false;
-                    },
-                    child: Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: cs.primary.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(word.isNotEmpty ? word[0] : '?', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: cs.primary)),
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: cs.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(word, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15)),
-                                  if (hint.isNotEmpty)
-                                    Text(hint, style: GoogleFonts.outfit(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.5))),
-                                ],
-                              ),
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
+                            child: Text(word.isNotEmpty ? word[0] : '?', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: cs.primary)),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: cs.primary.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(category, style: GoogleFonts.outfit(fontSize: 10, color: cs.primary, fontWeight: FontWeight.w600)),
-                                ),
-                                if (isOwner) ...[
-                                  const SizedBox(height: 4),
-                                  InkWell(
-                                    onTap: () => _deleteWord(d['docId'] as String),
-                                    child: Icon(Icons.delete_outline, size: 18, color: Colors.red.withValues(alpha: 0.6)),
-                                  ),
-                                ],
+                                Text(word, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15)),
+                                if (hint.isNotEmpty)
+                                  Text(hint, style: GoogleFonts.outfit(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.5))),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: cs.primary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(category, style: GoogleFonts.outfit(fontSize: 10, color: cs.primary, fontWeight: FontWeight.w600)),
+                              ),
+                              if (isOwner) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    InkWell(
+                                      onTap: () => _addWord(
+                                        editDocId: d['docId'],
+                                        editWord: word,
+                                        editHint: hint,
+                                        editCategory: category,
+                                      ),
+                                      child: Icon(Icons.edit, size: 16, color: cs.primary),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    InkWell(
+                                      onTap: () => _deleteWord(d['docId'] as String),
+                                      child: Icon(Icons.delete_outline, size: 16, color: Colors.red.withValues(alpha: 0.6)),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   );

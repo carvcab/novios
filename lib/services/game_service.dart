@@ -163,4 +163,70 @@ class GameService {
           .orderBy('timestamp', descending: true)
           .limit(50)
           .snapshots();
+
+  // ─── Favorite / Duplicate ───
+  Future<void> toggleFavorite(String gameType, String itemId) async {
+    final doc = _typeRef(gameType).doc(itemId);
+    final snap = await doc.get();
+    if (!snap.exists) return;
+    final data = snap.data() as Map<String, dynamic>;
+    final currentFavs = List<String>.from(data['favoritedBy'] ?? []);
+    final uid = LocalStorage().getUserId() ?? '';
+    if (currentFavs.contains(uid)) {
+      currentFavs.remove(uid);
+    } else {
+      currentFavs.add(uid);
+    }
+    await doc.update({'favoritedBy': currentFavs});
+  }
+
+  Future<void> duplicateItem(String gameType, String itemId) async {
+    final doc = _typeRef(gameType).doc(itemId);
+    final snap = await doc.get();
+    if (!snap.exists) return;
+    final data = snap.data() as Map<String, dynamic>;
+    final newData = Map<String, dynamic>.from(data)
+      ..remove('createdAt')
+      ..remove('updatedAt')
+      ..remove('favoritedBy');
+    newData['author'] = LocalStorage().getUserName() ?? 'Yo';
+    newData['authorId'] = LocalStorage().getUserId() ?? '';
+    newData['createdAt'] = FieldValue.serverTimestamp();
+    newData['duplicatedFrom'] = itemId;
+    await _typeRef(gameType).add(newData);
+  }
+
+  // ─── Generic stream all items for a game type ───
+  Stream<QuerySnapshot> streamAll(String gameType) =>
+      _typeRef(gameType).snapshots();
+
+  // ─── Generic CRUD ───
+  Future<void> saveItem(String gameType, Map<String, dynamic> data, {String? id}) async {
+    final ref = id != null ? _typeRef(gameType).doc(id) : _typeRef(gameType).doc();
+    data['author'] = LocalStorage().getUserName() ?? 'Yo';
+    data['authorId'] = LocalStorage().getUserId() ?? '';
+    data['createdAt'] = FieldValue.serverTimestamp();
+    await ref.set(data, SetOptions(merge: true));
+  }
+
+  Future<void> deleteItem(String gameType, String id) =>
+      _typeRef(gameType).doc(id).delete();
+
+  // ─── Collections / Folders ───
+  CollectionReference get _collectionsRef =>
+      _gamesRef.doc('colecciones').collection('items');
+
+  Stream<QuerySnapshot> streamCollections() =>
+      _collectionsRef.snapshots();
+
+  Future<void> saveCollection(Map<String, dynamic> data, {String? id}) async {
+    final ref = id != null ? _collectionsRef.doc(id) : _collectionsRef.doc();
+    data['author'] = LocalStorage().getUserName() ?? 'Yo';
+    data['authorId'] = LocalStorage().getUserId() ?? '';
+    data['createdAt'] = FieldValue.serverTimestamp();
+    await ref.set(data, SetOptions(merge: true));
+  }
+
+  Future<void> deleteCollection(String id) =>
+      _collectionsRef.doc(id).delete();
 }

@@ -1,8 +1,16 @@
 platform :ios, '16.0'
 use_frameworks!
 
-target 'Novios' do
+def firebase_pods
   pod 'Firebase/Auth'
   pod 'Firebase/Firestore'
   pod 'Firebase/Storage'
+end
+
+target 'Novios' do
+  firebase_pods
+end
+
+target 'ShareExtension' do
+  firebase_pods
 end

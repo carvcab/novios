@@ -12,133 +12,12 @@ public struct TruthOrDareCustomView: View {
     @State private var showAddSheet = false
     @State private var addCategory = "Verdad"
     @State private var revealCount = 0
+    @State private var editMode = false
+    @State private var editingEntry: TDCustomEntry? = nil
+    @State private var collections: [String] = []
+    @State private var selectedCollection: String? = nil
 
     private let categories = ["Verdad", "Reto", "Foto", "Video", "Picante", "Romanico", "Divertido", "Personalizado"]
-
-    private let truthDefaults: [String] = [
-        "Cual fue tu primera impresion de mi?",
-        "Que es lo que mas te gusta de nuestra relacion?",
-        "Cual fue tu momento favorito conmigo?",
-        "Cuando supiste que me amabas?",
-        "Que es lo que mas extranas cuando no estamos juntos?",
-        "Cual es tu mayor miedo en la relacion?",
-        "Que promesa quieres que te haga?",
-        "Cual es tu recuerdo mas vergonzoso conmigo?",
-        "Que es lo que mas te gusta de mi fisico?",
-        "Cual fue tu cita favorita y por que?",
-        "Que pelicula o cancion te recuerda a nosotros?",
-        "Si pudieras cambiar algo de mi, que seria?",
-        "Que es lo que mas valoras de mi personalidad?",
-        "Cual es tu plan perfecto para un domingo juntos?",
-    ]
-
-    private let dareDefaults: [String] = [
-        "Abrazame durante un minuto sin soltar",
-        "Dame un beso en la mejilla",
-        "Baila conmigo una cancion lenta",
-        "Cantame tu cancion favorita",
-        "Hazme reir con una cara graciosa",
-        "Escribe algo bonito en mi brazo con tu dedo",
-        "Preparame tu bebida favorita",
-        "Inventa un apodo nuevo para nosotros",
-        "Dibuja algo en un papel para mi",
-        "Cuentame un chiste malo",
-        "Masajea mis hombros por 2 minutos",
-        "Bailame un baile ridiculo",
-        "Haz un cumplido sincero sobre mi",
-        "Tomate una foto conmigo ahora mismo",
-    ]
-
-    private let photoDefaults: [String] = [
-        "Tomate una selfie haciendo una cara graciosa",
-        "Foto de algo que te recuerde a mi",
-        "Tomate una foto con mi prenda favorita puesta",
-        "Foto de tu lugar favorito de la casa",
-        "Selfie los dos en el espejo",
-        "Foto de tu comida favorita que te guste compartir",
-        "Foto de algo que hayas hecho hoy",
-        "Foto de tu sonrisa mas bonita",
-        "Foto de tus ojos de cerca",
-        "Foto de un recuerdo nuestro que tengas cerca",
-        "Foto de tu mano con la mia",
-        "Foto de tu silueta contra la luz",
-        "Foto de algo que te haga feliz ahora",
-    ]
-
-    private let videoDefaults: [String] = [
-        "Graba un video de 10s diciendo 3 cosas que te gustan de mi",
-        "Video bailando tu cancion favorita",
-        "Graba un video imitando mi voz",
-        "Video haciendo un saludo vergonzoso para mi",
-        "Graba un lip sync de nuestra cancion",
-        "Video cocinando algo rapido mientras me dedicas la receta",
-        "Graba un mensaje sorpresa para mi futuro yo",
-        "Video contando un secreto en camara lenta",
-        "Graba un time-lapse de algo divertido que hagas",
-        "Video de ti haciendo tu mejor pose de modelo",
-        "Graba un mini tutorial de algo que sepas hacer",
-        "Video soplando un beso a la camara",
-    ]
-
-    private let spicyDefaults: [String] = [
-        "Besame de una forma que nunca hayamos hecho",
-        "Susurrame algo prohibido al oido",
-        "Quitame una prenda con los dientes",
-        "Bailame una cancion sensual",
-        "Pasame tu mano por debajo de mi ropa",
-        "Lame mi cuello lentamente",
-        "Dime lo que me haras esta noche en detalle",
-        "Muerdeme el labio inferior suavemente",
-        "Besa el lugar que mas te guste de mi",
-        "Ponte detras de mi y abrazame por la cintura",
-        "Haz el sonido que haces cuando sientes placer",
-        "Susurra tu fantasia mas secreta",
-        "Besa mi pecho lentamente",
-    ]
-
-    private let romanticDefaults: [String] = [
-        "Que es lo que mas te gusta de mi?",
-        "Describe tu dia perfecto conmigo",
-        "Que fue lo primero que pensaste cuando me viste?",
-        "Cual es tu recuerdo favorito de nosotros?",
-        "Que es lo que mas te hace sentir amado/a?",
-        "Cuando fue la ultima vez que sentiste mariposas?",
-        "Que es lo que mas admiras de mi?",
-        "Cual es tu promesa favorita que nos hemos hecho?",
-        "Que cancion describe mejor nuestra relacion?",
-        "Cual es el lugar mas romantico que has visitado conmigo?",
-        "Que es lo que mas te gusta de como te trato?",
-        "Cual fue el momento en el que mas te enamoraste de mi?",
-    ]
-
-    private let funnyDefaults: [String] = [
-        "Haz la mejor imitacion de mi que puedas",
-        "Cuenta el chiste mas malo que sepas",
-        "Haz una voz graciosa y di algo bonito",
-        "Baila como si nadie te estuviera viendo",
-        "Inventa una historia ridicula sobre como nos conocimos",
-        "Haz el sonido de tu animal favorito",
-        "Cuenta tu recuerdo mas embarazoso de cuando eras nino",
-        "Haz una pose de modelo bien exagerada",
-        "Habla con acento extranjero por 30 segundos",
-        "Canta una cancion inventada sobre nuestra relacion",
-        "Haz mimica de una pelicula y adivina cual es",
-        "Di un trabalenguas 3 veces seguidas",
-        "Haz una cara graciosa y mantenla 10 segundos",
-    ]
-
-    private var defaultsMap: [String: [String]] {
-        [
-            "Verdad": truthDefaults,
-            "Reto": dareDefaults,
-            "Foto": photoDefaults,
-            "Video": videoDefaults,
-            "Picante": spicyDefaults,
-            "Romanico": romanticDefaults,
-            "Divertido": funnyDefaults,
-            "Personalizado": [],
-        ]
-    }
 
     public init() {}
 
@@ -146,36 +25,136 @@ public struct TruthOrDareCustomView: View {
         NavigationStack {
             ZStack {
                 theme.backgroundGradient.ignoresSafeArea()
-                VStack(spacing: 0) {
-                    categoryTabs
-                    cardArea
-                    Spacer()
-                    actionButtons
+                if editMode {
+                    editModeList
+                } else {
+                    VStack(spacing: 0) {
+                        categoryTabs
+                        cardArea
+                        Spacer()
+                        actionButtons
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom)
                 }
-                .padding(.horizontal)
-                .padding(.bottom)
             }
             .navigationTitle("Verdad o Reto")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Cerrar") { dismiss() } }
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if !collections.isEmpty {
+                        Menu {
+                            Button("Todas") { selectedCollection = nil }
+                            ForEach(collections, id: \.self) { col in
+                                Button(col) { selectedCollection = col }
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "line.3.horizontal.decrease.circle")
+                                    .font(.system(size: 14))
+                                Text(selectedCollection ?? "Coleccion")
+                                    .appFont(size: 12, weight: .medium)
+                            }
+                            .foregroundColor(theme.primary)
+                        }
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Cerrar") { dismiss() }
+                }
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
                     Button {
-                        addCategory = categories[selectedTab]
-                        showAddSheet = true
+                        editMode.toggle()
                     } label: {
-                        Image(systemName: "plus")
+                        Image(systemName: editMode ? "play.fill" : "pencil")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(theme.primary)
                     }
+                    if !editMode {
+                        Button {
+                            addCategory = categories[selectedTab]
+                            editingEntry = nil
+                            showAddSheet = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(theme.primary)
+                        }
+                    }
                 }
             }
-            .onAppear { loadCustomEntries() }
+            .onAppear {
+                loadCustomEntries()
+                loadCollections()
+            }
             .sheet(isPresented: $showAddSheet) {
-                AddDEView(category: $addCategory, onSave: { loadCustomEntries() })
+                AddDEView(category: $addCategory, entry: editingEntry, collections: collections, onSave: {
+                    loadCustomEntries()
+                })
             }
         }
     }
+
+    // MARK: - Edit Mode List
+
+    private var editModeList: some View {
+        List {
+            ForEach(categories, id: \.self) { category in
+                let entries = customEntries[category] ?? []
+                if !entries.isEmpty {
+                    Section {
+                        ForEach(entries) { entry in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(entry.text)
+                                        .appFont(size: 14)
+                                        .lineLimit(3)
+                                    if let col = entry.collection, !col.isEmpty {
+                                        Text(col)
+                                            .appFont(size: 11, weight: .medium)
+                                            .foregroundColor(theme.primary.opacity(0.7))
+                                    }
+                                }
+                                Spacer()
+                                Button {
+                                    duplicateEntry(entry)
+                                } label: {
+                                    Image(systemName: "doc.on.doc")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(theme.primary)
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    deleteEntry(entry)
+                                } label: {
+                                    Label("Eliminar", systemImage: "trash")
+                                }
+                                Button {
+                                    editingEntry = entry
+                                    addCategory = entry.category
+                                    showAddSheet = true
+                                } label: {
+                                    Label("Editar", systemImage: "pencil")
+                                }
+                                .tint(.orange)
+                            }
+                        }
+                    } header: {
+                        Text(category)
+                            .appFont(size: 14, weight: .bold)
+                            .foregroundColor(categoryColor(category))
+                    }
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.clear)
+    }
+
+    // MARK: - Category Tabs
 
     private var categoryTabs: some View {
         TabView(selection: $selectedTab) {
@@ -194,6 +173,8 @@ public struct TruthOrDareCustomView: View {
             }
         }
     }
+
+    // MARK: - Card Area
 
     private var cardArea: some View {
         VStack(spacing: 16) {
@@ -224,21 +205,6 @@ public struct TruthOrDareCustomView: View {
                                 .padding(.vertical, 6)
                                 .background(categoryColor(categories[selectedTab]).opacity(0.12))
                                 .clipShape(Capsule())
-
-                            if let entry = findCurrentEntry(card) {
-                                if entry.isCustom {
-                                    Button {
-                                        deleteEntry(entry)
-                                    } label: {
-                                        Image(systemName: "trash.fill")
-                                            .font(.system(size: 12))
-                                            .foregroundColor(.red.opacity(0.6))
-                                            .padding(6)
-                                            .background(.ultraThinMaterial)
-                                            .clipShape(Circle())
-                                    }
-                                }
-                            }
                         }
                     }
                 }
@@ -261,6 +227,8 @@ public struct TruthOrDareCustomView: View {
         }
         .padding(.vertical, 16)
     }
+
+    // MARK: - Action Buttons
 
     private var actionButtons: some View {
         HStack(spacing: 20) {
@@ -289,11 +257,19 @@ public struct TruthOrDareCustomView: View {
         }
     }
 
+    // MARK: - Core Logic
+
     private func generateCard() {
         let cat = categories[selectedTab]
-        let defaults = defaultsMap[cat] ?? []
-        let customs = (customEntries[cat] ?? []).map(\.text)
-        let all = defaults + customs
+        var entries = customEntries[cat] ?? []
+
+        if let filter = selectedCollection {
+            entries = entries.filter { $0.collection == filter || ($0.collection ?? "").isEmpty }
+        } else {
+            entries = entries.filter { ($0.collection ?? "").isEmpty }
+        }
+
+        let all = entries.map(\.text)
 
         guard !all.isEmpty else {
             currentCard = "No hay entradas en esta categoria"
@@ -312,11 +288,6 @@ public struct TruthOrDareCustomView: View {
         }
     }
 
-    private func findCurrentEntry(_ text: String) -> TDCustomEntry? {
-        let cat = categories[selectedTab]
-        return (customEntries[cat] ?? []).first { $0.text == text }
-    }
-
     private func loadCustomEntries() {
         for cat in categories {
             guard cat != "Personalizado" else { continue }
@@ -325,11 +296,24 @@ public struct TruthOrDareCustomView: View {
                 let snapshot = try? await query.getDocuments()
                 let entries = snapshot?.documents.compactMap { doc -> TDCustomEntry? in
                     guard let text = doc.data()["text"] as? String else { return nil }
-                    return TDCustomEntry(id: doc.documentID, text: text, isCustom: true)
+                    let collection = doc.data()["collection"] as? String
+                    let authorId = doc.data()["authorId"] as? String
+                    return TDCustomEntry(id: doc.documentID, text: text, category: cat, collection: collection, authorId: authorId)
                 } ?? []
                 await MainActor.run {
                     customEntries[cat] = entries
                 }
+            }
+        }
+    }
+
+    private func loadCollections() {
+        Task {
+            let query = GameService.shared.streamCollections()
+            let snapshot = try? await query.getDocuments()
+            let names = snapshot?.documents.compactMap { $0.data()["name"] as? String } ?? []
+            await MainActor.run {
+                collections = names
             }
         }
     }
@@ -343,10 +327,19 @@ public struct TruthOrDareCustomView: View {
         revealCount += 1
         GameService.shared.saveGameStats("verdad_reto", [
             "action": "deleted",
-            "category": categories[selectedTab],
+            "category": entry.category,
             "totalRevealed": revealCount,
         ])
     }
+
+    private func duplicateEntry(_ entry: TDCustomEntry) {
+        GameService.shared.duplicateItem(gameType: "verdad_reto", itemId: entry.id)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            loadCustomEntries()
+        }
+    }
+
+    // MARK: - Helpers
 
     private func tabIcon(for cat: String) -> String {
         switch cat {
@@ -377,21 +370,32 @@ public struct TruthOrDareCustomView: View {
     }
 }
 
-private struct TDCustomEntry {
+// MARK: - Model
+
+private struct TDCustomEntry: Identifiable {
     let id: String
     let text: String
-    let isCustom: Bool
+    let category: String
+    let collection: String?
+    let authorId: String?
 }
+
+// MARK: - Add/Edit View
 
 private struct AddDEView: View {
     @Binding var category: String
+    var entry: TDCustomEntry?
+    let collections: [String]
     let onSave: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var text = ""
+    @State private var selectedCollection: String = ""
     @State private var saving = false
     @ObservedObject private var theme = ThemeManager.shared
 
     private let categories = ["Verdad", "Reto", "Foto", "Video", "Picante", "Romanico", "Divertido"]
+
+    private var isEditing: Bool { entry != nil }
 
     var body: some View {
         NavigationStack {
@@ -402,6 +406,16 @@ private struct AddDEView: View {
                     }
                 }
                 .pickerStyle(.menu)
+
+                if !collections.isEmpty {
+                    Picker("Coleccion", selection: $selectedCollection) {
+                        Text("Ninguna").tag("")
+                        ForEach(collections, id: \.self) { col in
+                            Text(col).tag(col)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Contenido:")
@@ -424,7 +438,7 @@ private struct AddDEView: View {
                     if saving {
                         ProgressView().tint(.white)
                     } else {
-                        Label("Guardar", systemImage: "checkmark")
+                        Label(isEditing ? "Actualizar" : "Guardar", systemImage: "checkmark")
                             .appFont(size: 14, weight: .semibold)
                     }
                 }
@@ -436,10 +450,17 @@ private struct AddDEView: View {
                 .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty || saving)
             }
             .padding(20)
-            .navigationTitle("Nueva entrada")
+            .navigationTitle(isEditing ? "Editar entrada" : "Nueva entrada")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancelar") { dismiss() } }
+            }
+        }
+        .onAppear {
+            if let entry = entry {
+                text = entry.text
+                category = entry.category
+                selectedCollection = entry.collection ?? ""
             }
         }
     }
@@ -448,10 +469,17 @@ private struct AddDEView: View {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
         saving = true
-        GameService.shared.saveTD([
+
+        var data: [String: Any] = [
             "text": trimmed,
             "category": category,
-        ])
+        ]
+        if !selectedCollection.isEmpty {
+            data["collection"] = selectedCollection
+        }
+
+        GameService.shared.saveTD(data, id: entry?.id)
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             saving = false
             onSave()

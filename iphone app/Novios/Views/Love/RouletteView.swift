@@ -8,16 +8,13 @@ private struct RouletteModel: Identifiable {
     let colorHex: String
 }
 
-private let defaultItems = ["Beso", "Abrazo", "Masaje", "Cumplido", "Baile", "Sorpresa", "Confesion", "Selfie"]
-
 public struct RouletteView: View {
     @ObservedObject private var theme = ThemeManager.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var customRoulettes: [RouletteModel] = []
     @State private var selectedRoulette: RouletteModel?
-    @State private var useClassic = true
-    @State private var currentItems: [String] = defaultItems
+    @State private var currentItems: [String] = []
     @State private var rotation: Double = 0
     @State private var isSpinning = false
     @State private var selectedResult: String?
@@ -29,6 +26,7 @@ public struct RouletteView: View {
     @State private var editColor = "#FF69B4"
     @State private var editingRouletteId: String?
     @State private var listener: ListenerRegistration?
+    @State private var editMode = false
 
     private let colors: [Color] = [.pink, .purple, .orange, .blue, .green, .red, .teal, .yellow]
 
@@ -38,16 +36,20 @@ public struct RouletteView: View {
         NavigationStack {
             ZStack {
                 theme.backgroundGradient.ignoresSafeArea()
-                VStack(spacing: 12) {
-                    modePicker
-                    wheelSection
-                    if let result = selectedResult {
-                        resultCard(result)
+                if editMode {
+                    rouletteList
+                } else {
+                    VStack(spacing: 12) {
+                        rouletteSelector
+                        wheelSection
+                        if let result = selectedResult {
+                            resultCard(result)
+                        }
+                        Spacer()
+                        spinButton
                     }
-                    Spacer()
-                    spinButton
+                    .padding()
                 }
-                .padding()
             }
             .navigationTitle("Ruleta")
             .navigationBarTitleDisplayMode(.inline)
@@ -58,6 +60,10 @@ public struct RouletteView: View {
                         Image(systemName: "plus.circle.fill").font(.system(size: 22)).foregroundColor(theme.primary)
                     }
                 }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(editMode ? "Listo" : "Editar") { editMode.toggle() }
+                        .foregroundColor(theme.primary)
+                }
             }
             .sheet(isPresented: $showAddSheet) { addRouletteSheet }
             .onAppear { setupListener() }
@@ -65,30 +71,34 @@ public struct RouletteView: View {
         }
     }
 
-    private var modePicker: some View {
-        Picker("Modo", selection: $useClassic) {
-            Text("Clasico").tag(true)
-            Text("Personalizado").tag(false)
-        }
-        .pickerStyle(.segmented)
-        .onChange(of: useClassic) { _ in
-            if useClassic {
-                currentItems = defaultItems
-                selectedRoulette = nil
-            } else if let first = customRoulettes.first {
-                selectRoulette(first)
-            } else {
-                currentItems = []
+    private var rouletteList: some View {
+        List {
+            ForEach(customRoulettes) { r in
+                Button {
+                    editName = r.name
+                    editItems = r.items
+                    editColor = r.colorHex
+                    editingRouletteId = r.id
+                    showAddSheet = true
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(r.name).appFont(size: 14, weight: .semibold).foregroundColor(theme.textPrimary)
+                            Text("\(r.items.count) opciones").appFont(size: 11).foregroundColor(theme.textSecondary)
+                        }
+                        Spacer()
+                        Image(systemName: "pencil.circle.fill").foregroundColor(theme.primary)
+                    }
+                }
             }
-            selectedResult = nil
-            rotation = 0
-            showResult = false
+            .onDelete(perform: deleteRoulette)
         }
+        .scrollContentBackground(.hidden)
     }
 
-    private var wheelSection: some View {
-        VStack(spacing: 0) {
-            if !useClassic && !customRoulettes.isEmpty {
+    private var rouletteSelector: some View {
+        Group {
+            if !customRoulettes.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(customRoulettes) { r in
@@ -106,8 +116,18 @@ public struct RouletteView: View {
                         }
                     }
                 }
-                .padding(.bottom, 8)
+                .padding(.bottom, 4)
+            } else {
+                Text("Agrega una ruleta con el boton +")
+                    .appFont(size: 14)
+                    .foregroundColor(theme.textSecondary)
+                    .padding(.bottom, 4)
             }
+        }
+    }
+
+    private var wheelSection: some View {
+        VStack(spacing: 0) {
             ZStack {
                 ForEach(Array(currentItems.enumerated()), id: \.offset) { index, item in
                     let angle = 360.0 / Double(currentItems.count) * Double(index)
@@ -197,33 +217,18 @@ public struct RouletteView: View {
                     }
                     .onDelete { editItems.remove(atOffsets: $0) }
                 }
-                Section("Tus ruletas") {
-                    ForEach(customRoulettes) { r in
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(r.name).appFont(size: 14, weight: .semibold).foregroundColor(theme.textPrimary)
-                                Text("\(r.items.count) opciones").appFont(size: 11).foregroundColor(theme.textSecondary)
-                            }
-                            Spacer()
-                            Button("Editar") {
-                                editName = r.name
-                                editItems = r.items
-                                editingRouletteId = r.id
-                            }
-                            .appFont(size: 12).foregroundColor(theme.primary)
-                        }
-                    }
-                    .onDelete(perform: deleteRoulette)
-                }
             }
-            .navigationTitle("Nueva ruleta")
+            .navigationTitle(editingRouletteId != nil ? "Editar ruleta" : "Nueva ruleta")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Guardar") { saveRoulette() }.disabled(editName.trimmingCharacters(in: .whitespaces).isEmpty || editItems.isEmpty)
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cerrar") { showAddSheet = false }
+                    Button("Cancelar") {
+                        resetEditFields()
+                        showAddSheet = false
+                    }
                 }
             }
         }
@@ -269,8 +274,13 @@ public struct RouletteView: View {
                 guard let name = d["name"] as? String, let items = d["items"] as? [String] else { return nil }
                 return RouletteModel(id: doc.documentID, name: name, items: items, colorHex: d["color"] as? String ?? "#FF69B4")
             }
-            if !useClassic, selectedRoulette == nil, let first = customRoulettes.first {
+            if let sel = selectedRoulette, !customRoulettes.contains(where: { $0.id == sel.id }) {
+                selectedRoulette = nil
+            }
+            if selectedRoulette == nil, let first = customRoulettes.first {
                 selectRoulette(first)
+            } else if customRoulettes.isEmpty {
+                currentItems = []
             }
         }
     }
@@ -283,10 +293,7 @@ public struct RouletteView: View {
         } else {
             GameService.shared.saveRoulette(["name": name, "items": editItems, "color": editColor])
         }
-        editName = ""
-        editItems = []
-        editNewItem = ""
-        editingRouletteId = nil
+        resetEditFields()
         showAddSheet = false
     }
 
@@ -294,5 +301,13 @@ public struct RouletteView: View {
         for idx in offsets {
             GameService.shared.deleteRoulette(customRoulettes[idx].id)
         }
+    }
+
+    private func resetEditFields() {
+        editName = ""
+        editItems = []
+        editNewItem = ""
+        editColor = "#FF69B4"
+        editingRouletteId = nil
     }
 }

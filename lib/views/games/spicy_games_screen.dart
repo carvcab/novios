@@ -430,35 +430,31 @@ class _SpicyGamesScreenState extends State<SpicyGamesScreen> {
   Future<String> _generateWithAI(String type) async {
     final levelName = _levelInfo(_level).label;
     final used = _getUsedChallenges();
-    final styles = [
-      'Sé creativ@ y específic@. Máximo 2 oraciones.',
-      'Hazlo divertido y sorprendente. Una oración poderosa.',
-      'Sé direct@ y sin rodeos. Al grano.',
-      'Ponle un toque romántico y provocativo a la vez.',
-      'Sé original, que no parezca algo genérico.',
-      'Hazlo intenso y memorable.',
-    ];
-    final style = styles[Random().nextInt(styles.length)];
-    
-    String prompt = type == 'verdad'
-        ? 'Genera una pregunta de VERDAD para parejas nivel "$levelName" en español. $style'
-        : 'Genera un RETO para parejas nivel "$levelName" en español. $style';
 
-    if (used.isNotEmpty) {
-      prompt += '\nEvita absolutamente repetir o hacer preguntas/retos parecidos a estos recientes:\n- ${used.take(20).join('\n- ')}';
+    try {
+      final result = await _ai.generateTruthOrDare(type: type, category: levelName);
+      if (result.trim().isNotEmpty) return result.trim();
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('AI no disponible'), behavior: SnackBarBehavior.floating),
+        );
+      }
     }
 
-    final result = await _ai.ask(prompt, '');
-    if (result.trim().isNotEmpty) return result.trim();
-    
     final list = type == 'verdad'
-        ? CoupleContent.truths[_level]!
-        : CoupleContent.dares[_level]!;
+        ? (CoupleContent.truths[_level] ?? [])
+        : (CoupleContent.dares[_level] ?? []);
     final available = list.where((item) => !used.contains(item)).toList();
     if (available.isNotEmpty) {
       return available[Random().nextInt(available.length)];
     }
-    return list[Random().nextInt(list.length)];
+    if (list.isNotEmpty) {
+      return list[Random().nextInt(list.length)];
+    }
+    return type == 'verdad'
+        ? '¿Cuál es tu secreto mejor guardado?'
+        : 'Da un abrazo de 10 segundos a tu pareja';
   }
 
   void _sendChallenge(BuildContext context, ColorScheme cs, String type) {

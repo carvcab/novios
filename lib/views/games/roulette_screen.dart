@@ -14,13 +14,6 @@ class RouletteScreen extends StatefulWidget {
 
 class _RouletteScreenState extends State<RouletteScreen>
     with SingleTickerProviderStateMixin {
-  static const _classicItems = [
-    "Beso", "Abrazo", "Masaje", "Cumplido",
-    "Baile", "Sorpresa", "Confesion", "Selfie"
-  ];
-
-  bool _isClassic = true;
-  List<String> _currentItems = List.from(_classicItems);
   List<Map<String, dynamic>> _customRoulettes = [];
   Map<String, dynamic>? _selectedRoulette;
   StreamSubscription? _sub;
@@ -29,6 +22,8 @@ class _RouletteScreenState extends State<RouletteScreen>
   double _startAngle = 0, _endAngle = 0, _currentAngle = 0;
   bool _spinning = false;
   String? _result;
+
+  bool _editMode = false;
 
   @override
   void initState() {
@@ -45,6 +40,11 @@ class _RouletteScreenState extends State<RouletteScreen>
         }).toList();
       });
     });
+  }
+
+  List<String> get _currentItems {
+    if (_selectedRoulette == null) return [];
+    return List<String>.from(_selectedRoulette!['items'] ?? []);
   }
 
   void _onTick() {
@@ -65,14 +65,16 @@ class _RouletteScreenState extends State<RouletteScreen>
   }
 
   String _winner() {
-    if (_currentItems.isEmpty) return '';
-    final sa = 2 * pi / _currentItems.length;
+    final items = _currentItems;
+    if (items.isEmpty) return '';
+    final sa = 2 * pi / items.length;
     final da = ((3 * pi / 2 - _currentAngle) % (2 * pi) + 2 * pi) % (2 * pi);
-    return _currentItems[(da / sa).floor() % _currentItems.length];
+    return items[(da / sa).floor() % items.length];
   }
 
   void _spin() {
-    if (_spinning || _currentItems.isEmpty) return;
+    final items = _currentItems;
+    if (_spinning || items.isEmpty) return;
     _startAngle = _currentAngle;
     _endAngle = _startAngle + 6 * pi + Random().nextDouble() * 4 * pi;
     _result = null;
@@ -83,7 +85,6 @@ class _RouletteScreenState extends State<RouletteScreen>
   void _saveStats() {
     GameService().saveGameStats('ruleta', {
       'result': _result,
-      'mode': _isClassic ? 'classic' : 'custom',
       'items': _currentItems,
     });
   }
@@ -91,7 +92,6 @@ class _RouletteScreenState extends State<RouletteScreen>
   void _selectRoulette(Map<String, dynamic> r) {
     setState(() {
       _selectedRoulette = r;
-      _currentItems = List<String>.from(r['items'] ?? []);
       _result = null;
       _currentAngle = 0;
     });
@@ -212,8 +212,6 @@ class _RouletteScreenState extends State<RouletteScreen>
               if (_selectedRoulette?['id'] == id) {
                 setState(() {
                   _selectedRoulette = null;
-                  _currentItems = List.from(_classicItems);
-                  _isClassic = true;
                 });
               }
               Navigator.pop(ctx);
@@ -236,204 +234,230 @@ class _RouletteScreenState extends State<RouletteScreen>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final items = _currentItems;
     return Scaffold(
       appBar: AppBar(
-        title:
-            Text('Ruleta', style: GoogleFonts.outfit(color: cs.onSurface)),
+        title: Text('Ruleta', style: GoogleFonts.outfit(color: cs.onSurface)),
         backgroundColor: cs.primary,
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: SegmentedButton<bool>(
-              segments: [
-                ButtonSegment(
-                    value: true,
-                    label: Text('Clasica', style: GoogleFonts.outfit())),
-                ButtonSegment(
-                    value: false,
-                    label: Text('Personalizada', style: GoogleFonts.outfit())),
-              ],
-              selected: {_isClassic},
-              onSelectionChanged: (v) {
-                setState(() {
-                  _isClassic = v.first;
-                  _result = null;
-                  _currentAngle = 0;
-                  if (_isClassic) {
-                    _currentItems = List.from(_classicItems);
-                    _selectedRoulette = null;
-                  }
-                });
-              },
-            ),
-          ),
-          if (!_isClassic && _customRoulettes.isNotEmpty)
-            SizedBox(
-              height: 48,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: _customRoulettes.map((r) => Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(r['name'] ?? '', style: GoogleFonts.outfit()),
-                    selected: _selectedRoulette?['id'] == r['id'],
-                    onSelected: (_) => _selectRoulette(r),
-                  ),
-                )).toList(),
-              ),
-            ),
-          if (!_isClassic && _customRoulettes.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text('Crea tu primera ruleta personalizada!',
-                  style: GoogleFonts.outfit(
-                      color: cs.onSurface.withValues(alpha: 0.6))),
-            ),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: _spinning ? null : _spin,
-            child: SizedBox(
-              width: 280,
-              height: 280,
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 280,
-                    height: 280,
-                    decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black26, blurRadius: 12)
-                        ]),
-                    child: Transform.rotate(
-                      angle: _currentAngle,
-                      child: CustomPaint(
-                        painter: _WheelPainter(
-                            _currentItems, cs.primary, cs.secondary),
-                        size: const Size(280, 280),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black26, blurRadius: 6)
-                        ]),
-                    child:
-                        Icon(Icons.favorite, color: cs.primary, size: 28),
-                  ),
-                  Positioned(
-                    top: -12,
-                    left: 128,
-                    child: Icon(Icons.arrow_drop_down,
-                        color: Colors.red, size: 40),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (_result != null)
-            Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              color: cs.secondary.withValues(alpha: 0.2),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                child: Text(_result!,
-                    style: GoogleFonts.outfit(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: cs.primary)),
-              ),
-            ),
-          const SizedBox(height: 12),
-          if (!_spinning)
-            ElevatedButton(
-              onPressed: _currentItems.isEmpty ? null : _spin,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: cs.primary,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 48, vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-              ),
-              child: Text('Girar',
-                  style: GoogleFonts.outfit(
-                      color: cs.onSurface,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold)),
-            ),
-          if (_spinning) const CircularProgressIndicator(),
-          const SizedBox(height: 8),
-          Text('Toca la rueda para girar',
-              style: GoogleFonts.outfit(
-                  color: cs.onSurface.withValues(alpha: 0.5))),
-          const SizedBox(height: 16),
-          if (!_isClassic && _selectedRoulette != null)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () =>
-                        _showCreateDialog(edit: _selectedRoulette)),
-                IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () =>
-                        _deleteRoulette(_selectedRoulette!['id'])),
-              ],
-            ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _currentItems.length,
-              itemBuilder: (_, i) => Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: _result == _currentItems[i]
-                        ? cs.primary
-                        : Colors.transparent,
-                    child: Text('${i + 1}',
-                        style: GoogleFonts.outfit(
-                            color: _result == _currentItems[i]
-                                ? cs.onSurface
-                                : cs.onSurface.withValues(alpha: 0.6))),
-                  ),
-                  title: Text(_currentItems[i],
-                      style: GoogleFonts.outfit(
-                          fontWeight: _result == _currentItems[i]
-                              ? FontWeight.bold
-                              : FontWeight.normal)),
-                  trailing: _result == _currentItems[i]
-                      ? Icon(Icons.star, color: cs.primary)
-                      : null,
-                ),
-              ),
-            ),
+        actions: [
+          IconButton(
+            icon: Icon(_editMode ? Icons.play_arrow_rounded : Icons.edit_note_rounded, color: cs.onSurface),
+            onPressed: () => setState(() => _editMode = !_editMode),
           ),
         ],
       ),
-      floatingActionButton: _isClassic
-          ? null
-          : FloatingActionButton(
-              onPressed: () => _showCreateDialog(),
-              backgroundColor: cs.primary,
-              child: Icon(Icons.add, color: cs.onSurface),
+      body: _editMode ? _buildEditMode(cs) : _buildGameMode(cs, items),
+    );
+  }
+
+  Widget _buildGameMode(ColorScheme cs, List<String> items) {
+    return Column(
+      children: [
+        if (_customRoulettes.isNotEmpty)
+          SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: _customRoulettes.map((r) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(r['name'] ?? '', style: GoogleFonts.outfit()),
+                  selected: _selectedRoulette?['id'] == r['id'],
+                  onSelected: (_) => _selectRoulette(r),
+                ),
+              )).toList(),
             ),
+          ),
+        if (_customRoulettes.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('Crea tu primera ruleta!',
+                style: GoogleFonts.outfit(
+                    color: cs.onSurface.withValues(alpha: 0.6))),
+          ),
+        const SizedBox(height: 16),
+        GestureDetector(
+          onTap: _spinning ? null : _spin,
+          child: SizedBox(
+            width: 280,
+            height: 280,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 280,
+                  height: 280,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black26, blurRadius: 12)
+                      ]),
+                  child: Transform.rotate(
+                    angle: _currentAngle,
+                    child: CustomPaint(
+                      painter: _WheelPainter(
+                          items, cs.primary, cs.secondary),
+                      size: const Size(280, 280),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black26, blurRadius: 6)
+                      ]),
+                  child:
+                      Icon(Icons.favorite, color: cs.primary, size: 28),
+                ),
+                Positioned(
+                  top: -12,
+                  left: 128,
+                  child: Icon(Icons.arrow_drop_down,
+                      color: Colors.red, size: 40),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (_result != null)
+          Card(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)),
+            color: cs.secondary.withValues(alpha: 0.2),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              child: Text(_result!,
+                  style: GoogleFonts.outfit(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: cs.primary)),
+            ),
+          ),
+        const SizedBox(height: 12),
+        if (!_spinning)
+          ElevatedButton(
+            onPressed: items.isEmpty ? null : _spin,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primary,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 48, vertical: 14),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+            ),
+            child: Text('Girar',
+                style: GoogleFonts.outfit(
+                    color: cs.onSurface,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold)),
+          ),
+        if (_spinning) const CircularProgressIndicator(),
+        const SizedBox(height: 8),
+        Text('Toca la rueda para girar',
+            style: GoogleFonts.outfit(
+                color: cs.onSurface.withValues(alpha: 0.5))),
+        const SizedBox(height: 16),
+        if (_selectedRoulette != null)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () =>
+                      _showCreateDialog(edit: _selectedRoulette)),
+              IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () =>
+                      _deleteRoulette(_selectedRoulette!['id'])),
+            ],
+          ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: items.length,
+            itemBuilder: (_, i) => Card(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: _result == items[i]
+                      ? cs.primary
+                      : Colors.transparent,
+                  child: Text('${i + 1}',
+                      style: GoogleFonts.outfit(
+                          color: _result == items[i]
+                              ? cs.onSurface
+                              : cs.onSurface.withValues(alpha: 0.6))),
+                ),
+                title: Text(items[i],
+                    style: GoogleFonts.outfit(
+                        fontWeight: _result == items[i]
+                            ? FontWeight.bold
+                            : FontWeight.normal)),
+                trailing: _result == items[i]
+                    ? Icon(Icons.star, color: cs.primary)
+                    : null,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEditMode(ColorScheme cs) {
+    if (_customRoulettes.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.casino_rounded, size: 72, color: cs.onSurface.withValues(alpha: 0.2)),
+            const SizedBox(height: 16),
+            Text('No hay ruletas', style: GoogleFonts.outfit(fontSize: 18, color: cs.onSurface.withValues(alpha: 0.5))),
+            const SizedBox(height: 8),
+            Text('Crea la primera con +', style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.4))),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+      itemCount: _customRoulettes.length,
+      itemBuilder: (_, i) {
+        final r = _customRoulettes[i];
+        final isOwner = r['authorId'] == LocalStorage().getUserId();
+        final itemCount = (r['items'] as List?)?.length ?? 0;
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            leading: Icon(Icons.casino_rounded, color: cs.primary),
+            title: Text(r['name'] ?? '', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+            subtitle: Text('$itemCount items', style: GoogleFonts.outfit(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.5))),
+            trailing: isOwner ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.edit, size: 18, color: cs.primary),
+                  onPressed: () => _showCreateDialog(edit: r),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete, size: 18, color: Colors.red),
+                  onPressed: () => _deleteRoulette(r['id']),
+                ),
+              ],
+            ) : null,
+          ),
+        );
+      },
     );
   }
 }

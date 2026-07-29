@@ -29,94 +29,6 @@ class _TruthDareCustomScreenState extends State<TruthDareCustomScreen>
     'Personalizado',
   ];
 
-  static const _defaults = {
-    'Verdad': [
-      'Cual fue tu primera impresion de mi?',
-      'Que es lo que mas te gusta de nuestra relacion?',
-      'Cual fue tu momento favorito conmigo?',
-      'Que miedo tienes que no me hayas contado?',
-      'Cual es tu recuerdo mas bonito de nosotros?',
-      'Que es lo que mas te atrae de mi?',
-      'Cual fue tu primera cita ideal?',
-      'Que sueno tienes para nuestro futuro?',
-      'Que cancion te recuerda a mi?',
-      'Que es lo que mas extrañas cuando no estas conmigo?',
-    ],
-    'Reto': [
-      'Abrazame durante un minuto sin soltarme',
-      'Dame un beso en la mejilla y di algo bonito',
-      'Baila conmigo una cancion lenta',
-      'Hazme reir con una cara graciosa',
-      'Susurrame algo dulce al oido',
-      'Masajeame los hombros por 30 segundos',
-      'Miranos a los ojos sin reirte por 10 segundos',
-      'Toma mi mano y no la sueltes por 2 minutos',
-      'Escribe un poema improvisado de 2 lineas',
-      'Haz una imitacion graciosa de mi',
-    ],
-    'Foto': [
-      'Tomate una selfie haciendo una cara graciosa',
-      'Foto de algo que te recuerde a mi',
-      'Selfie con el lugar donde estamos ahora',
-      'Foto de tu parte favorita de tu cuerpo',
-      'Captura tu expresion cuando leas esto',
-      'Foto de algo rojo (mi color favorito)',
-      'Selfie sonriendo como cuando estas conmigo',
-      'Foto de tus pies con los mios',
-      'Captura tu mejor angulo',
-      'Foto de algo que hayas hecho hoy',
-    ],
-    'Video': [
-      'Graba un video de 10s diciendo 3 cosas que te gustan de mi',
-      'Video bailando tu cancion favorita 15s',
-      'Video soplando un beso con sonido',
-      'Video haciendo una declaracion de amor improvisada 20s',
-      'Video cantando el coro de nuestra cancion',
-      'Video mostrando tu dia hoy 15s',
-      'Video de ti riendo a carcajadas',
-      'Video saludando como si fuera un noticiero',
-      'Video haciendo un cumplido 10s',
-      'Video de ti cerrando los ojos y describiendo tu recuerdo favorito',
-    ],
-    'Picante': [
-      'Besame de una forma que nunca hayamos hecho',
-      'Susurrame algo prohibido al oido',
-      'Elige una cancion sexy y baila para mi 20s',
-      'Cuentame tu fantasia mas reciente',
-      'Dejame vendarte los ojos y sorprenderte por 1 minuto',
-      'Simula que me conoces por primera vez y coquetea conmigo',
-      'Elige una prenda para que se quite la otra persona',
-      'Hazme una caricia que sepas que me vuelve loco/a',
-      'Muerdeme el labio suavemente',
-      'Di algo al oido que me haga sonrojar',
-    ],
-    'Romanico': [
-      'Que es lo que mas te gusta de mi?',
-      'Describe tu dia perfecto conmigo',
-      'Escribe una carta de amor de 3 lineas',
-      'Donde te ves conmigo en 5 anos?',
-      'Que promesa me quieres hacer?',
-      'Cual es tu forma favorita de demostrar amor?',
-      'Que pelicula describe nuestra relacion?',
-      'Cual es tu plan romantico ideal?',
-      'Que es lo que mas valoras de nosotros?',
-      'Como sabes que soy el/la correcto/a?',
-    ],
-    'Divertido': [
-      'Haz la mejor imitacion de mi que puedas',
-      'Cuenta el chiste mas malo que sepas',
-      'Pon una voz graciosa y dime algo',
-      'Baila como si nadie te viera 15s',
-      'Habla con acento extranjero por 1 minuto',
-      'Haz el sonido de tu animal favorito',
-      'Representa una pelicula y adivino',
-      'Di un trabalenguas 3 veces rapido',
-      'Inventa una cancion sobre nosotros ahora mismo',
-      'Haz una pose de modelo profesional',
-    ],
-    'Personalizado': <String>[],
-  };
-
   static const _gradients = {
     'Verdad': [Color(0xFF6366F1), Color(0xFF818CF8)],
     'Reto': [Color(0xFFF97316), Color(0xFFFB923C)],
@@ -155,78 +67,187 @@ class _TruthDareCustomScreenState extends State<TruthDareCustomScreen>
   }
 
   Future<void> _addItem(String currentCat) async {
-    final textCtrl = TextEditingController();
-    String selectedCat = currentCat;
-    final result = await showDialog<Map<String, String>>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('Nueva entrada', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                value: selectedCat,
-                decoration: InputDecoration(
-                  labelText: 'Categoria',
-                  labelStyle: GoogleFonts.outfit(),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                items: _categories.map((c) => DropdownMenuItem(
-                  value: c,
-                  child: Text(c, style: GoogleFonts.outfit()),
-                )).toList(),
-                onChanged: (v) {
-                  if (v != null) setDlgState(() => selectedCat = v);
-                },
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: textCtrl,
-                autofocus: true,
-                maxLines: 3,
-                style: GoogleFonts.outfit(),
-                decoration: InputDecoration(
-                  hintText: 'Escribe tu entrada...',
-                  hintStyle: GoogleFonts.outfit(),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancelar', style: GoogleFonts.outfit()),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, {
-                'text': textCtrl.text.trim(),
-                'category': selectedCat,
-              }),
-              style: FilledButton.styleFrom(
-                backgroundColor: _gradients[selectedCat]![0],
-              ),
-              child: Text('Guardar', style: GoogleFonts.outfit(color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (result != null && result['text']!.isNotEmpty) {
-      await _gs.saveTD({
+    final result = await _showItemDialog(currentCat, null);
+    if (result != null) {
+      final data = {
         'text': result['text'],
         'category': result['category'],
         'authorId': _userId,
-      });
-      await _gs.saveGameStats('verdad_reto', {
-        'action': 'add',
-        'category': result['category'],
-      });
+      };
+      if (result['collection'] != null && result['collection']!.isNotEmpty) {
+        data['collection'] = result['collection'];
+      }
+      await _gs.saveTD(data);
       if (result['category'] != currentCat) {
         setState(() {});
       }
+    }
+  }
+
+  Future<void> _editItem(String docId, String currentText, String currentCat) async {
+    final result = await _showItemDialog(currentCat, currentText);
+    if (result != null) {
+      final data = {
+        'text': result['text'],
+        'category': result['category'],
+      };
+      if (result['collection'] != null && result['collection']!.isNotEmpty) {
+        data['collection'] = result['collection'];
+      }
+      await _gs.saveTD(data, id: docId);
+      if (result['category'] != currentCat) {
+        setState(() {});
+      }
+    }
+  }
+
+  Future<Map<String, String>?> _showItemDialog(String initialCat, String? existingText) async {
+    final textCtrl = TextEditingController(text: existingText);
+    String selectedCat = initialCat;
+    String selectedCollection = '';
+    try {
+      final collSnap = await _gs.streamCollections().first;
+      final names = collSnap.docs.map((d) => (d.data() as Map<String, dynamic>)['name'] as String? ?? '').where((n) => n.isNotEmpty).toList();
+      selectedCollection = '';
+      if (!mounted) return null;
+      return showDialog<Map<String, String>>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setDlgState) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text(existingText != null ? 'Editar entrada' : 'Nueva entrada', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: selectedCat,
+                  decoration: InputDecoration(
+                    labelText: 'Categoria',
+                    labelStyle: GoogleFonts.outfit(),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  items: _categories.map((c) => DropdownMenuItem(
+                    value: c,
+                    child: Text(c, style: GoogleFonts.outfit()),
+                  )).toList(),
+                  onChanged: (v) {
+                    if (v != null) setDlgState(() => selectedCat = v);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: textCtrl,
+                  autofocus: true,
+                  maxLines: 3,
+                  style: GoogleFonts.outfit(),
+                  decoration: InputDecoration(
+                    hintText: 'Escribe tu entrada...',
+                    hintStyle: GoogleFonts.outfit(),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                if (names.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedCollection.isEmpty ? null : selectedCollection,
+                    decoration: InputDecoration(
+                      labelText: 'Coleccion (opcional)',
+                      labelStyle: GoogleFonts.outfit(),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    items: [
+                      DropdownMenuItem(value: '', child: Text('Sin coleccion', style: GoogleFonts.outfit())),
+                      ...names.map((c) => DropdownMenuItem(
+                        value: c,
+                        child: Text(c, style: GoogleFonts.outfit()),
+                      )),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) setDlgState(() => selectedCollection = v);
+                    },
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancelar', style: GoogleFonts.outfit()),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, {
+                  'text': textCtrl.text.trim(),
+                  'category': selectedCat,
+                  'collection': selectedCollection,
+                }),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _gradients[selectedCat]![0],
+                ),
+                child: Text('Guardar', style: GoogleFonts.outfit(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (_) {
+      return showDialog<Map<String, String>>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setDlgState) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text(existingText != null ? 'Editar entrada' : 'Nueva entrada', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: selectedCat,
+                  decoration: InputDecoration(
+                    labelText: 'Categoria',
+                    labelStyle: GoogleFonts.outfit(),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  items: _categories.map((c) => DropdownMenuItem(
+                    value: c,
+                    child: Text(c, style: GoogleFonts.outfit()),
+                  )).toList(),
+                  onChanged: (v) {
+                    if (v != null) setDlgState(() => selectedCat = v);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: textCtrl,
+                  autofocus: true,
+                  maxLines: 3,
+                  style: GoogleFonts.outfit(),
+                  decoration: InputDecoration(
+                    hintText: 'Escribe tu entrada...',
+                    hintStyle: GoogleFonts.outfit(),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancelar', style: GoogleFonts.outfit()),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, {
+                  'text': textCtrl.text.trim(),
+                  'category': selectedCat,
+                  'collection': '',
+                }),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _gradients[selectedCat]![0],
+                ),
+                child: Text('Guardar', style: GoogleFonts.outfit(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      );
     }
   }
 
@@ -274,7 +295,7 @@ class _TruthDareCustomScreenState extends State<TruthDareCustomScreen>
           labelStyle: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w600),
           unselectedLabelStyle: GoogleFonts.outfit(fontSize: 10),
           tabs: _categories.map((cat) {
-            final total = _defaults[cat]!.length + (_counts[cat] ?? 0);
+            final total = _counts[cat] ?? 0;
             return Tab(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -321,12 +342,12 @@ class _TruthDareCustomScreenState extends State<TruthDareCustomScreen>
           children: _categories.map((cat) => _CategoryTabBody(
             key: ValueKey(cat),
             category: cat,
-            defaults: _defaults[cat]!,
             gradient: _gradients[cat]!,
             icon: _icons[cat]!,
             userId: _userId,
             gs: _gs,
             onAdd: () => _addItem(cat),
+            onEdit: (id, text) => _editItem(id, text, cat),
             onDelete: (id, text) => _deleteItem(id, text),
             onCountChanged: (c) {
               if (_counts[cat] != c) setState(() => _counts[cat] = c);
@@ -345,24 +366,24 @@ class _TruthDareCustomScreenState extends State<TruthDareCustomScreen>
 
 class _CategoryTabBody extends StatefulWidget {
   final String category;
-  final List<String> defaults;
   final List<Color> gradient;
   final IconData icon;
   final String userId;
   final GameService gs;
   final VoidCallback onAdd;
+  final Future<void> Function(String id, String text) onEdit;
   final Future<void> Function(String id, String text) onDelete;
   final ValueChanged<int> onCountChanged;
 
   const _CategoryTabBody({
     super.key,
     required this.category,
-    required this.defaults,
     required this.gradient,
     required this.icon,
     required this.userId,
     required this.gs,
     required this.onAdd,
+    required this.onEdit,
     required this.onDelete,
     required this.onCountChanged,
   });
@@ -375,17 +396,7 @@ class _CategoryTabBodyState extends State<_CategoryTabBody> {
   final _rand = Random();
   int _currentIndex = 0;
   bool _revealed = false;
-
-  List<Map<String, dynamic>> _buildItemList(List<Map<String, dynamic>> firestore) {
-    final items = <Map<String, dynamic>>[];
-    for (final text in widget.defaults) {
-      items.add({'text': text, 'isDefault': true, 'docId': null, 'authorId': null});
-    }
-    for (final item in firestore) {
-      items.add({...item, 'isDefault': false});
-    }
-    return items;
-  }
+  List<Map<String, dynamic>> _items = [];
 
   void _pickRandom(int total) {
     if (total <= 1) return;
@@ -421,29 +432,27 @@ class _CategoryTabBodyState extends State<_CategoryTabBody> {
         }
 
         final docs = snapshot.data?.docs ?? [];
-        final firestoreItems = docs.map((doc) {
+        _items = docs.map((doc) {
           final d = doc.data() as Map<String, dynamic>;
           d['docId'] = doc.id;
           return d;
         }).toList();
 
-        widget.onCountChanged(firestoreItems.length);
+        widget.onCountChanged(_items.length);
 
-        final allItems = _buildItemList(firestoreItems);
-        if (allItems.isEmpty) {
+        if (_items.isEmpty) {
           return _buildEmptyState(cs);
         }
 
-        final idx = _currentIndex < allItems.length ? _currentIndex : 0;
-        final current = allItems[idx];
-        final canDelete = current['isDefault'] != true &&
-            current['authorId'] == widget.userId;
+        final idx = _currentIndex < _items.length ? _currentIndex : 0;
+        final current = _items[idx];
+        final isOwner = current['authorId'] == widget.userId;
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             children: [
-              _buildHeader(cs, allItems.length),
+              _buildHeader(cs, _items.length),
               const SizedBox(height: 16),
               Expanded(
                 child: GestureDetector(
@@ -451,7 +460,7 @@ class _CategoryTabBodyState extends State<_CategoryTabBody> {
                   onVerticalDragEnd: (details) {
                     if (details.primaryVelocity == null) return;
                     if (details.primaryVelocity!.abs() > 200) {
-                      _pickRandom(allItems.length);
+                      _pickRandom(_items.length);
                     }
                   },
                   child: AnimatedSwitcher(
@@ -459,13 +468,13 @@ class _CategoryTabBodyState extends State<_CategoryTabBody> {
                     transitionBuilder: (child, anim) =>
                         FadeTransition(opacity: anim, child: child),
                     child: _revealed
-                        ? _buildRevealedCard(cs, current, canDelete)
+                        ? _buildRevealedCard(cs, current, isOwner)
                         : _buildHiddenCard(cs),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              _buildControls(cs, allItems.length),
+              _buildControls(cs, _items.length),
             ],
           ),
         );
@@ -554,8 +563,12 @@ class _CategoryTabBodyState extends State<_CategoryTabBody> {
     );
   }
 
-  Widget _buildRevealedCard(ColorScheme cs, Map<String, dynamic> current, bool canDelete) {
+  Widget _buildRevealedCard(ColorScheme cs, Map<String, dynamic> current, bool isOwner) {
     final text = current['text'] as String? ?? '';
+    final docId = current['docId'] as String? ?? '';
+    final favoritedBy = List<String>.from(current['favoritedBy'] ?? []);
+    final isFav = favoritedBy.contains(widget.userId);
+
     return Container(
       key: ValueKey('revealed_$text'),
       width: double.infinity,
@@ -624,15 +637,36 @@ class _CategoryTabBodyState extends State<_CategoryTabBody> {
                     style: GoogleFonts.outfit(
                         fontSize: 11,
                         color: cs.onSurface.withValues(alpha: 0.3))),
-                if (canDelete) ...[
+                if (isOwner) ...[
                   const Spacer(),
-                  IconButton(
-                    icon: Icon(Icons.delete_outline, size: 20,
-                        color: Colors.red.withValues(alpha: 0.6)),
-                    onPressed: () => widget.onDelete(
-                        current['docId'] as String, text),
-                    tooltip: 'Eliminar',
-                  ),
+                  if (docId.isNotEmpty)
+                    IconButton(
+                      icon: Icon(isFav ? Icons.favorite : Icons.favorite_border,
+                          size: 20, color: isFav ? Colors.red : cs.onSurface.withValues(alpha: 0.4)),
+                      onPressed: () => widget.gs.toggleFavorite('verdad_reto', docId),
+                      tooltip: 'Favorito',
+                    ),
+                  if (docId.isNotEmpty)
+                    IconButton(
+                      icon: Icon(Icons.content_copy, size: 20,
+                          color: cs.onSurface.withValues(alpha: 0.4)),
+                      onPressed: () => widget.gs.duplicateItem('verdad_reto', docId),
+                      tooltip: 'Duplicar',
+                    ),
+                  if (docId.isNotEmpty)
+                    IconButton(
+                      icon: Icon(Icons.edit, size: 20,
+                          color: cs.onSurface.withValues(alpha: 0.4)),
+                      onPressed: () => widget.onEdit(docId, text),
+                      tooltip: 'Editar',
+                    ),
+                  if (docId.isNotEmpty)
+                    IconButton(
+                      icon: Icon(Icons.delete_outline, size: 20,
+                          color: Colors.red.withValues(alpha: 0.6)),
+                      onPressed: () => widget.onDelete(docId, text),
+                      tooltip: 'Eliminar',
+                    ),
                 ],
               ],
             ),
@@ -679,12 +713,19 @@ class _CategoryTabBodyState extends State<_CategoryTabBody> {
                 size: 72, color: widget.gradient[0].withValues(alpha: 0.25)),
             const SizedBox(height: 16),
             Text(
-              widget.category == 'Personalizado'
-                  ? 'Crea tu primera entrada personalizada'
-                  : 'No hay entradas disponibles',
+              'No hay entradas disponibles',
               style: GoogleFonts.outfit(
                 fontSize: 16,
                 color: cs.onSurface.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Crea la primera con el boton +',
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                color: cs.onSurface.withValues(alpha: 0.4),
               ),
               textAlign: TextAlign.center,
             ),

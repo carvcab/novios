@@ -185,11 +185,15 @@ class _CustomQuizScreenState extends State<CustomQuizScreen> {
         child: StreamBuilder<QuerySnapshot>(
           stream: GameService().streamQuizzes(),
           builder: (context, snap) {
-            if (snap.hasError) return Center(child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text('Error: ${snap.error}', style: GoogleFonts.outfit(), textAlign: TextAlign.center),
-            ));
-            if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+            if (snap.hasError) {
+              return Center(child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text('Error: ${snap.error}', style: GoogleFonts.outfit(), textAlign: TextAlign.center),
+              ));
+            }
+            if (!snap.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
             final docs = snap.data!.docs;
             if (docs.isEmpty) {
               return Center(
@@ -379,7 +383,6 @@ class _CustomQuizScreenState extends State<CustomQuizScreen> {
                     ),
                     const SizedBox(height: 24),
                     ...List.generate(options.length, (i) {
-                      final isCorrect = i == correctIndex;
                       final isSelected = _answered && i == correctIndex;
                       final isWrong = _answered && i != correctIndex;
                       Color bg = cs.surface;
@@ -441,9 +444,7 @@ class _CustomQuizScreenState extends State<CustomQuizScreen> {
           if (isOwner)
             IconButton(
               icon: const Icon(Icons.edit),
-              onPressed: () => _edit(_detailQuizId!, data).then((_) {
-                if (mounted) setState(() { _detailQuizId = null; _detailQuizData = null; });
-              }),
+              onPressed: () => _edit(_detailQuizId!, data),
             ),
           if (isOwner)
             IconButton(
@@ -537,7 +538,9 @@ class _CustomQuizScreenState extends State<CustomQuizScreen> {
               StreamBuilder<QuerySnapshot>(
                 stream: GameService().streamGameStats('quizzes'),
                 builder: (context, snap) {
-                  if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snap.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
                   final stats = snap.data!.docs.where((d) {
                     final s = d.data() as Map<String, dynamic>;
                     return s['quizId'] == _detailQuizId;

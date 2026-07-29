@@ -3,63 +3,13 @@ import FirebaseFirestore
 
 private struct NeverModel: Identifiable {
     let id: String
-    let text: String
-    let category: String
+    var text: String
+    var category: String
+    var collection: String
 }
 
 private let categories = ["Romantico", "Divertido", "Parejas", "Viajes", "Universidad", "Infancia", "Picante"]
-
-private let defaultStatements: [String: [String]] = [
-    "Romantico": [
-        "Nunca he fingido un orgasmo",
-        "Nunca he espiado tu telefono",
-        "Nunca he mentido sobre mis sentimientos",
-        "Nunca he pensado en terminar",
-        "Nunca he dicho 'te amo' sin sentirlo",
-    ],
-    "Divertido": [
-        "Nunca me he quedado dormido en una cita",
-        "Nunca he cancelado planes solo por flojera",
-        "Nunca he fingido gustar de algo que odio",
-        "Nunca he hecho cena y dicho que la cocine yo",
-        "Nunca me he hecho el enojado sin razon",
-    ],
-    "Parejas": [
-        "Nunca he comparado nuestra relacion con otra",
-        "Nunca he contado un secreto que me confiaste",
-        "Nunca he puesto a alguien mas antes que a ti",
-        "Nunca he evitado una discusion importante",
-        "Nunca he usado el silencio como castigo",
-    ],
-    "Viajes": [
-        "Nunca he hecho un viaje sin avisarte",
-        "Nunca he planeado un viaje a escondidas",
-        "Nunca he perdido algo tuyo en un viaje",
-        "Nunca he querido irme de viaje solo",
-        "Nunca he tenido una cita en el extranjero",
-    ],
-    "Universidad": [
-        "Nunca he faltado a clase por estar contigo",
-        "Nunca he hecho una tarea mientras hablaba contigo",
-        "Nunca te he esperado en la entrada",
-        "Nunca he estudiado contigo en la biblioteca",
-        "Nunca he copiado en un examen",
-    ],
-    "Infancia": [
-        "Nunca he tenido un sueno erotico contigo",
-        "Nunca he escondido mis emociones verdaderas",
-        "Nunca he hecho algo solo para impresionarte",
-        "Nunca he fingido estar bien cuando no lo estoy",
-        "Nunca he guardado mensajes viejos de otros",
-    ],
-    "Picante": [
-        "Nunca he usado algo tuyo sin permiso",
-        "Nunca he fingido estar dormido para evitar hablar",
-        "Nunca he hecho un regalo que me gustaba mas a mi",
-        "Nunca he visto tu historial de busquedas",
-        "Nunca he revisado tus notificaciones",
-    ],
-]
+private let collections = ["Pareja", "Amigos", "Fiesta", "Personal"]
 
 public struct NeverHaveIEverView: View {
     @ObservedObject private var theme = ThemeManager.shared
@@ -76,7 +26,10 @@ public struct NeverHaveIEverView: View {
     @State private var showAddSheet = false
     @State private var newText = ""
     @State private var newCategory = "Romantico"
+    @State private var newCollection = "Pareja"
     @State private var listener: ListenerRegistration?
+    @State private var editMode = false
+    @State private var editingStatement: NeverModel?
 
     public init() {}
 
@@ -84,26 +37,46 @@ public struct NeverHaveIEverView: View {
         NavigationStack {
             ZStack {
                 theme.backgroundGradient.ignoresSafeArea()
-                VStack(spacing: 16) {
-                    if gameOver {
-                        resultView
-                    } else {
-                        scoreBoard
-                        categoryPicker
-                        progressBar
-                        statementCard
-                        actionButtons
+                if editMode {
+                    editListView
+                } else {
+                    VStack(spacing: 16) {
+                        if gameOver {
+                            resultView
+                        } else {
+                            scoreBoard
+                            categoryPicker
+                            progressBar
+                            statementCard
+                            actionButtons
+                        }
                     }
+                    .padding()
                 }
-                .padding()
             }
             .navigationTitle("Nunca He Hecho")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Cerrar") { dismiss() } }
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button { showAddSheet = true } label: {
-                        Image(systemName: "plus.circle.fill").font(.system(size: 22)).foregroundColor(theme.primary)
+                    HStack(spacing: 8) {
+                        Button { editMode.toggle() } label: {
+                            Image(systemName: editMode ? "play.fill" : "pencil")
+                                .font(.system(size: 18))
+                                .foregroundColor(theme.primary)
+                        }
+                        if !editMode {
+                            Button { showAddSheet = true } label: {
+                                Image(systemName: "plus.circle.fill").font(.system(size: 22)).foregroundColor(theme.primary)
+                            }
+                        }
+                    }
+                }
+                if editMode {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button { showAddSheet = true } label: {
+                            Image(systemName: "plus").foregroundColor(theme.primary)
+                        }
                     }
                 }
             }
@@ -114,6 +87,41 @@ public struct NeverHaveIEverView: View {
             }
             .onDisappear { listener?.remove() }
         }
+    }
+
+    private var editListView: some View {
+        List {
+            ForEach(customStatements) { stmt in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(stmt.text).appFont(size: 14).foregroundColor(theme.textPrimary)
+                    HStack(spacing: 4) {
+                        Text(stmt.category).appFont(size: 11).foregroundColor(theme.textSecondary)
+                        Text("\u{00B7}")
+                        Text(stmt.collection).appFont(size: 11).foregroundColor(theme.textSecondary)
+                    }
+                }
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        GameService.shared.deleteNever(stmt.id)
+                    } label: {
+                        Label("Eliminar", systemImage: "trash")
+                    }
+                }
+                .swipeActions(edge: .leading) {
+                    Button {
+                        editingStatement = stmt
+                        newText = stmt.text
+                        newCategory = stmt.category
+                        newCollection = stmt.collection
+                        showAddSheet = true
+                    } label: {
+                        Label("Editar", systemImage: "pencil")
+                    }
+                    .tint(.orange)
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
     }
 
     private var scoreBoard: some View {
@@ -258,33 +266,27 @@ public struct NeverHaveIEverView: View {
     private var addStatementSheet: some View {
         NavigationStack {
             Form {
-                Section("Nueva afirmacion") {
+                Section(editingStatement != nil ? "Editar afirmacion" : "Nueva afirmacion") {
                     TextField("Texto", text: $newText)
                     Picker("Categoria", selection: $newCategory) {
                         ForEach(categories, id: \.self) { Text($0) }
                     }
-                }
-                Section("Tus afirmaciones") {
-                    if customStatements.isEmpty {
-                        Text("Sin afirmaciones personalizadas").foregroundColor(theme.textSecondary)
+                    Picker("Coleccion", selection: $newCollection) {
+                        ForEach(collections, id: \.self) { Text($0) }
                     }
-                    ForEach(customStatements) { stmt in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(stmt.text).appFont(size: 14).foregroundColor(theme.textPrimary)
-                            Text(stmt.category).appFont(size: 11).foregroundColor(theme.textSecondary)
-                        }
-                    }
-                    .onDelete(perform: deleteStatement)
                 }
             }
-            .navigationTitle("Anadir afirmacion")
+            .navigationTitle(editingStatement != nil ? "Editar afirmacion" : "Anadir afirmacion")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Guardar") { saveStatement() }.disabled(newText.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cerrar") { showAddSheet = false }
+                    Button("Cerrar") {
+                        editingStatement = nil
+                        showAddSheet = false
+                    }
                 }
             }
         }
@@ -312,12 +314,8 @@ public struct NeverHaveIEverView: View {
     }
 
     private func shuffleAndStart() {
-        let defaults = defaultStatements[selectedCategory] ?? []
-        let customs = customStatements.filter { $0.category == selectedCategory }.map(\.text)
-        let combined = (defaults + customs).shuffled()
-        currentStatements = combined.enumerated().map { i, text in
-            NeverModel(id: "\(i)", text: text, category: selectedCategory)
-        }
+        let filtered = customStatements.filter { $0.category == selectedCategory }.shuffled()
+        currentStatements = filtered
         currentIndex = 0
         score1 = 0
         score2 = 0
@@ -337,7 +335,12 @@ public struct NeverHaveIEverView: View {
             customStatements = docs.compactMap { doc in
                 let d = doc.data()
                 guard let text = d["text"] as? String else { return nil }
-                return NeverModel(id: doc.documentID, text: text, category: d["category"] as? String ?? "Romantico")
+                return NeverModel(
+                    id: doc.documentID,
+                    text: text,
+                    category: d["category"] as? String ?? "Romantico",
+                    collection: d["collection"] as? String ?? "Pareja"
+                )
             }
             if !currentStatements.isEmpty {
                 shuffleAndStart()
@@ -348,14 +351,15 @@ public struct NeverHaveIEverView: View {
     private func saveStatement() {
         let text = newText.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
-        GameService.shared.saveNever(["text": text, "category": newCategory])
-        newText = ""
-        showAddSheet = false
-    }
-
-    private func deleteStatement(at offsets: IndexSet) {
-        for idx in offsets {
-            GameService.shared.deleteNever(customStatements[idx].id)
+        if let editing = editingStatement {
+            GameService.shared.saveNever(["text": text, "category": newCategory, "collection": newCollection], id: editing.id)
+        } else {
+            GameService.shared.saveNever(["text": text, "category": newCategory, "collection": newCollection])
         }
+        newText = ""
+        newCategory = "Romantico"
+        newCollection = "Pareja"
+        editingStatement = nil
+        showAddSheet = false
     }
 }

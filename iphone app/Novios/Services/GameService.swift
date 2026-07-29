@@ -169,4 +169,71 @@ public class GameService: ObservableObject {
             .order(by: "timestamp", descending: true)
             .limit(to: 50)
     }
+
+    // MARK: - Favorite / Duplicate
+    public func toggleFavorite(gameType: String, itemId: String) {
+        let ref = typeRef(gameType).document(itemId)
+        ref.getDocument { snapshot, _ in
+            guard let data = snapshot?.data() else { return }
+            var favs = data["favoritedBy"] as? [String] ?? []
+            let uid = self.defaults.string(forKey: "user_id") ?? ""
+            if let idx = favs.firstIndex(of: uid) {
+                favs.remove(at: idx)
+            } else {
+                favs.append(uid)
+            }
+            ref.updateData(["favoritedBy": favs])
+        }
+    }
+
+    public func duplicateItem(gameType: String, itemId: String) {
+        let ref = typeRef(gameType).document(itemId)
+        ref.getDocument { snapshot, _ in
+            guard var data = snapshot?.data() else { return }
+            data.removeValue(forKey: "createdAt")
+            data.removeValue(forKey: "updatedAt")
+            data.removeValue(forKey: "favoritedBy")
+            data["author"] = self.defaults.string(forKey: "user_name") ?? "Yo"
+            data["authorId"] = self.defaults.string(forKey: "user_id") ?? ""
+            data["createdAt"] = FieldValue.serverTimestamp()
+            data["duplicatedFrom"] = itemId
+            self.typeRef(gameType).addDocument(data: data)
+        }
+    }
+
+    // MARK: - Collections
+    public func streamCollections() -> Query {
+        juegosRef.document("colecciones").collection("items")
+    }
+
+    public func saveCollection(_ data: [String: Any], id: String? = nil) {
+        let ref = id.map { juegosRef.document("colecciones").collection("items").document($0) }
+            ?? juegosRef.document("colecciones").collection("items").document()
+        var d = data
+        d["author"] = defaults.string(forKey: "user_name") ?? "Yo"
+        d["createdAt"] = FieldValue.serverTimestamp()
+        ref.setData(d, merge: true)
+    }
+
+    public func deleteCollection(_ id: String) {
+        juegosRef.document("colecciones").collection("items").document(id).delete()
+    }
+
+    // MARK: - Generic
+    public func streamAll(gameType: String) -> Query {
+        typeRef(gameType)
+    }
+
+    public func saveItem(gameType: String, data: [String: Any], id: String? = nil) {
+        let ref = id.map { typeRef(gameType).document($0) } ?? typeRef(gameType).document()
+        var d = data
+        d["author"] = defaults.string(forKey: "user_name") ?? "Yo"
+        d["authorId"] = defaults.string(forKey: "user_id") ?? ""
+        d["createdAt"] = FieldValue.serverTimestamp()
+        ref.setData(d, merge: true)
+    }
+
+    public func deleteItem(gameType: String, id: String) {
+        typeRef(gameType).document(id).delete()
+    }
 }

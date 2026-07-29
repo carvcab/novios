@@ -18,39 +18,6 @@ class _NeverHaveIEverScreenState extends State<NeverHaveIEverScreen> {
     'Viajes', 'Universidad', 'Infancia', 'Picante'
   ];
 
-  static const _defaults = [
-    {'text': 'Yo nunca he mentido en una cita', 'category': 'Romantico'},
-    {'text': 'Yo nunca he enviado un mensaje borracho/a', 'category': 'Divertido'},
-    {'text': 'Yo nunca he cocinado para mi pareja', 'category': 'Parejas'},
-    {'text': 'Yo nunca he viajado solo/a', 'category': 'Viajes'},
-    {'text': 'Yo nunca he copiado en un examen', 'category': 'Universidad'},
-    {'text': 'Yo nunca me he perdido en un centro comercial', 'category': 'Infancia'},
-    {'text': 'Yo nunca he visto una pelicula para adultos', 'category': 'Picante'},
-    {'text': 'Yo nunca he dicho te quiero sin sentirlo', 'category': 'Romantico'},
-    {'text': 'Yo nunca he cantado en la ducha', 'category': 'Divertido'},
-    {'text': 'Yo nunca he hecho una cena romantica', 'category': 'Parejas'},
-    {'text': 'Yo nunca he dormido en un aeropuerto', 'category': 'Viajes'},
-    {'text': 'Yo nunca he llegado tarde a clase', 'category': 'Universidad'},
-    {'text': 'Yo nunca he tenido una mascota', 'category': 'Infancia'},
-    {'text': 'Yo nunca he enviado una foto intima', 'category': 'Picante'},
-    {'text': 'Yo nunca he escrito una carta de amor', 'category': 'Romantico'},
-    {'text': 'Yo nunca he bailado solo/a en casa', 'category': 'Divertido'},
-    {'text': 'Yo nunca he visto el amanecer con mi pareja', 'category': 'Parejas'},
-    {'text': 'Yo nunca he viajado en avion', 'category': 'Viajes'},
-    {'text': 'Yo nunca he hecho una fiesta en el campus', 'category': 'Universidad'},
-    {'text': 'Yo nunca me he escapado de casa', 'category': 'Infancia'},
-    {'text': 'Yo nunca he usado un juguete intimo', 'category': 'Picante'},
-    {'text': 'Yo nunca he tenido una cita a ciegas', 'category': 'Romantico'},
-    {'text': 'Yo nunca he visto una serie completa en un dia', 'category': 'Divertido'},
-    {'text': 'Yo nunca he discutido por celos', 'category': 'Parejas'},
-    {'text': 'Yo nunca he hecho un viaje por carretera', 'category': 'Viajes'},
-    {'text': 'Yo nunca he estudiado toda la noche', 'category': 'Universidad'},
-    {'text': 'Yo nunca me he subido a un arbol', 'category': 'Infancia'},
-    {'text': 'Yo nunca he tenido un sueno erotico', 'category': 'Picante'},
-    {'text': 'Yo nunca he llorado por una pelicula romantica', 'category': 'Romantico'},
-    {'text': 'Yo nunca he hecho una broma pesada', 'category': 'Divertido'},
-  ];
-
   List<Map<String, dynamic>> _allStatements = [];
   String _selectedCategory = 'Todas';
   int _currentIndex = 0;
@@ -65,6 +32,8 @@ class _NeverHaveIEverScreenState extends State<NeverHaveIEverScreen> {
   StreamSubscription? _sub;
   List<Map<String, dynamic>> _customStatements = [];
 
+  bool _editMode = false;
+
   @override
   void initState() {
     super.initState();
@@ -73,25 +42,20 @@ class _NeverHaveIEverScreenState extends State<NeverHaveIEverScreen> {
       setState(() {
         _customStatements = snap.docs.map((d) {
           final data = d.data() as Map<String, dynamic>;
-          return {'id': d.id, 'text': data['text'], 'category': data['category'] ?? 'Personalizado', 'custom': true};
+          return {'id': d.id, 'text': data['text'], 'category': data['category'] ?? 'Personalizado', ...data};
         }).toList();
       });
     });
     _startGame();
   }
 
-  List<Map<String, dynamic>> _filteredStatements() {
-    final combined = [
-      ..._defaults.map((e) => Map<String, dynamic>.from(e)..['custom'] = false),
-      ..._customStatements,
-    ];
-    if (_selectedCategory == 'Todas') return combined;
-    return combined.where((s) => s['category'] == _selectedCategory).toList();
+  List<Map<String, dynamic>> get _filteredStatements {
+    if (_selectedCategory == 'Todas') return _customStatements;
+    return _customStatements.where((s) => s['category'] == _selectedCategory).toList();
   }
 
   void _startGame() {
-    final filtered = _filteredStatements();
-    filtered.shuffle(Random());
+    final filtered = List<Map<String, dynamic>>.from(_filteredStatements)..shuffle(Random());
     setState(() {
       _allStatements = filtered;
       _currentIndex = 0;
@@ -192,15 +156,15 @@ class _NeverHaveIEverScreenState extends State<NeverHaveIEverScreen> {
     );
   }
 
-  void _showAddDialog() {
-    final textCtrl = TextEditingController();
-    String selectedCat = _categories[1];
+  void _showAddDialog({String? editId, String? editText, String? editCategory}) {
+    final textCtrl = TextEditingController(text: editText);
+    String selectedCat = editCategory ?? _categories[1];
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Agregar declaracion', style: GoogleFonts.outfit()),
+          title: Text(editId != null ? 'Editar declaracion' : 'Agregar declaracion', style: GoogleFonts.outfit()),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -224,10 +188,15 @@ class _NeverHaveIEverScreenState extends State<NeverHaveIEverScreen> {
             TextButton(
               onPressed: () async {
                 if (textCtrl.text.trim().isEmpty) return;
-                await GameService().saveNever({
+                final data = {
                   'text': 'Yo nunca ${textCtrl.text.trim()}',
                   'category': selectedCat,
-                });
+                };
+                if (editId != null) {
+                  await GameService().saveNever(data, id: editId);
+                } else {
+                  await GameService().saveNever(data);
+                }
                 Navigator.pop(ctx);
               },
               child: Text('Guardar', style: GoogleFonts.outfit()),
@@ -239,7 +208,21 @@ class _NeverHaveIEverScreenState extends State<NeverHaveIEverScreen> {
   }
 
   void _deleteStatement(String id) {
-    GameService().deleteNever(id);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Eliminar', style: GoogleFonts.outfit()),
+        content: Text('Eliminar esta declaracion?', style: GoogleFonts.outfit()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: GoogleFonts.outfit())),
+          TextButton(
+            onPressed: () { Navigator.pop(ctx); GameService().deleteNever(id); },
+            child: Text('Eliminar', style: GoogleFonts.outfit(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -256,139 +239,195 @@ class _NeverHaveIEverScreenState extends State<NeverHaveIEverScreen> {
         title: Text('Nunca he...', style: GoogleFonts.outfit(color: cs.onSurface)),
         backgroundColor: cs.primary,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Center(
-              child: Text('P1: $_p1Total  P2: $_p2Total',
-                  style: GoogleFonts.outfit(color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 14)),
+          if (!_editMode)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Center(
+                child: Text('P1: $_p1Total  P2: $_p2Total',
+                    style: GoogleFonts.outfit(color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 14)),
+              ),
             ),
+          IconButton(
+            icon: Icon(_editMode ? Icons.play_arrow_rounded : Icons.edit_note_rounded, color: cs.onSurface),
+            onPressed: () => setState(() => _editMode = !_editMode),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: SizedBox(
-              height: 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: _categories.map((cat) => Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(cat, style: GoogleFonts.outfit(fontSize: 12)),
-                    selected: _selectedCategory == cat,
-                    onSelected: (v) {
-                      setState(() => _selectedCategory = cat);
-                      _startGame();
-                    },
-                  ),
-                )).toList(),
-              ),
+      body: _editMode ? _buildEditMode(cs) : _buildGameMode(cs),
+      floatingActionButton: _editMode
+          ? FloatingActionButton(
+              onPressed: () => _showAddDialog(),
+              backgroundColor: cs.primary,
+              child: Icon(Icons.add, color: cs.onSurface),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildGameMode(ColorScheme cs) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: _categories.map((cat) => Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  label: Text(cat, style: GoogleFonts.outfit(fontSize: 12)),
+                  selected: _selectedCategory == cat,
+                  onSelected: (v) {
+                    setState(() => _selectedCategory = cat);
+                    _startGame();
+                  },
+                ),
+              )).toList(),
             ),
           ),
-          if (_allStatements.isEmpty)
-            Expanded(
-              child: Center(
-                child: Text('No hay declaraciones para esta categoria',
-                    style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.6))),
-              ),
-            )
-          else
-            Expanded(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        ),
+        if (_allStatements.isEmpty)
+          Expanded(
+            child: Center(
+              child: Text('No hay declaraciones para esta categoria',
+                  style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.6))),
+            ),
+          )
+        else
+          Expanded(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Turno: Jugador $_playerTurn',
+                          style: GoogleFonts.outfit(fontSize: 14, color: cs.secondary, fontWeight: FontWeight.bold)),
+                      Text('${_currentIndex + 1} de ${_allStatements.length}',
+                          style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.6))),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 4,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
                       children: [
-                        Text('Turno: Jugador $_playerTurn',
-                            style: GoogleFonts.outfit(fontSize: 14, color: cs.secondary, fontWeight: FontWeight.bold)),
-                        Text('${_currentIndex + 1} de ${_allStatements.length}',
-                            style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.6))),
+                        Text(
+                          _allStatements[_currentIndex]['text'] ?? '',
+                          style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w500),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _allStatements[_currentIndex]['category'] ?? '',
+                          style: GoogleFonts.outfit(fontSize: 12, color: cs.secondary),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Card(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 4,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        children: [
-                          Text(
-                            _allStatements[_currentIndex]['text'] ?? '',
-                            style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w500),
-                            textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: ElevatedButton(
+                          onPressed: _gameOver ? null : () => _answer(true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _allStatements[_currentIndex]['category'] ?? '',
-                            style: GoogleFonts.outfit(fontSize: 12, color: cs.secondary),
-                          ),
-                          if (_allStatements[_currentIndex]['custom'] == true)
-                            IconButton(
-                              icon: const Icon(Icons.delete, size: 18, color: Colors.red),
-                              onPressed: () => _deleteStatement(_allStatements[_currentIndex]['id']),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: ElevatedButton(
-                            onPressed: _gameOver ? null : () => _answer(true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              padding: const EdgeInsets.symmetric(vertical: 20),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                            child: Text('He hecho', style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                          ),
+                          child: Text('He hecho', style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                         ),
                       ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: ElevatedButton(
-                            onPressed: _gameOver ? null : () => _answer(false),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade400,
-                              padding: const EdgeInsets.symmetric(vertical: 20),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                            child: Text('Nunca', style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: ElevatedButton(
+                          onPressed: _gameOver ? null : () => _answer(false),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade400,
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
+                          child: Text('Nunca', style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (_gameOver)
-                    ElevatedButton(
-                      onPressed: _showResult,
-                      style: ElevatedButton.styleFrom(backgroundColor: cs.primary),
-                      child: Text('Ver resultado', style: GoogleFonts.outfit(color: cs.onSurface)),
                     ),
-                ],
-              ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (_gameOver)
+                  ElevatedButton(
+                    onPressed: _showResult,
+                    style: ElevatedButton.styleFrom(backgroundColor: cs.primary),
+                    child: Text('Ver resultado', style: GoogleFonts.outfit(color: cs.onSurface)),
+                  ),
+              ],
             ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddDialog,
-        backgroundColor: cs.primary,
-        child: Icon(Icons.add, color: cs.onSurface),
-      ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildEditMode(ColorScheme cs) {
+    if (_customStatements.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.wine_bar_rounded, size: 72, color: cs.onSurface.withValues(alpha: 0.2)),
+            const SizedBox(height: 16),
+            Text('No hay declaraciones', style: GoogleFonts.outfit(fontSize: 18, color: cs.onSurface.withValues(alpha: 0.5))),
+            const SizedBox(height: 8),
+            Text('Agrega la primera con +', style: GoogleFonts.outfit(color: cs.onSurface.withValues(alpha: 0.4))),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+      itemCount: _customStatements.length,
+      itemBuilder: (_, i) {
+        final s = _customStatements[i];
+        final isOwner = s['authorId'] == LocalStorage().getUserId();
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            title: Text(s['text'] ?? '', style: GoogleFonts.outfit(fontSize: 14)),
+            subtitle: Text(s['category'] ?? '', style: GoogleFonts.outfit(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.5))),
+            trailing: isOwner ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.edit, size: 18, color: cs.primary),
+                  onPressed: () => _showAddDialog(
+                    editId: s['id'],
+                    editText: (s['text'] as String).replaceFirst('Yo nunca ', ''),
+                    editCategory: s['category'],
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete, size: 18, color: Colors.red),
+                  onPressed: () => _deleteStatement(s['id']),
+                ),
+              ],
+            ) : null,
+          ),
+        );
+      },
     );
   }
 }

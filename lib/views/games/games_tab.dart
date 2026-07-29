@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/game_service.dart';
-import '../../services/local_storage.dart';
 import '../../widgets/glass_card.dart';
 import 'custom_quiz_screen.dart';
 import 'truth_dare_custom_screen.dart';
@@ -13,6 +12,7 @@ import 'dice_screen.dart';
 import 'never_have_i_ever_screen.dart';
 import 'would_you_rather_screen.dart';
 import 'love_game_screen.dart';
+import 'collections_screen.dart';
 
 class _GameInfo {
   final String name;
@@ -55,6 +55,14 @@ class _GamesTabState extends State<GamesTab> {
 
   List<_GameInfo> get _games => [
     _GameInfo(
+      name: 'Colecciones',
+      description: 'Organiza tu contenido en carpetas',
+      icon: Icons.folder_special_rounded,
+      gradient: const [Color(0xFF607D8B), Color(0xFF90A4AE)],
+      screen: const CollectionsScreen(),
+      countStream: () => _gs.streamCollections(),
+    ),
+    _GameInfo(
       name: 'Quiz',
       description: 'Crea y juega cuestionarios personalizados',
       icon: Icons.quiz_rounded,
@@ -81,7 +89,7 @@ class _GamesTabState extends State<GamesTab> {
     _GameInfo(
       name: 'Dados',
       description: 'Lanza los dados y cumple la mision',
-      icon: Icons.dice_4_rounded,
+      icon: Icons.casino_rounded,
       gradient: const [Color(0xFF4CAF50), Color(0xFF00E676)],
       screen: const DiceScreen(),
       countStream: () => _gs.streamDice(),

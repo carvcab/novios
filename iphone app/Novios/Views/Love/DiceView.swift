@@ -7,16 +7,12 @@ private struct DiceModel: Identifiable {
     let faces: [String]
 }
 
-private let standardOptions = [6, 8, 10, 20]
-
 public struct DiceView: View {
     @ObservedObject private var theme = ThemeManager.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var customDice: [DiceModel] = []
     @State private var selectedDice: DiceModel?
-    @State private var useStandard = true
-    @State private var standardFaces = 6
     @State private var isRolling = false
     @State private var displayText = "?"
     @State private var resultText = ""
@@ -29,6 +25,7 @@ public struct DiceView: View {
     @State private var editNewFace = ""
     @State private var editingDiceId: String?
     @State private var listener: ListenerRegistration?
+    @State private var editMode = false
 
     public init() {}
 
@@ -36,16 +33,20 @@ public struct DiceView: View {
         NavigationStack {
             ZStack {
                 theme.backgroundGradient.ignoresSafeArea()
-                VStack(spacing: 16) {
-                    modePicker
-                    diceDisplay
-                    if showResult {
-                        resultCard
+                if editMode {
+                    diceList
+                } else {
+                    VStack(spacing: 16) {
+                        diceSelector
+                        diceDisplay
+                        if showResult {
+                            resultCard
+                        }
+                        Spacer()
+                        rollButton
                     }
-                    Spacer()
-                    rollButton
+                    .padding()
                 }
-                .padding()
             }
             .navigationTitle("Dados")
             .navigationBarTitleDisplayMode(.inline)
@@ -56,6 +57,10 @@ public struct DiceView: View {
                         Image(systemName: "plus.circle.fill").font(.system(size: 22)).foregroundColor(theme.primary)
                     }
                 }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(editMode ? "Listo" : "Editar") { editMode.toggle() }
+                        .foregroundColor(theme.primary)
+                }
             }
             .sheet(isPresented: $showAddSheet) { addDiceSheet }
             .onAppear { setupListener() }
@@ -63,26 +68,38 @@ public struct DiceView: View {
         }
     }
 
-    private var modePicker: some View {
-        Picker("Tipo", selection: $useStandard) {
-            Text("Estandar").tag(true)
-            Text("Personalizado").tag(false)
+    private var diceList: some View {
+        List {
+            ForEach(customDice) { d in
+                Button {
+                    editName = d.name
+                    editFaces = d.faces
+                    editingDiceId = d.id
+                    showAddSheet = true
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(d.name).appFont(size: 14, weight: .semibold).foregroundColor(theme.textPrimary)
+                            Text("\(d.faces.count) caras").appFont(size: 11).foregroundColor(theme.textSecondary)
+                        }
+                        Spacer()
+                        Image(systemName: "pencil.circle.fill").foregroundColor(theme.primary)
+                    }
+                }
+            }
+            .onDelete(perform: deleteDice)
         }
-        .pickerStyle(.segmented)
-        .onChange(of: useStandard) { _ in
-            resetResult()
-        }
+        .scrollContentBackground(.hidden)
     }
 
-    private var diceDisplay: some View {
-        VStack(spacing: 8) {
-            if !useStandard {
+    private var diceSelector: some View {
+        Group {
+            if !customDice.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(customDice) { d in
                             Button {
-                                selectedDice = d
-                                resetResult()
+                                selectDice(d)
                             } label: {
                                 Text(d.name)
                                     .appFont(size: 12, weight: .semibold)
@@ -95,7 +112,16 @@ public struct DiceView: View {
                         }
                     }
                 }
+            } else {
+                Text("Agrega un dado con el boton +")
+                    .appFont(size: 14)
+                    .foregroundColor(theme.textSecondary)
             }
+        }
+    }
+
+    private var diceDisplay: some View {
+        VStack(spacing: 8) {
             ZStack {
                 RoundedRectangle(cornerRadius: 20)
                     .fill(theme.isDarkMode ? Color.white.opacity(0.1) : .white)
@@ -107,15 +133,6 @@ public struct DiceView: View {
                     .rotationEffect(.degrees(spinRotation))
                     .scaleEffect(isRolling ? 0.8 : 1.0)
                     .animation(.interpolatingSpring(stiffness: 150, damping: 8), value: displayText)
-            }
-            if useStandard {
-                Picker("Caras", selection: $standardFaces) {
-                    ForEach(standardOptions, id: \.self) { n in
-                        Text("\(n) caras").tag(n)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: standardFaces) { _ in resetResult() }
             }
         }
     }
@@ -143,7 +160,7 @@ public struct DiceView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14))
                 .foregroundColor(.white)
         }
-        .disabled(isRolling)
+        .disabled(isRolling || selectedDice == nil)
     }
 
     private var addDiceSheet: some View {
@@ -169,52 +186,31 @@ public struct DiceView: View {
                     }
                     .onDelete { editFaces.remove(atOffsets: $0) }
                 }
-                Section("Tus dados") {
-                    ForEach(customDice) { d in
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(d.name).appFont(size: 14, weight: .semibold).foregroundColor(theme.textPrimary)
-                                Text("\(d.faces.count) caras").appFont(size: 11).foregroundColor(theme.textSecondary)
-                            }
-                            Spacer()
-                            Button("Editar") {
-                                editName = d.name
-                                editFaces = d.faces
-                                editingDiceId = d.id
-                            }
-                            .appFont(size: 12).foregroundColor(theme.primary)
-                        }
-                    }
-                    .onDelete(perform: deleteDice)
-                }
             }
-            .navigationTitle("Nuevo dado")
+            .navigationTitle(editingDiceId != nil ? "Editar dado" : "Nuevo dado")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Guardar") { saveDice() }.disabled(editName.trimmingCharacters(in: .whitespaces).isEmpty || editFaces.isEmpty)
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cerrar") { showAddSheet = false }
+                    Button("Cancelar") {
+                        resetDiceFields()
+                        showAddSheet = false
+                    }
                 }
             }
         }
     }
 
     private func rollDice() {
+        guard let d = selectedDice, !d.faces.isEmpty else { return }
         isRolling = true
         showResult = false
         resultText = ""
         rollCount = 0
         let cycles = 20
-        let faces: [String]
-        if useStandard {
-            faces = (1...standardFaces).map(String.init)
-        } else if let d = selectedDice, !d.faces.isEmpty {
-            faces = d.faces
-        } else {
-            faces = (1...6).map(String.init)
-        }
+        let faces = d.faces
         Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { timer in
             rollCount += 1
             displayText = faces.randomElement() ?? "?"
@@ -231,7 +227,8 @@ public struct DiceView: View {
         }
     }
 
-    private func resetResult() {
+    private func selectDice(_ d: DiceModel) {
+        selectedDice = d
         showResult = false
         resultText = ""
         displayText = "?"
@@ -246,8 +243,11 @@ public struct DiceView: View {
                 guard let name = d["name"] as? String, let faces = d["faces"] as? [String] else { return nil }
                 return DiceModel(id: doc.documentID, name: name, faces: faces)
             }
-            if !useStandard, selectedDice == nil, let first = customDice.first {
-                selectedDice = first
+            if let sel = selectedDice, !customDice.contains(where: { $0.id == sel.id }) {
+                selectedDice = nil
+            }
+            if selectedDice == nil, let first = customDice.first {
+                selectDice(first)
             }
         }
     }
@@ -260,10 +260,7 @@ public struct DiceView: View {
         } else {
             GameService.shared.saveDice(["name": name, "faces": editFaces])
         }
-        editName = ""
-        editFaces = []
-        editNewFace = ""
-        editingDiceId = nil
+        resetDiceFields()
         showAddSheet = false
     }
 
@@ -271,5 +268,12 @@ public struct DiceView: View {
         for idx in offsets {
             GameService.shared.deleteDice(customDice[idx].id)
         }
+    }
+
+    private func resetDiceFields() {
+        editName = ""
+        editFaces = []
+        editNewFace = ""
+        editingDiceId = nil
     }
 }
