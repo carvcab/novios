@@ -36,10 +36,12 @@ public struct MainTabView: View {
                     }
                     .tag(2)
 
-                if #available(iOS 17.0, *) {
-                    LocationView()
-                } else {
-                    EmptyView()
+                Group {
+                    if #available(iOS 17.0, *) {
+                        LocationView()
+                    } else {
+                        EmptyView()
+                    }
                 }
                     .tabItem {
                         Image(systemName: "location.fill")
