@@ -1920,8 +1920,8 @@ public struct LocationView: View {
     }
 
     private func zoomIn() {
-        let pos = cameraPosition
-        if case .region(let region) = pos {
+        switch cameraPosition {
+        case .region(let region):
             let newLat = max(region.span.latitudeDelta / 1.5, 0.001)
             let newLng = max(region.span.longitudeDelta / 1.5, 0.001)
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -1930,12 +1930,14 @@ public struct LocationView: View {
                     span: MKCoordinateSpan(latitudeDelta: newLat, longitudeDelta: newLng)
                 ))
             }
+        default:
+            break
         }
     }
 
     private func zoomOut() {
-        let pos = cameraPosition
-        if case .region(let region) = pos {
+        switch cameraPosition {
+        case .region(let region):
             let newLat = min(region.span.latitudeDelta * 1.5, 180)
             let newLng = min(region.span.longitudeDelta * 1.5, 180)
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -1944,12 +1946,14 @@ public struct LocationView: View {
                     span: MKCoordinateSpan(latitudeDelta: newLat, longitudeDelta: newLng)
                 ))
             }
+        default:
+            break
         }
     }
 
     private func resetNorth() {
-        let pos = cameraPosition
-        if case .region(let region) = pos {
+        switch cameraPosition {
+        case .region(let region):
             withAnimation(.easeInOut(duration: 0.3)) {
                 cameraPosition = .region(MKCoordinateRegion(
                     center: region.center,
