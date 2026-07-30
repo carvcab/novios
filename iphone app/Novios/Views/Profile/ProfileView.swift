@@ -77,7 +77,12 @@ public struct ProfileView: View {
                 case .music: MusicView()
                 case .letters: LettersView()
                 case .games: GamesView()
-                case .map: LocationView()
+                case .map:
+                    if #available(iOS 17.0, *) {
+                        LocationView()
+                    } else {
+                        EmptyView()
+                    }
                 case .dreams: GoalsView()
                 }
             }

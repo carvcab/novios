@@ -36,7 +36,11 @@ public struct MainTabView: View {
                     }
                     .tag(2)
 
-                LocationView()
+                if #available(iOS 17.0, *) {
+                    LocationView()
+                } else {
+                    EmptyView()
+                }
                     .tabItem {
                         Image(systemName: "location.fill")
                         Text("Nuestro Mapa")
