@@ -9,16 +9,16 @@ struct AIMemory: Codable {
     var updatedAt: String
 }
 
-public class AIMemoryService: ObservableObject {
-    public static let shared = AIMemoryService()
+class AIMemoryService: ObservableObject {
+    static let shared = AIMemoryService()
 
-    @Published public var memories: [AIMemory] = []
+    @Published var memories: [AIMemory] = []
     private let db = Firestore.firestore()
     private let defaults = UserDefaults.standard
 
     private var coupleId: String { CoupleService.coupleId }
 
-    public func load() {
+    func load() {
         if let data = defaults.data(forKey: "ai_memories"),
            let cached = try? JSONDecoder().decode([AIMemory].self, from: data) {
             memories = cached
@@ -38,7 +38,7 @@ public class AIMemoryService: ObservableObject {
         }
     }
 
-    public func setMemory(key: String, value: String, category: String = "general") {
+    func setMemory(key: String, value: String, category: String = "general") {
         memories.removeAll { $0.key == key }
         let mem = AIMemory(key: key, value: value, category: category, updatedAt: ISO8601DateFormatter().string(from: Date()))
         memories.append(mem)
@@ -49,11 +49,11 @@ public class AIMemoryService: ObservableObject {
         ], merge: true)
     }
 
-    public func getMemory(_ key: String) -> String? {
+    func getMemory(_ key: String) -> String? {
         memories.first { $0.key == key }?.value
     }
 
-    public func buildContextPrompt() -> String {
+    func buildContextPrompt() -> String {
         memories.map { "- \($0.key): \($0.value)" }.joined(separator: "\n")
     }
 
