@@ -131,7 +131,8 @@ public struct HangmanView: View {
                             .appFont(size: 12, weight: .semibold)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 6)
-                            .background(selectedCategory == cat ? theme.primary : .ultraThinMaterial)
+                            .background(selectedCategory == cat ? theme.primary : Color.clear)
+                            .background(selectedCategory == cat ? Color.clear : .ultraThinMaterial)
                             .clipShape(Capsule())
                             .foregroundColor(selectedCategory == cat ? .white : theme.textPrimary)
                     }

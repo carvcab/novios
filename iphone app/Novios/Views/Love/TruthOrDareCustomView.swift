@@ -166,7 +166,7 @@ public struct TruthOrDareCustomView: View {
             }
         }
         .frame(height: 60)
-        .onChange(of: selectedTab) { _, _ in
+        .onChange(of: selectedTab) { _ in
             withAnimation(.spring()) {
                 currentCard = nil
                 isRevealed = false

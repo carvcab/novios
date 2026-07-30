@@ -164,7 +164,7 @@ public class AIModelManager: ObservableObject {
         let freeBytes = freeDiskSpace()
         let required = Int64(model.requiredSpaceMB) * 1024 * 1024
         if freeBytes < required {
-            errorMessage = ModelError.noSpace(available: freeBytes / (1024*1024), required: model.requiredSpaceMB).localizedDescription
+            errorMessage = ModelError.noSpace(available: Int64(freeBytes / (1024*1024)), required: model.requiredSpaceMB).localizedDescription
             state = .error
             return
         }

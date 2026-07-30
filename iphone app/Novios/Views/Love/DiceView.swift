@@ -105,7 +105,8 @@ public struct DiceView: View {
                                     .appFont(size: 12, weight: .semibold)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
-                                    .background(selectedDice?.id == d.id ? theme.primary : .ultraThinMaterial)
+                                     .background(selectedDice?.id == d.id ? theme.primary : Color.clear)
+                                     .background(selectedDice?.id == d.id ? Color.clear : .ultraThinMaterial)
                                     .clipShape(Capsule())
                                     .foregroundColor(selectedDice?.id == d.id ? .white : theme.textPrimary)
                             }
