@@ -37,26 +37,13 @@ jobs:
       - name: Export IPA (unsigned)
         run: |
           cd "iphone app"
-          cat > exportOptions.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>development</string>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>teamID</key>
-            <string></string>
-          </dict>
-          </plist>
-          EOF
-          # For unsigned Debug export we just zip the app bundle directly
           mkdir -p build_output/ipa
           APP_PATH="build_output/Novios.xcarchive/Products/Applications/Novios.app"
           if [ -d "$APP_PATH" ]; then
-            cd "$(dirname "$APP_PATH")"
-            zip -r "${GITHUB_WORKSPACE}/iphone app/build_output/ipa/Novios.ipa" "Novios.app"
+            mkdir -p build_output/Payload
+            cp -R "$APP_PATH" build_output/Payload/
+            cd build_output
+            zip -r ipa/Novios.ipa Payload
           else
             echo "App bundle not found at $APP_PATH"
             exit 1
