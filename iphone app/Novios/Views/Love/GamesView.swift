@@ -20,6 +20,8 @@ public struct GamesView: View {
         GameDef(id: "truth_dare", icon: "heart.fill", name: "Verdad o Reto", desc: "Respuestas y desafios", colors: [Color(red: 0.65, green: 0.55, blue: 0.98), Color(red: 0.77, green: 0.71, blue: 0.99)], destination: AnyView(TruthOrDareCustomView())),
         GameDef(id: "love_game", icon: "heart.square.fill", name: "El Amor", desc: "Cartas del corazon", colors: [Color(red: 0.9, green: 0.2, blue: 0.4), Color(red: 1, green: 0.4, blue: 0.6)], destination: AnyView(LoveGameView())),
         GameDef(id: "compatibility", icon: "chart.pie.fill", name: "Compatibilidad", desc: "Que tanto se conocen", colors: [Color(red: 0.2, green: 0.6, blue: 0.9), Color(red: 0.4, green: 0.8, blue: 1)], destination: AnyView(CompatibilityView())),
+        GameDef(id: "spicy", icon: "flame.fill", name: "Zona Picante", desc: "Envia retos online a tu pareja", colors: [Color(red: 1, green: 0.44, blue: 0), Color(red: 1, green: 0.24, blue: 0)], destination: AnyView(SpicyGamesView())),
+        GameDef(id: "history", icon: "clock.arrow.circlepath", name: "Historial", desc: "Partidas y estadisticas", colors: [Color(red: 0.45, green: 0.3, blue: 0.9), Color(red: 0.65, green: 0.45, blue: 1)], destination: AnyView(GameHistoryView())),
     ]
 
     public init() {}

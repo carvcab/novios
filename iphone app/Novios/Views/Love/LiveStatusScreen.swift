@@ -80,7 +80,6 @@ public struct LiveStatusScreen: View {
                         lastNotificationSection
                     }
                     screenHistorySection
-                    shareScreenButton
                 }
                 .padding(20)
             }
@@ -379,31 +378,5 @@ public struct LiveStatusScreen: View {
                 }
             }
         }
-    }
-
-    // MARK: - Share Screen Button
-
-    private var shareScreenButton: some View {
-        Button {
-            let alert = UIAlertController(title: "Compartir Pantalla", message: "Función próximamente disponible", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
-            if let vc = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController }).first {
-                var top = vc
-                while let p = top.presentedViewController { top = p }
-                top.present(alert, animated: true)
-            }
-        } label: {
-            HStack {
-                Image(systemName: "square.and.arrow.up")
-                Text("Compartir Pantalla")
-                    .appFont(size: 15, weight: .medium)
-            }
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(theme.primaryGradient)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-        .padding(.bottom, 8)
     }
 }

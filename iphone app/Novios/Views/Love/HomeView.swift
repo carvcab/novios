@@ -403,12 +403,6 @@ class HomeViewModel: ObservableObject {
         coverPhotoPath = nil
     }
 
-    func showComingSoon(_ name: String) {
-        let alert = UIAlertController(title: name, message: "Próximamente disponible", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        topVC()?.present(alert, animated: true)
-    }
-
     // MARK: - Computed Properties
 
     var distanceText: String {
@@ -488,7 +482,6 @@ class HomeViewModel: ObservableObject {
 
     // MARK: - Features
     lazy var features: [HomeFeature] = [
-        HomeFeature(icon: "square.and.arrow.up", label: "Pantalla", color: Color(red: 0, green: 0.75, blue: 0.65)) { [weak self] in self?.showComingSoon("Pantalla") },
         HomeFeature(icon: "envelope.fill", label: "Cartas", color: Color(red: 1, green: 0.5, blue: 0.5)) { [weak self] in self?.navPath.append(HomeNavDest.letters) },
         HomeFeature(icon: "sticky.filler", label: "Notas", color: Color(red: 0.91, green: 0.28, blue: 0.49)) { [weak self] in self?.navPath.append(HomeNavDest.notas) },
         HomeFeature(icon: "face.smiling", label: "Amor IA", color: Color(red: 0.31, green: 0.76, blue: 0.97)) { [weak self] in self?.navPath.append(HomeNavDest.loveAI) },
