@@ -2,6 +2,7 @@ import Foundation
 import CoreLocation
 import Combine
 import UIKit
+import FirebaseCore
 import FirebaseFirestore
 
 public class LocationService: NSObject, ObservableObject, CLLocationManagerDelegate {
@@ -111,12 +112,12 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
 
     private func setOffline() {
         guard let p = myLocationPath, let db = db else { return }
-        Task { try? await db?.document(p).setData(["isOnline": false, "lastLocationUpdate": df.string(from: Date())], merge: true) }
+        Task { try? await db.document(p).setData(["isOnline": false, "lastLocationUpdate": df.string(from: Date())], merge: true) }
     }
 
     private func setOnline() {
         guard let p = myLocationPath, let db = db else { return }
-        Task { try? await db?.document(p).setData(["isOnline": true, "lastLocationUpdate": df.string(from: Date())], merge: true) }
+        Task { try? await db.document(p).setData(["isOnline": true, "lastLocationUpdate": df.string(from: Date())], merge: true) }
     }
 
     public func requestPermission() { ensureManager().requestAlwaysAuthorization() }
@@ -139,7 +140,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
             "routeStartTime": df.string(from: Date())
         ]
         guard let db = db else { return }
-        Task { try? await db?.document(p).setData(data, merge: true) }
+        Task { try? await db.document(p).setData(data, merge: true) }
     }
 
     public func stopRoute() {
@@ -157,7 +158,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
             "routeDestLng": FieldValue.delete(),
             "routeStartTime": FieldValue.delete()
         ]
-        Task { try? await db?.document(p).setData(data, merge: true) }
+        Task { try? await db.document(p).setData(data, merge: true) }
     }
 
     // MARK: - CLLocationManagerDelegate

@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseAuth
+import FirebaseCore
 import FirebaseFirestore
 
 public class FirebaseRESTService {

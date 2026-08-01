@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import FirebaseCore
 import FirebaseFirestore
 
 public class CoupleService: ObservableObject {
