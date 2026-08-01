@@ -56,6 +56,7 @@
 		9A0050W2C000000000000077 /* GameHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000077 /* GameHistoryView.swift */; };
 		9A0050W2C000000000000078 /* SpicyGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000078 /* SpicyGamesView.swift */; };
 		9A7000022C00000000000002 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9A004382C0000000000000438 /* GoogleService-Info.plist */; };
+		9A7000042C00000000000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9A7000032C00000000000003 /* Assets.xcassets */; };
 		9A0050W2C000000000000079 /* NotasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000079 /* NotasView.swift */; };
 		9A0050W2C000000000000080 /* LoveAIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000080 /* LoveAIView.swift */; };
 		9A0050W2C000000000000081 /* WishlistView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000081 /* WishlistView.swift */; };
@@ -126,6 +127,7 @@
 		9A004352C0000000000000435 /* FirebaseRESTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/FirebaseRESTService.swift; sourceTree = "<group>"; };
 		9A004362C0000000000000436 /* StatusService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/StatusService.swift; sourceTree = "<group>"; };
 		9A004382C0000000000000438 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		9A7000032C00000000000003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9A004392C0000000000000439 /* GoogleService-Info (1).plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info (1).plist"; sourceTree = "<group>"; };
 
 		0D4F7B3D3DCF5B29A3B30953 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/SettingsView.swift; sourceTree = "<group>"; };
@@ -194,6 +196,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9A7000022C00000000000002 /* GoogleService-Info.plist in Resources */,
+				9A7000042C00000000000004 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -245,6 +248,7 @@
 				9A004362C0000000000000436 /* StatusService.swift */,
 				9A004382C0000000000000438 /* GoogleService-Info.plist */,
 				9A004392C0000000000000439 /* GoogleService-Info (1).plist */,
+				9A7000032C00000000000003 /* Assets.xcassets */,
 
 				0D4F7B3D3DCF5B29A3B30953 /* SettingsView.swift */,
 
