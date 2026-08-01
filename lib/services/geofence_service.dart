@@ -339,24 +339,23 @@ class GeofenceService {
   }
 
   void _showPersistentNotification() {
-    _notifications.show(
+    final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    androidPlugin?.startForegroundService(
       id: _persistentNotificationId,
       title: 'Compartiendo ubicacion',
       body: 'Tu pareja puede ver tu ubicacion en tiempo real',
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'geofence_channel',
-          'Ubicacion en vivo',
-          channelDescription: 'Notificacion de ubicacion compartida',
-          importance: Importance.low,
-          priority: Priority.low,
-          ongoing: true,
-          autoCancel: false,
-          icon: '@mipmap/ic_launcher',
-          foregroundService: true,
-          foregroundServiceType: AndroidForegroundServiceType.location,
-        ),
+      notificationDetails: const AndroidNotificationDetails(
+        'geofence_channel',
+        'Ubicacion en vivo',
+        channelDescription: 'Notificacion de ubicacion compartida',
+        importance: Importance.low,
+        priority: Priority.low,
+        ongoing: true,
+        autoCancel: false,
+        icon: '@mipmap/ic_launcher',
       ),
+      foregroundServiceTypes: {AndroidServiceForegroundType.foregroundServiceTypeLocation},
     );
   }
 

@@ -29,6 +29,7 @@ class AppThemeColors {
 class ThemeProvider with ChangeNotifier {
   String _fontFamily = 'Inter';
   bool _isDark = false;
+  ThemeData? _cachedTheme;
 
   ThemeProvider() {
     _loadFromPrefs();
@@ -46,24 +47,28 @@ class ThemeProvider with ChangeNotifier {
 
   Future<void> toggleDark() async {
     _isDark = !_isDark;
+    _cachedTheme = null;
     await LocalStorage().setBool('is_dark_mode', _isDark);
     notifyListeners();
   }
 
   Future<void> setDark(bool val) async {
     _isDark = val;
+    _cachedTheme = null;
     await LocalStorage().setBool('is_dark_mode', val);
     notifyListeners();
   }
 
   Future<void> setFont(String font) async {
     _fontFamily = font;
+    _cachedTheme = null;
     await LocalStorage().setString('font_family', font);
     notifyListeners();
   }
 
   TextStyle getTextStyle(TextStyle base) {
-    switch (_fontFamily) {
+    final family = _fontFamily;
+    switch (family) {
       case 'Playfair Display':
         return GoogleFonts.playfairDisplay(textStyle: base);
       case 'Outfit':
@@ -80,6 +85,7 @@ class ThemeProvider with ChangeNotifier {
   }
 
   ThemeData getThemeData() {
+    if (_cachedTheme != null) return _cachedTheme!;
     final isDark = _isDark;
     final bg = isDark ? AppThemeColors.darkBg : AppThemeColors.lightBg;
     final card = isDark ? AppThemeColors.darkCard : AppThemeColors.lightCard;
@@ -91,7 +97,7 @@ class ThemeProvider with ChangeNotifier {
     final surfaceContainer = isDark ? AppThemeColors.darkSurfaceContainer : AppThemeColors.lightSurfaceContainer;
     final inputBg = isDark ? AppThemeColors.darkInputBg : AppThemeColors.lightInputBg;
 
-    return ThemeData(
+    final t = ThemeData(
       useMaterial3: true,
       brightness: isDark ? Brightness.dark : Brightness.light,
       colorScheme: ColorScheme(
@@ -238,6 +244,11 @@ class ThemeProvider with ChangeNotifier {
       dropdownMenuTheme: DropdownMenuThemeData(
         textStyle: TextStyle(color: text),
       ),
+      textTheme: GoogleFonts.outfitTextTheme(
+        isDark ? ThemeData.dark().textTheme : ThemeData.light().textTheme,
+      ),
     );
+    _cachedTheme = t;
+    return t;
   }
 }

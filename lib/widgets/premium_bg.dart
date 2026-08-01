@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 
@@ -19,10 +20,10 @@ class PremiumBackground extends StatefulWidget {
   State<PremiumBackground> createState() => _PremiumBackgroundState();
 }
 
-class _PremiumBackgroundState extends State<PremiumBackground>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  final _particles = List.generate(8, (i) => _Particle(
+class _PremiumBackgroundState extends State<PremiumBackground> {
+  double _t = 0;
+  Timer? _timer;
+  final _particles = List.generate(4, (i) => _Particle(
     x: Random(i * 7 + 3).nextDouble(),
     y: Random(i * 11 + 5).nextDouble(),
     size: Random(i * 3 + 1).nextDouble() * 2.5 + 1,
@@ -30,7 +31,7 @@ class _PremiumBackgroundState extends State<PremiumBackground>
     opacity: Random(i * 5 + 9).nextDouble() * 0.15 + 0.03,
   ));
 
-  final _stars = List.generate(6, (i) => _Star(
+  final _stars = List.generate(3, (i) => _Star(
     x: Random(i * 17 + 3).nextDouble(),
     y: Random(i * 13 + 7).nextDouble(),
     size: Random(i * 5 + 1).nextDouble() * 2 + 1,
@@ -41,13 +42,15 @@ class _PremiumBackgroundState extends State<PremiumBackground>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 40));
-    _ctrl.repeat();
+    _timer = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      _t = (_t + 0.0033) % 1.0;
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -57,7 +60,8 @@ class _PremiumBackgroundState extends State<PremiumBackground>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = Theme.of(context).scaffoldBackgroundColor;
 
-    return Stack(
+    return RepaintBoundary(
+      child: Stack(
       children: [
         if (widget.showGradient)
           Positioned.fill(
@@ -83,27 +87,21 @@ class _PremiumBackgroundState extends State<PremiumBackground>
           ),
         if (widget.showStars)
           Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _ctrl,
-              builder: (_, __) => CustomPaint(
-                painter: _StarsPainter(
-                  stars: _stars,
-                  value: _ctrl.value,
-                  isDark: isDark,
-                ),
+            child: CustomPaint(
+              painter: _StarsPainter(
+                stars: _stars,
+                value: _t,
+                isDark: isDark,
               ),
             ),
           ),
         if (widget.showParticles)
           Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _ctrl,
-              builder: (_, __) => CustomPaint(
-                painter: _ParticlesPainter(
-                  particles: _particles,
-                  value: _ctrl.value,
-                  color: cs.primary,
-                ),
+            child: CustomPaint(
+              painter: _ParticlesPainter(
+                particles: _particles,
+                value: _t,
+                color: cs.primary,
               ),
             ),
           ),
@@ -126,18 +124,19 @@ class _PremiumBackgroundState extends State<PremiumBackground>
           ),
         Positioned.fill(child: widget.child),
       ],
+    ),
     );
   }
 }
 
 class _Particle {
   final double x, y, size, speed, opacity;
-  _Particle({required this.x, required this.y, required this.size, required this.speed, required this.opacity});
+  const _Particle({required this.x, required this.y, required this.size, required this.speed, required this.opacity});
 }
 
 class _Star {
   final double x, y, size, twinkle, phase;
-  _Star({required this.x, required this.y, required this.size, required this.twinkle, required this.phase});
+  const _Star({required this.x, required this.y, required this.size, required this.twinkle, required this.phase});
 }
 
 class _ParticlesPainter extends CustomPainter {
@@ -179,7 +178,7 @@ class _ParticlesPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ParticlesPainter old) => old.value != value;
+  bool shouldRepaint(_ParticlesPainter old) => (old.value - value).abs() > 0.001;
 }
 
 class _StarsPainter extends CustomPainter {
@@ -202,5 +201,5 @@ class _StarsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_StarsPainter old) => old.value != value;
+  bool shouldRepaint(_StarsPainter old) => (old.value - value).abs() > 0.001;
 }

@@ -105,150 +105,91 @@ class _TruthDareCustomScreenState extends State<TruthDareCustomScreen>
     final textCtrl = TextEditingController(text: existingText);
     String selectedCat = initialCat;
     String selectedCollection = '';
+    List<String> names = [];
     try {
       final collSnap = await _gs.streamCollections().first;
-      final names = collSnap.docs.map((d) => (d.data() as Map<String, dynamic>)['name'] as String? ?? '').where((n) => n.isNotEmpty).toList();
-      selectedCollection = '';
-      if (!mounted) return null;
-      return showDialog<Map<String, String>>(
-        context: context,
-        builder: (ctx) => StatefulBuilder(
-          builder: (ctx, setDlgState) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text(existingText != null ? 'Editar entrada' : 'Nueva entrada', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+      names = collSnap.docs.map((d) => (d.data() as Map<String, dynamic>)['name'] as String? ?? '').where((n) => n.isNotEmpty).toList();
+    } catch (_) {}
+    if (!mounted) return null;
+    return showDialog<Map<String, String>>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(existingText != null ? 'Editar entrada' : 'Nueva entrada', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: selectedCat,
+                decoration: InputDecoration(
+                  labelText: 'Categoria',
+                  labelStyle: GoogleFonts.outfit(),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                items: _categories.map((c) => DropdownMenuItem(
+                  value: c,
+                  child: Text(c, style: GoogleFonts.outfit()),
+                )).toList(),
+                onChanged: (v) {
+                  if (v != null) setDlgState(() => selectedCat = v);
+                },
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: textCtrl,
+                autofocus: true,
+                maxLines: 3,
+                style: GoogleFonts.outfit(),
+                decoration: InputDecoration(
+                  hintText: 'Escribe tu entrada...',
+                  hintStyle: GoogleFonts.outfit(),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              if (names.isNotEmpty) ...[
+                const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: selectedCat,
+                  value: selectedCollection.isEmpty ? null : selectedCollection,
                   decoration: InputDecoration(
-                    labelText: 'Categoria',
+                    labelText: 'Coleccion (opcional)',
                     labelStyle: GoogleFonts.outfit(),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  items: _categories.map((c) => DropdownMenuItem(
-                    value: c,
-                    child: Text(c, style: GoogleFonts.outfit()),
-                  )).toList(),
+                  items: [
+                    DropdownMenuItem(value: '', child: Text('Sin coleccion', style: GoogleFonts.outfit())),
+                    ...names.map((c) => DropdownMenuItem(
+                      value: c,
+                      child: Text(c, style: GoogleFonts.outfit()),
+                    )),
+                  ],
                   onChanged: (v) {
-                    if (v != null) setDlgState(() => selectedCat = v);
+                    if (v != null) setDlgState(() => selectedCollection = v);
                   },
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: textCtrl,
-                  autofocus: true,
-                  maxLines: 3,
-                  style: GoogleFonts.outfit(),
-                  decoration: InputDecoration(
-                    hintText: 'Escribe tu entrada...',
-                    hintStyle: GoogleFonts.outfit(),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                if (names.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: selectedCollection.isEmpty ? null : selectedCollection,
-                    decoration: InputDecoration(
-                      labelText: 'Coleccion (opcional)',
-                      labelStyle: GoogleFonts.outfit(),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    items: [
-                      DropdownMenuItem(value: '', child: Text('Sin coleccion', style: GoogleFonts.outfit())),
-                      ...names.map((c) => DropdownMenuItem(
-                        value: c,
-                        child: Text(c, style: GoogleFonts.outfit()),
-                      )),
-                    ],
-                    onChanged: (v) {
-                      if (v != null) setDlgState(() => selectedCollection = v);
-                    },
-                  ),
-                ],
               ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancelar', style: GoogleFonts.outfit()),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, {
-                  'text': textCtrl.text.trim(),
-                  'category': selectedCat,
-                  'collection': selectedCollection,
-                }),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _gradients[selectedCat]![0],
-                ),
-                child: Text('Guardar', style: GoogleFonts.outfit(color: Colors.white)),
-              ),
             ],
           ),
-        ),
-      );
-    } catch (_) {
-      return showDialog<Map<String, String>>(
-        context: context,
-        builder: (ctx) => StatefulBuilder(
-          builder: (ctx, setDlgState) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text(existingText != null ? 'Editar entrada' : 'Nueva entrada', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  value: selectedCat,
-                  decoration: InputDecoration(
-                    labelText: 'Categoria',
-                    labelStyle: GoogleFonts.outfit(),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  items: _categories.map((c) => DropdownMenuItem(
-                    value: c,
-                    child: Text(c, style: GoogleFonts.outfit()),
-                  )).toList(),
-                  onChanged: (v) {
-                    if (v != null) setDlgState(() => selectedCat = v);
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: textCtrl,
-                  autofocus: true,
-                  maxLines: 3,
-                  style: GoogleFonts.outfit(),
-                  decoration: InputDecoration(
-                    hintText: 'Escribe tu entrada...',
-                    hintStyle: GoogleFonts.outfit(),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancelar', style: GoogleFonts.outfit()),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancelar', style: GoogleFonts.outfit()),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, {
+                'text': textCtrl.text.trim(),
+                'category': selectedCat,
+                'collection': selectedCollection,
+              }),
+              style: FilledButton.styleFrom(
+                backgroundColor: _gradients[selectedCat]![0],
               ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, {
-                  'text': textCtrl.text.trim(),
-                  'category': selectedCat,
-                  'collection': '',
-                }),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _gradients[selectedCat]![0],
-                ),
-                child: Text('Guardar', style: GoogleFonts.outfit(color: Colors.white)),
-              ),
-            ],
-          ),
+              child: Text('Guardar', style: GoogleFonts.outfit(color: Colors.white)),
+            ),
+          ],
         ),
-      );
-    }
+      ),
+    );
   }
 
   Future<void> _deleteItem(String docId, String text) async {
@@ -589,7 +530,6 @@ class _CategoryTabBodyState extends State<_CategoryTabBody> {
       child: Padding(
         padding: const EdgeInsets.all(28),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.all(12),

@@ -1,0 +1,23 @@
+﻿=== LOG DE CONSTRUCCION ===
+Fecha: 2026-07-29 18:16:52
+Proyecto: Novios (Flutter)
+
+CAMBIOS REALIZADOS:
+1. ai_service.dart - Anadido enum AIMode, metodos currentMode/setMode/saveDeepseekKey/answerRelationshipQuestion
+2. geofence_service.dart - Migrado a foregroundServiceTypes con startForegroundService()
+3. ai_assistant_overlay.dart - Corregido ThemeData -> colorScheme
+4. aimodel_manager.dart - Agregado await a getAppSupportDir()
+5. ai_assistant_screen.dart - Corregido answerRelationshipQuestion -> answerQuestion
+
+BUILD:
+- flutter clean + flutter pub get
+- flutter build apk --debug --target-platform android-arm64
+- APK: build\app\outputs\flutter-apk\app-debug.apk
+
+INSTALACION:
+- Dispositivo: cuxsduxo8lxsqod6
+- adb install -r -> Success
+
+BUILD IOS (previo):
+- Workflow iOS Build en GitHub Actions -> Success (13m 54s)
+- IPA: build_output\build_20260729_172905.ipa

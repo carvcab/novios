@@ -304,7 +304,7 @@ class AimodelManager extends ChangeNotifier {
       final dir = Directory('/');
       final stat = dir.statSync();
       // On Android, check data directory
-      final dataDir = Directory(LocalStorage().getAppSupportDir());
+      final dataDir = Directory(await LocalStorage().getAppSupportDir());
       final dataStat = dataDir.statSync();
       return dataStat.size; // This isn't free space but total
       // Actually just return a large number for now

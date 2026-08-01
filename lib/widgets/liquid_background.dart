@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 
@@ -14,9 +15,10 @@ class LiquidBackground extends StatefulWidget {
   State<LiquidBackground> createState() => _LiquidBackgroundState();
 }
 
-class _LiquidBackgroundState extends State<LiquidBackground> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  final _particles = List.generate(20, (i) => _Particle(
+class _LiquidBackgroundState extends State<LiquidBackground> {
+  double _t = 0;
+  Timer? _timer;
+  final _particles = List.generate(10, (i) => _Particle(
     x: Random(i * 7 + 3).nextDouble(),
     y: Random(i * 11 + 5).nextDouble(),
     size: Random(i * 3 + 1).nextDouble() * 3 + 2,
@@ -27,13 +29,15 @@ class _LiquidBackgroundState extends State<LiquidBackground> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 30));
-    _controller.repeat();
+    _timer = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      _t = (_t + 0.0066) % 1.0;
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -52,7 +56,7 @@ class _LiquidBackgroundState extends State<LiquidBackground> with SingleTickerPr
           Positioned.fill(
             child: LayoutBuilder(builder: (_, constraints) => CustomPaint(
               size: Size(constraints.maxWidth, constraints.maxHeight),
-              painter: _ParticlesPainter(particles: _particles, value: _controller.value),
+              painter: _ParticlesPainter(particles: _particles, value: _t),
             )),
           ),
         ],
@@ -84,29 +88,24 @@ class _LiquidBackgroundState extends State<LiquidBackground> with SingleTickerPr
   }
 
   Widget _buildBlobs(Color primary, Color secondary) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (_, __) {
-        final v = _controller.value * 2 * pi;
-        return Stack(
-          children: [
-            Positioned(
-              left: -40 + sin(v) * 40,
-              top: 60 + cos(v) * 60,
-              width: 200,
-              height: 200,
-              child: _blob(primary.withValues(alpha: 0.12), 60),
-            ),
-            Positioned(
-              right: -50 + cos(v + pi / 3) * 60,
-              bottom: 80 + sin(v + pi / 3) * 40,
-              width: 250,
-              height: 250,
-              child: _blob(secondary.withValues(alpha: 0.08), 80),
-            ),
-          ],
-        );
-      },
+    final v = _t * 2 * pi;
+    return Stack(
+      children: [
+        Positioned(
+          left: -40 + sin(v) * 40,
+          top: 60 + cos(v) * 60,
+          width: 200,
+          height: 200,
+          child: _blob(primary.withValues(alpha: 0.12), 60),
+        ),
+        Positioned(
+          right: -50 + cos(v + pi / 3) * 60,
+          bottom: 80 + sin(v + pi / 3) * 40,
+          width: 250,
+          height: 250,
+          child: _blob(secondary.withValues(alpha: 0.08), 80),
+        ),
+      ],
     );
   }
 

@@ -24,6 +24,15 @@ service cloud.firestore {
       }
     }
 
+    // Colección couples/{coupleId} para juegos multijugador y retos online
+    match /couples/{coupleId} {
+      allow read, write: if isDiegoOrYosmari();
+      
+      match /{document=**} {
+        allow read, write: if isDiegoOrYosmari();
+      }
+    }
+
     // Bloquear cualquier otra ruta
     match /{document=**} {
       allow read, write: if false;

@@ -124,8 +124,14 @@ class FirebaseService {
 
   String get _coupleId {
     final myUid = _auth.currentUser?.uid;
-    final partnerUid = LocalStorage().getString('partner_uid');
-    if (myUid != null && partnerUid != null && partnerUid.isNotEmpty) {
+    var partnerUid = LocalStorage().getString('partner_uid');
+    if (partnerUid == null || partnerUid.isEmpty) {
+      partnerUid = CoupleService().partnerUid;
+      if (partnerUid.isNotEmpty) {
+        LocalStorage().setString('partner_uid', partnerUid);
+      }
+    }
+    if (myUid != null && partnerUid.isNotEmpty) {
       final ids = [myUid, partnerUid]..sort();
       return ids.join('_');
     }

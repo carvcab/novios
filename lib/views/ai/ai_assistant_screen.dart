@@ -103,7 +103,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           final goalSnap = await db.collection('couples').doc(coupleId).collection('goals').limit(5).get();
           final goals = goalSnap.docs.map((doc) => GoalModel.fromMap(doc.data())).toList();
 
-          output = await AIService().answerRelationshipQuestion(
+          output = await AIService().answerQuestion(
             question: q,
             memories: memories,
             goals: goals,

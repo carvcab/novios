@@ -129,11 +129,11 @@ Responde en espanol de forma carinosa y util. Maximo 3 parrafos.
 
     return Stack(
       children: [
-        if (_open) _buildOverlay(theme, isDark),
+        if (_open) _buildOverlay(theme.colorScheme, isDark),
         Positioned(
           right: 16,
           bottom: 16,
-          child: _buildFab(theme),
+          child: _buildFab(theme.colorScheme),
         ),
       ],
     );

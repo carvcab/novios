@@ -13,6 +13,7 @@ import 'never_have_i_ever_screen.dart';
 import 'would_you_rather_screen.dart';
 import 'love_game_screen.dart';
 import 'collections_screen.dart';
+import 'spicy_games_screen.dart';
 
 class _GameInfo {
   final String name;
@@ -125,6 +126,13 @@ class _GamesTabState extends State<GamesTab> {
       gradient: const [Color(0xFFE91E63), Color(0xFF9C27B0)],
       screen: const LoveGameScreen(),
       countStream: () => _gs.streamLoveQuestions(),
+    ),
+    _GameInfo(
+      name: 'Zona Picante',
+      description: 'Envia retos online a tu pareja',
+      icon: Icons.local_fire_department_rounded,
+      gradient: const [Color(0xFFFF6F00), Color(0xFFFF3D00)],
+      screen: const SpicyGamesScreen(),
     ),
   ];
 

@@ -5,6 +5,8 @@ import 'ai_memory_service.dart';
 import '../models/memory_model.dart';
 import '../models/goal_model.dart';
 
+enum AIMode { deepseek, local }
+
 class AIService extends ChangeNotifier {
   static final AIService _instance = AIService._();
   factory AIService() => _instance;
@@ -47,6 +49,25 @@ class AIService extends ChangeNotifier {
     // TODO: Unload from inference engine
     _modelLoaded = false;
     notifyListeners();
+  }
+
+  AIMode _mode = AIMode.deepseek;
+  AIMode get currentMode => _mode;
+  Future<void> setMode(AIMode mode) async {
+    _mode = mode;
+    notifyListeners();
+  }
+  Future<void> saveDeepseekKey(String key) async {
+    // Impl: save key to secure storage
+  }
+
+  Future<String> answerRelationshipQuestion({
+    required String question,
+    required List<MemoryModel> memories,
+    required List<GoalModel> goals,
+    required String partnerName,
+  }) async {
+    return answerQuestion(question: question, memories: memories, goals: goals, partnerName: partnerName);
   }
 
   // -- Chat --
