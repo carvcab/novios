@@ -109,8 +109,16 @@ public struct RouletteView: View {
                                     .appFont(size: 12, weight: .semibold)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
-                                    .background(selectedRoulette?.id == r.id ? theme.primary : Color.clear)
-                                    .background(selectedRoulette?.id == r.id ? Color.clear : .ultraThinMaterial)
+                                    .background {
+                                        if selectedRoulette?.id == r.id {
+                                            theme.primary
+                                        }
+                                    }
+                                    .background {
+                                        if selectedRoulette?.id != r.id {
+                                            Rectangle().fill(.ultraThinMaterial)
+                                        }
+                                    }
                                     .clipShape(Capsule())
                                     .foregroundColor(selectedRoulette?.id == r.id ? .white : theme.textPrimary)
                             }
