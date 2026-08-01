@@ -57,6 +57,7 @@
 		9A0050W2C000000000000078 /* SpicyGamesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000078 /* SpicyGamesView.swift */; };
 		9A7000022C00000000000002 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9A004382C0000000000000438 /* GoogleService-Info.plist */; };
 		9A7000042C00000000000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9A7000032C00000000000003 /* Assets.xcassets */; };
+		9A7000062C00000000000006 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9A7000052C00000000000005 /* Info.plist */; };
 		9A0050W2C000000000000079 /* NotasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000079 /* NotasView.swift */; };
 		9A0050W2C000000000000080 /* LoveAIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000080 /* LoveAIView.swift */; };
 		9A0050W2C000000000000081 /* WishlistView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0050V2C000000000000081 /* WishlistView.swift */; };
@@ -128,6 +129,7 @@
 		9A004362C0000000000000436 /* StatusService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/StatusService.swift; sourceTree = "<group>"; };
 		9A004382C0000000000000438 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		9A7000032C00000000000003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9A7000052C00000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
 		9A004392C0000000000000439 /* GoogleService-Info (1).plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info (1).plist"; sourceTree = "<group>"; };
 
 		0D4F7B3D3DCF5B29A3B30953 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Settings/SettingsView.swift; sourceTree = "<group>"; };
@@ -197,6 +199,7 @@
 			files = (
 				9A7000022C00000000000002 /* GoogleService-Info.plist in Resources */,
 				9A7000042C00000000000004 /* Assets.xcassets in Resources */,
+				9A7000062C00000000000006 /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,6 +252,7 @@
 				9A004382C0000000000000438 /* GoogleService-Info.plist */,
 				9A004392C0000000000000439 /* GoogleService-Info (1).plist */,
 				9A7000032C00000000000003 /* Assets.xcassets */,
+				9A7000052C00000000000005 /* Info.plist */,
 
 				0D4F7B3D3DCF5B29A3B30953 /* SettingsView.swift */,
 
@@ -467,17 +471,8 @@ ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 5;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Novios necesita tu ubicación para compartirla con tu pareja.";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Novios necesita tu ubicación en segundo plano para notificar a tu pareja cuando estés cerca.";
-				INFOPLIST_KEY_UIBackgroundModes = location;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Novios necesita acceso al micrófono para grabar y enviar notas de voz a tu pareja.";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Novios necesita acceso a la cámara para tomar y compartir fotos con tu pareja.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Novios necesita acceso a tu galería para enviar fotos y recuerdos a tu pareja.";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Novios/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -495,7 +490,7 @@ ALWAYS_SEARCH_USER_PATHS = NO;
 		9A9000012C00000000000000 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-												SDKROOT = iphoneos;
+													SDKROOT = iphoneos;
 SDKROOT = iphoneos;
 ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -503,17 +498,8 @@ ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 5;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Novios necesita tu ubicación para compartirla con tu pareja.";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Novios necesita tu ubicación en segundo plano para notificar a tu pareja cuando estés cerca.";
-				INFOPLIST_KEY_UIBackgroundModes = location;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Novios necesita acceso al micrófono para grabar y enviar notas de voz a tu pareja.";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Novios necesita acceso a la cámara para tomar y compartir fotos con tu pareja.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Novios necesita acceso a tu galería para enviar fotos y recuerdos a tu pareja.";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Novios/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
