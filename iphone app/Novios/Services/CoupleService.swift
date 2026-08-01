@@ -59,7 +59,7 @@ public class CoupleService: ObservableObject {
     public var todoPath: String { "\(parejaPath)/todo" }
 
     private var coupleListener: ListenerRegistration?
-    private let db = Firestore.firestore()
+    private var db: Firestore? { FirebaseApp.app() != nil ? Firestore.firestore() : nil }
 
     private init() {}
 
@@ -79,6 +79,7 @@ public class CoupleService: ObservableObject {
 
     private func startCoupleListener() {
         coupleListener?.remove()
+        guard let db = db else { return }
         coupleListener = db.document(parejaPath).addSnapshotListener { [weak self] snapshot, _ in
             guard let self = self, let data = snapshot?.data() else { return }
             if let name = data["nombre"] as? String {

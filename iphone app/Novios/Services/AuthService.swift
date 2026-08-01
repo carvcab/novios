@@ -19,7 +19,11 @@ public class AuthService: ObservableObject {
 
     private init() {
         FirebaseRESTService.shared.loadSavedConfig()
-        loadSession()
+        if FirebaseApp.app() != nil {
+            loadSession()
+        } else {
+            isRestoringSession = false
+        }
     }
 
     // MARK: - Sign In (Diego or Yosmari)

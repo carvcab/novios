@@ -8,12 +8,14 @@ public class FirebaseRESTService {
     public var localId: String? { Auth.auth().currentUser?.uid }
     public private(set) var idToken: String?
 
-    private let db = Firestore.firestore()
+    private var db: Firestore? { FirebaseApp.app() != nil ? Firestore.firestore() : nil }
     private var tokenListener: NSObjectProtocol?
 
     private init() {
         loadSavedConfig()
-        listenForAuthChanges()
+        if FirebaseApp.app() != nil {
+            listenForAuthChanges()
+        }
     }
 
     private func listenForAuthChanges() {
@@ -64,12 +66,14 @@ public class FirebaseRESTService {
     // MARK: - Firestore Read
 
     public func firestoreGet(path: String) async throws -> [String: Any]? {
+        guard let db = db else { return nil }
         let doc = try await db.document(path).getDocument()
         guard doc.exists, let data = doc.data() else { return nil }
         return ["fields": encodeRESTFields(data), "name": "\(doc.reference.path)"]
     }
 
     public func firestoreList(path: String) async throws -> [[String: Any]] {
+        guard let db = db else { return [] }
         let snapshot = try await db.collection(path).getDocuments()
         return snapshot.documents.map { doc in
             let data = doc.data()
@@ -81,6 +85,7 @@ public class FirebaseRESTService {
     }
 
     public func firestoreQuery(parent: String, collectionId: String, limit: Int = 150) async throws -> [[String: Any]] {
+        guard let db = db else { return [] }
         let snapshot = try await db.collection(parent).document(collectionId).collection(collectionId)
             .order(by: "timestamp", descending: true)
             .limit(to: limit)
@@ -96,10 +101,12 @@ public class FirebaseRESTService {
     // MARK: - Firestore Write
 
     public func firestoreSet(path: String, fields: [String: Any]) async throws {
+        guard let db = db else { return }
         try await db.document(path).setData(fields, merge: true)
     }
 
     public func firestoreDelete(path: String) async throws {
+        guard let db = db else { return }
         try await db.document(path).delete()
     }
 

@@ -46,7 +46,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     private var motionState = "static"
     private let defaults = UserDefaults.standard
     private let df = ISO8601DateFormatter()
-    private let db = Firestore.firestore()
+    private var db: Firestore? { FirebaseApp.app() != nil ? Firestore.firestore() : nil }
 
     private var myLocationPath: String? {
         guard let uid = AuthService.shared.currentUser?.id else { return nil }
@@ -62,9 +62,6 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     private override init() {
         super.init()
         partnerName = CoupleService.shared.partnerName
-        if UserDefaults.standard.bool(forKey: "location_sharing_enabled") {
-            startSharing()
-        }
     }
 
     private func ensureManager() -> CLLocationManager {
@@ -113,13 +110,13 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     }
 
     private func setOffline() {
-        guard let p = myLocationPath else { return }
-        Task { try? await db.document(p).setData(["isOnline": false, "lastLocationUpdate": df.string(from: Date())], merge: true) }
+        guard let p = myLocationPath, let db = db else { return }
+        Task { try? await db?.document(p).setData(["isOnline": false, "lastLocationUpdate": df.string(from: Date())], merge: true) }
     }
 
     private func setOnline() {
-        guard let p = myLocationPath else { return }
-        Task { try? await db.document(p).setData(["isOnline": true, "lastLocationUpdate": df.string(from: Date())], merge: true) }
+        guard let p = myLocationPath, let db = db else { return }
+        Task { try? await db?.document(p).setData(["isOnline": true, "lastLocationUpdate": df.string(from: Date())], merge: true) }
     }
 
     public func requestPermission() { ensureManager().requestAlwaysAuthorization() }
@@ -141,11 +138,12 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
             "routeDestLng": lng,
             "routeStartTime": df.string(from: Date())
         ]
-        Task { try? await db.document(p).setData(data, merge: true) }
+        guard let db = db else { return }
+        Task { try? await db?.document(p).setData(data, merge: true) }
     }
 
     public func stopRoute() {
-        guard let p = myLocationPath else { return }
+        guard let p = myLocationPath, let db = db else { return }
         isRouting = false
         routeDestination = nil
         routeDestinationLat = nil
@@ -159,7 +157,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
             "routeDestLng": FieldValue.delete(),
             "routeStartTime": FieldValue.delete()
         ]
-        Task { try? await db.document(p).setData(data, merge: true) }
+        Task { try? await db?.document(p).setData(data, merge: true) }
     }
 
     // MARK: - CLLocationManagerDelegate
@@ -249,7 +247,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         if let pr = precision { fields["precision"] = pr }
         if let addr = lastAddress { fields["address"] = addr }
 
-        Task { try? await db.document(p).setData(fields, merge: true) }
+        Task { try? await db?.document(p).setData(fields, merge: true) }
     }
 
     private func updateRouteInFirebase(dist: Double) {
@@ -258,7 +256,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
         for coord in routePolyline.suffix(200) {
             coords.append(["lat": coord.latitude, "lng": coord.longitude])
         }
-        Task { try? await db.document(p).setData([
+        Task { try? await db?.document(p).setData([
             "routePolyline": coords,
             "routeRemainingDist": dist,
             "routeEta": routeEta ?? ""
@@ -270,7 +268,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     private func startPartnerListener() {
         listener?.remove()
         guard let p = partnerLocationPath else { return }
-        listener = db.document(p).addSnapshotListener { [weak self] snapshot, _ in
+        listener = db?.document(p).addSnapshotListener { [weak self] snapshot, _ in
             guard let self = self, let d = snapshot?.data() else { return }
             let ed = { (k: String) -> Double? in d[k] as? Double ?? Double(d[k] as? String ?? "") }
             let newLat = ed("latitude") ?? ed("lat")
@@ -312,7 +310,7 @@ public class LocationService: NSObject, ObservableObject, CLLocationManagerDeleg
     private func startRoutesListener() {
         routesListener?.remove()
         guard let p = partnerLocationPath else { return }
-        routesListener = db.document(p).addSnapshotListener { [weak self] snapshot, _ in
+        routesListener = db?.document(p).addSnapshotListener { [weak self] snapshot, _ in
             guard let self = self, let d = snapshot?.data() else { return }
             let routeActive = d["routeActive"] as? Bool ?? false
             if routeActive {
