@@ -1,158 +1,69 @@
 name: iOS Build
 
 on:
+  push:
+    branches: [master, main]
   workflow_dispatch:
-    inputs:
-      build_id:
-        description: 'Unique build identifier'
-        required: true
-        type: string
-      ios_path:
-        description: 'Path to iOS project'
-        required: false
-        type: string
-        default: 'iphone app'
-      scheme:
-        description: 'Xcode scheme to build (auto-detected if empty)'
-        required: false
-        type: string
-        default: 'Novios'
-      use_signing:
-        description: 'Enable code signing (requires secrets to be configured)'
-        required: false
-        type: boolean
-        default: false
-      configuration:
-        description: 'Build configuration (Debug is faster, Release for production)'
-        required: false
-        type: string
-        default: 'Debug'
 
 jobs:
-  build:
+  build-ios:
     runs-on: macos-latest
-    timeout-minutes: 30
-
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Setup CocoaPods
+        uses: ruby/setup-ruby@v1
         with:
-          submodules: false
+          ruby-version: '3.2'
+          bundler-cache: true
 
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
-
-      - name: Install CocoaPods dependencies
-        env:
-          IOS_PATH: ${{ inputs.ios_path }}
+      - name: Install Pods
         run: |
-          cd "$IOS_PATH"
-          if ! command -v pod &> /dev/null; then
-            gem install cocoapods --no-document
-          fi
-          pod install
+          cd "iphone app"
+          pod install --repo-update
 
-      - name: Prepare llama.cpp headers
-        env:
-          LLAMA_PATH: ${{ inputs.ios_path }}/Novios/llama/llama.cpp
+      - name: Build Archive
         run: |
-          echo "llama.cpp submodule available at ${LLAMA_PATH}"
-          echo "Full library compilation requires macOS with Xcode - skipping for CI"
+          cd "iphone app"
+          xcodebuild archive \
+            -workspace Novios.xcworkspace \
+            -scheme Novios \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -archivePath build_output/Novios.xcarchive \
+            CODE_SIGNING_ALLOWED=NO
 
-      - name: Build IPA
-        env:
-          BUILD_ID: ${{ inputs.build_id }}
-          IOS_PATH: ${{ inputs.ios_path }}
-          SCHEME: ${{ inputs.scheme }}
-          USE_SIGNING: ${{ inputs.use_signing }}
-          CONFIGURATION: ${{ inputs.configuration }}
+      - name: Export IPA (unsigned)
         run: |
-          set -e
-          cd "$IOS_PATH"
-
-          PROJECT=$(find . -maxdepth 1 -name "*.xcodeproj" | head -1)
-          WORKSPACE=$(find . -maxdepth 1 -name "*.xcworkspace" | head -1)
-          echo "Project: $PROJECT"
-          echo "Workspace: $WORKSPACE"
-          echo "Scheme: $SCHEME"
-          echo "Configuration: $CONFIGURATION"
-          echo "Signing: $USE_SIGNING"
-
-          DERIVED_DATA_PATH="${GITHUB_WORKSPACE}/DerivedData"
-
-          if [ -n "$WORKSPACE" ]; then
-            BUILD_CMD="xcodebuild -workspace $WORKSPACE"
+          cd "iphone app"
+          cat > exportOptions.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>development</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string></string>
+          </dict>
+          </plist>
+          EOF
+          # For unsigned Debug export we just zip the app bundle directly
+          mkdir -p build_output/ipa
+          APP_PATH="build_output/Novios.xcarchive/Products/Applications/Novios.app"
+          if [ -d "$APP_PATH" ]; then
+            cd "$(dirname "$APP_PATH")"
+            zip -r "${GITHUB_WORKSPACE}/iphone app/build_output/ipa/Novios.ipa" "Novios.app"
           else
-            BUILD_CMD="xcodebuild -project $PROJECT"
-          fi
-          BUILD_CMD="$BUILD_CMD -scheme $SCHEME"
-          BUILD_CMD="$BUILD_CMD -configuration $CONFIGURATION"
-          BUILD_CMD="$BUILD_CMD -destination 'generic/platform=iOS'"
-          BUILD_CMD="$BUILD_CMD -derivedDataPath $DERIVED_DATA_PATH"
-          BUILD_CMD="$BUILD_CMD COMPILER_INDEX_STORE_ENABLE=NO"
-          BUILD_CMD="$BUILD_CMD DEBUG_INFORMATION_FORMAT=dwarf"
-          BUILD_CMD="$BUILD_CMD ONLY_ACTIVE_ARCH=YES"
-          BUILD_CMD="$BUILD_CMD -quiet"
-
-          if [ "$USE_SIGNING" = "true" ]; then
-            BUILD_CMD="$BUILD_CMD -archivePath ${GITHUB_WORKSPACE}/build/App.xcarchive archive"
-          else
-            BUILD_CMD="$BUILD_CMD CODE_SIGNING_ALLOWED=NO build"
+            echo "App bundle not found at $APP_PATH"
+            exit 1
           fi
 
-          echo "Running: $BUILD_CMD"
-          eval $BUILD_CMD
-
-          if [ "$USE_SIGNING" = "true" ]; then
-            cd "${GITHUB_WORKSPACE}"
-            printf '%s\n' \
-              '<?xml version="1.0" encoding="UTF-8"?>' \
-              '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
-              '<plist version="1.0">' \
-              '<dict>' \
-              '    <key>method</key>' \
-              '    <string>development</string>' \
-              '    <key>signingStyle</key>' \
-              '    <string>automatic</string>' \
-              '</dict>' \
-              '</plist>' > ExportOptions.plist
-            xcodebuild -exportArchive \
-              -archivePath build/App.xcarchive \
-              -exportOptionsPlist ExportOptions.plist \
-              -exportPath build/export
-            mv build/export/*.ipa "build/$BUILD_ID.ipa"
-          else
-            APP_PATH=$(find "$DERIVED_DATA_PATH/Build/Products/${CONFIGURATION}-iphoneos" -name "*.app" -type d | head -1)
-            if [ -z "$APP_PATH" ]; then
-              echo "Error: Could not find .app"
-              exit 1
-            fi
-            echo "Found app at: $APP_PATH"
-            cd "${GITHUB_WORKSPACE}"
-            mkdir -p build/Payload
-            cp -R "$APP_PATH" build/Payload/
-            cd build
-            zip -rq "$BUILD_ID.ipa" Payload
-            rm -rf Payload
-            echo "Created IPA: build/$BUILD_ID.ipa"
-          fi
-
-      - name: Upload IPA artifact
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: ipa
-          path: build/*.ipa
-          retention-days: 7
-          if-no-files-found: error
-          overwrite: true
-
-      - name: Build summary
-        if: always()
-        run: |
-          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Build ID:** ${{ inputs.build_id }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Configuration:** ${{ inputs.configuration }}" >> $GITHUB_STEP_SUMMARY
+          name: Novios-iOS-Debug
+          path: iphone app/build_output/ipa/Novios.ipa
