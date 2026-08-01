@@ -367,7 +367,7 @@ private struct QuizDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 8)
             } else {
-                ForEach(Array(stats.prefix(5)), id: \.self) { stat in
+                ForEach(Array(stats.prefix(5).enumerated()), id: \.offset) { _, stat in
                     HStack {
                         Text(stat["playerName"] as? String ?? "")
                             .appFont(size: 13)
